@@ -22,9 +22,8 @@ final class AuthService {
 
     func signInWithGoogle() async throws { try await signIn(.google) }
 
-    /// 카카오 이메일(account_email) 동의항목은 비즈 앱 전환 후에만 열리므로 요청 scope에서 뺀다.
-    /// 비즈 앱 전환 뒤엔 "account_email"을 추가하고 Supabase Kakao "Allow users without an email"을 끈다.
-    func signInWithKakao() async throws { try await signIn(.kakao, scopes: "profile_nickname profile_image") }
+    /// scope는 카카오 콘솔 동의항목과 정확히 일치해야 한다(불일치 시 invalid_scope). 이메일은 비즈 앱 전환 후 추가됨.
+    func signInWithKakao() async throws { try await signIn(.kakao, scopes: "profile_nickname profile_image account_email") }
 
     func signOut() async throws {
         try await supabase.auth.signOut()
