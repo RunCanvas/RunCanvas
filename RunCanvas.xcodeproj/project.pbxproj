@@ -18,10 +18,23 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		15CF48832E4EF7B5002F5A44 /* RunCanvas */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C0DE0000000000000000C003 /* Exceptions for "RunCanvas" folder in "RunCanvas" target */,
+			);
 			path = RunCanvas;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C0DE0000000000000000C003 /* Exceptions for "RunCanvas" folder in "RunCanvas" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 15CF48802E4EF7B5002F5A44 /* RunCanvas */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		15CF487E2E4EF7B5002F5A44 /* Frameworks */ = {
@@ -277,6 +290,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RunCanvas/Info.plist;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수를 기록하기 위해 건강 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "러닝 기록을 건강 앱에 저장합니다.";
@@ -307,6 +321,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RunCanvas/Info.plist;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수를 기록하기 위해 건강 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "러닝 기록을 건강 앱에 저장합니다.";
