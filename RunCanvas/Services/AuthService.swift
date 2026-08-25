@@ -21,17 +21,21 @@ final class AuthService {
     }
 
     func signInWithGoogle() async throws { try await signIn(.google) }
-    func signInWithKakao() async throws { try await signIn(.kakao) }
+
+    /// 카카오 이메일(account_email) 동의항목은 비즈 앱 전환 후에만 열리므로 요청 scope에서 뺀다.
+    /// 비즈 앱 전환 뒤엔 "account_email"을 추가하고 Supabase Kakao "Allow users without an email"을 끈다.
+    func signInWithKakao() async throws { try await signIn(.kakao, scopes: "profile_nickname profile_image") }
 
     func signOut() async throws {
         try await supabase.auth.signOut()
     }
 
-    private func signIn(_ provider: Provider) async throws {
+    private func signIn(_ provider: Provider, scopes: String? = nil) async throws {
         // ASWebAuthenticationSession이 runcanvas:// 콜백을 잡는다 (Info.plist URL 스킴, Supabase Redirect URL 등록됨)
         _ = try await supabase.auth.signInWithOAuth(
             provider: provider,
-            redirectTo: URL(string: "runcanvas://auth-callback")!
+            redirectTo: URL(string: "runcanvas://auth-callback")!,
+            scopes: scopes
         )
     }
 }
