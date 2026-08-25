@@ -35,3 +35,18 @@ RunCanvas/
 ```
 
 Xcode 동기화 폴더라 Finder에서 폴더·파일을 만들면 프로젝트에 자동 반영됩니다.
+
+## 다른 Apple 계정으로 실기기 빌드 (팀원용)
+
+서명 Team·Bundle ID는 `Config/Base.xcconfig`에 있고, 같은 폴더의 `Local.xcconfig`(gitignore)가 있으면 그 값으로 덮어씁니다. **Xcode의 Signing & Capabilities에서 Team을 직접 바꾸지 마세요** — pbxproj에 기록돼 충돌납니다.
+
+1. Xcode → Settings → Accounts → `+` → 본인 Apple ID 추가 (무료 계정이면 "Personal Team" 생성됨)
+2. 팀 ID 확인: Signing & Capabilities에서 Team을 잠깐 본인 팀으로 바꾼 뒤 터미널에서 `git diff`로 `DEVELOPMENT_TEAM = XXXXXXXXXX` 값을 복사하고, `git checkout -- RunCanvas.xcodeproj/project.pbxproj`로 되돌립니다
+3. `Config/Local.xcconfig` 생성:
+   ```
+   DEVELOPMENT_TEAM = XXXXXXXXXX
+   PRODUCT_BUNDLE_IDENTIFIER = name.<본인이름>.RunCanvas
+   ```
+4. 아이폰 개발자 모드 켜고 연결 → ⌘R → 설정 → 일반 → VPN 및 기기 관리 → 개발자 앱 신뢰
+
+무료 Personal Team은 앱이 7일마다 만료되므로 다시 ⌘R 하면 됩니다. HealthKit은 되지만 App Groups·iCloud·푸시는 유료 계정이 필요합니다.
