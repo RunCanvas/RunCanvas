@@ -6,12 +6,16 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct ProfileView: View {
-    // 저장되는 사용자 정보
+    @Environment(AuthService.self) private var auth
+
+    // 저장되는 사용자 정보 (로컬 캐시 — 서버 원본은 Supabase profiles)
     @AppStorage("userNickname") private var userNickname: String = "다은"
     @AppStorage("userWeight") private var userWeight: Double = 60.0
     @AppStorage("userHeight") private var userHeight: Double = 165.0
+    @AppStorage("avatarURL") private var avatarURL: String = ""
     
     // 러닝 설정
     @AppStorage("targetDistance") private var targetDistance: Double = 5.0
@@ -27,7 +31,9 @@ struct ProfileView: View {
     @State private var targetDistanceText = ""
     @State private var weeklyTargetDistanceText = ""
     
-    @State private var isSaved = false
+    @State private var pickedAvatar: PhotosPickerItem?
+    @State private var isUploadingAvatar = false
+    @State private var statusMessage: String?
     
     var body: some View {
         NavigationStack {
@@ -54,6 +60,10 @@ struct ProfileView: View {
             .onAppear {
                 loadSavedData()
             }
+            .onChange(of: pickedAvatar) { _, item in
+                guard let item else { return }
+                Task { await uploadAvatar(item) }
+            }
         }
     }
     
@@ -62,6 +72,10 @@ struct ProfileView: View {
     private var profileSection: some View {
         ProfileSection(title: "기본 정보") {
             VStack(spacing: 0) {
+                
+                avatarRow
+                
+                Divider()
                 
                 ProfileTextFieldRow(
                     title: "닉네임",
@@ -88,6 +102,43 @@ struct ProfileView: View {
                 )
             }
         }
+    }
+    
+    private var avatarRow: some View {
+        HStack {
+            Text("프로필 사진")
+            
+            Spacer()
+            
+            PhotosPicker(selection: $pickedAvatar, matching: .images) {
+                HStack(spacing: 10) {
+                    Text(isUploadingAvatar ? "업로드 중…" : "변경")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.15))
+                            .frame(width: 44, height: 44)
+                        
+                        if let url = URL(string: avatarURL), !avatarURL.isEmpty {
+                            AsyncImage(url: url) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                ProgressView()
+                            }
+                            .frame(width: 44, height: 44)
+                            .clipShape(Circle())
+                        } else {
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .disabled(isUploadingAvatar)
+        }
+        .padding(.vertical, 10)
     }
     
     // MARK: - 러닝 설정
@@ -154,26 +205,18 @@ struct ProfileView: View {
     private var accountSection: some View {
         VStack(spacing: 12) {
             
-            Button {
-                saveData()
-            } label: {
-                Text("저장")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            PrimaryButton(title: "저장") {
+                Task { await saveData() }
             }
             
-            if isSaved {
-                Text("저장되었습니다.")
+            if let statusMessage {
+                Text(statusMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             
             Button {
-                // 나중에 로그아웃 기능 연결
+                Task { try? await auth.signOut() }   // AppRouter가 세션 변화를 보고 로그인 화면으로
             } label: {
                 Text("로그아웃")
                     .font(.subheadline)
@@ -193,7 +236,8 @@ struct ProfileView: View {
         weeklyTargetDistanceText = String(format: "%.1f", weeklyTargetDistance)
     }
     
-    private func saveData() {
+    /// 로컬(@AppStorage)엔 항상 저장하고, 서버(profiles)엔 닉네임·체중·아바타를 동기화한다.
+    private func saveData() async {
         if !nicknameText.isEmpty {
             userNickname = nicknameText
         }
@@ -214,7 +258,39 @@ struct ProfileView: View {
             weeklyTargetDistance = weeklyTarget
         }
         
-        isSaved = true
+        guard let id = auth.userID else {
+            statusMessage = "저장되었습니다."
+            return
+        }
+        do {
+            try await ProfileService.upsert(
+                Profile(id: id, nickname: userNickname, weightKg: userWeight, avatarURL: avatarURL.isEmpty ? nil : avatarURL)
+            )
+            statusMessage = "저장되었습니다."
+        } catch {
+            statusMessage = "기기에는 저장됐지만 서버 동기화에 실패했어요."
+        }
+    }
+    
+    private func uploadAvatar(_ item: PhotosPickerItem) async {
+        guard let id = auth.userID else { return }
+        isUploadingAvatar = true
+        defer { isUploadingAvatar = false; pickedAvatar = nil }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data),
+                  let thumb = await image.byPreparingThumbnail(ofSize: CGSize(width: 512, height: 512)),
+                  let jpeg = thumb.jpegData(compressionQuality: 0.85) else {
+                statusMessage = "이미지를 읽을 수 없어요."
+                return
+            }
+            let url = try await ProfileService.uploadAvatar(userID: id, jpeg: jpeg)
+            avatarURL = url
+            try await ProfileService.upsert(Profile(id: id, nickname: userNickname, weightKg: userWeight, avatarURL: url))
+            statusMessage = "프로필 사진을 바꿨어요."
+        } catch {
+            statusMessage = "사진 업로드에 실패했어요."
+        }
     }
 }
 
@@ -278,4 +354,5 @@ struct ProfileTextFieldRow: View {
 
 #Preview {
     ProfileView()
+        .environment(AuthService())
 }

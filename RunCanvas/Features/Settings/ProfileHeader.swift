@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProfileHeader: View {
     @AppStorage("userNickname") private var userNickname: String = "다은"
+    @AppStorage("avatarURL") private var avatarURL: String = ""
     
     var body: some View {
         HStack(spacing: 8) {
@@ -24,8 +25,18 @@ struct ProfileHeader: View {
                             .fill(Color.gray.opacity(0.15))
                             .frame(width: 36, height: 36)
                         
-                        Image(systemName: "person.fill")
-                            .foregroundStyle(.secondary)
+                        if let url = URL(string: avatarURL), !avatarURL.isEmpty {
+                            AsyncImage(url: url) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Image(systemName: "person.fill").foregroundStyle(.secondary)
+                            }
+                            .frame(width: 36, height: 36)
+                            .clipShape(Circle())
+                        } else {
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     
                     // 닉네임
@@ -46,4 +57,5 @@ struct ProfileHeader: View {
         ProfileHeader()
             .padding(.horizontal, 24)
     }
+    .environment(AuthService())
 }

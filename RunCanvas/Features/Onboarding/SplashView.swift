@@ -7,9 +7,8 @@
 
 import SwiftUI
 
+/// 세션·프로필 확인 동안 보여주는 정적 화면. 다음 화면 분기는 AppRouter가 한다.
 struct SplashView: View {
-    @State private var showLogin = false
-
     var body: some View {
         ZStack {
             Color.white
@@ -28,17 +27,9 @@ struct SplashView: View {
                     .foregroundStyle(.gray)
             }
         }
-        .fullScreenCover(isPresented: $showLogin) {
-            LoginView()
-        }
-        .task {
-            try? await Task.sleep(for: .seconds(2))
-            showLogin = true
-        }
     }
 }
 
 #Preview {
     SplashView()
 }
-

@@ -178,4 +178,5 @@ struct TabButton: View {
 
 #Preview {
     RunnerHomeView()
+        .environment(AuthService())
 }
