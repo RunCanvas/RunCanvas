@@ -16,6 +16,17 @@ struct ProfileSetupView: View {
     private var weight: Double? { Double(weightText).flatMap { $0 > 0 ? $0 : nil } }
     private var canSave: Bool { !trimmedNickname.isEmpty && height != nil && weight != nil && !isSaving }
 
+    // 입력한 뒤에만 보여주는 필드별 안내 (비어 있을 땐 버튼 비활성으로만)
+    private var nicknameHint: String? {
+        nickname.isEmpty || !trimmedNickname.isEmpty ? nil : "닉네임은 공백만으로 쓸 수 없어요."
+    }
+    private var heightHint: String? {
+        heightText.isEmpty || height != nil ? nil : "키는 0보다 큰 숫자여야 해요."
+    }
+    private var weightHint: String? {
+        weightText.isEmpty || weight != nil ? nil : "체중은 0보다 큰 숫자여야 해요."
+    }
+
     var body: some View {
         VStack(spacing: 24) {
             Text("프로필 설정")
@@ -27,17 +38,29 @@ struct ProfileSetupView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 TextField("닉네임", text: $nickname)
                     .textFieldStyle(.roundedBorder)
-                HStack(spacing: 12) {
-                    TextField("키 (cm)", text: $heightText)
-                        .textFieldStyle(.roundedBorder)
-                        .keyboardType(.decimalPad)
-                    TextField("체중 (kg)", text: $weightText)
-                        .textFieldStyle(.roundedBorder)
-                        .keyboardType(.decimalPad)
+                fieldHint(nicknameHint)
+
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("키 (cm)", text: $heightText)
+                            .textFieldStyle(.roundedBorder)
+                            .keyboardType(.decimalPad)
+                        fieldHint(heightHint)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("체중 (kg)", text: $weightText)
+                            .textFieldStyle(.roundedBorder)
+                            .keyboardType(.decimalPad)
+                        fieldHint(weightHint)
+                    }
                 }
+
+                Text("닉네임은 공백만으로는 안 되고, 키와 체중은 0보다 커야 해요.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if let errorMessage {
@@ -54,6 +77,15 @@ struct ProfileSetupView: View {
             Spacer()
         }
         .padding(.horizontal, 24)
+    }
+
+    @ViewBuilder
+    private func fieldHint(_ text: String?) -> some View {
+        if let text {
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
     }
 
     private func save() async {
