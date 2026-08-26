@@ -72,3 +72,6 @@ grant execute on function public.delete_own_account() to authenticated;
 -- migration "delete_own_account_v2": 계정 삭제 시 앱이 본인 아바타를 지울 수 있도록
 create policy "avatar delete own folder" on storage.objects
   for delete using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- migration "profiles_height_cm" (2026-08-26): 첫 로그인 시 키 입력
+alter table public.profiles add column if not exists height_cm double precision;

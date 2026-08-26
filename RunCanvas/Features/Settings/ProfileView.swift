@@ -276,7 +276,7 @@ struct ProfileView: View {
         }
         do {
             try await ProfileService.upsert(
-                Profile(id: id, nickname: userNickname, weightKg: userWeight, avatarURL: avatarURL.isEmpty ? nil : avatarURL)
+                Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: avatarURL.isEmpty ? nil : avatarURL)
             )
             statusMessage = "저장되었습니다."
         } catch {
@@ -306,7 +306,7 @@ struct ProfileView: View {
             }
             let url = try await ProfileService.uploadAvatar(userID: id, jpeg: jpeg)
             avatarURL = url
-            try await ProfileService.upsert(Profile(id: id, nickname: userNickname, weightKg: userWeight, avatarURL: url))
+            try await ProfileService.upsert(Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: url))
             statusMessage = "프로필 사진을 바꿨어요."
         } catch {
             statusMessage = "사진 업로드에 실패했어요."

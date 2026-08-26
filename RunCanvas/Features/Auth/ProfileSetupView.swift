@@ -1,16 +1,20 @@
 import SwiftUI
 
-/// 첫 로그인 후 한 번: 닉네임·체중(칼로리 계산용) → profiles 행 생성
+/// 첫 로그인 후 한 번: 닉네임·키·체중(칼로리 계산용) → profiles 행 생성
 struct ProfileSetupView: View {
     @Environment(AuthService.self) private var auth
     let onDone: () -> Void
 
     @State private var nickname = ""
-    @State private var weightText = "60"
+    @State private var heightText = ""
+    @State private var weightText = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
 
     private var trimmedNickname: String { nickname.trimmingCharacters(in: .whitespaces) }
+    private var height: Double? { Double(heightText).flatMap { $0 > 0 ? $0 : nil } }
+    private var weight: Double? { Double(weightText).flatMap { $0 > 0 ? $0 : nil } }
+    private var canSave: Bool { !trimmedNickname.isEmpty && height != nil && weight != nil && !isSaving }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -18,7 +22,7 @@ struct ProfileSetupView: View {
                 .font(.system(size: 30, weight: .bold))
                 .padding(.top, 40)
 
-            Text("러닝 기록에 쓸 닉네임과 칼로리 계산용 체중을 알려주세요.")
+            Text("러닝 기록에 쓸 닉네임과 칼로리 계산에 필요한 키·체중을 알려주세요.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -26,9 +30,14 @@ struct ProfileSetupView: View {
             VStack(spacing: 16) {
                 TextField("닉네임", text: $nickname)
                     .textFieldStyle(.roundedBorder)
-                TextField("체중 (kg)", text: $weightText)
-                    .textFieldStyle(.roundedBorder)
-                    .keyboardType(.decimalPad)
+                HStack(spacing: 12) {
+                    TextField("키 (cm)", text: $heightText)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.decimalPad)
+                    TextField("체중 (kg)", text: $weightText)
+                        .textFieldStyle(.roundedBorder)
+                        .keyboardType(.decimalPad)
+                }
             }
 
             if let errorMessage {
@@ -40,7 +49,7 @@ struct ProfileSetupView: View {
             PrimaryButton(title: isSaving ? "저장 중…" : "시작하기") {
                 Task { await save() }
             }
-            .disabled(trimmedNickname.isEmpty || isSaving)
+            .disabled(!canSave)
 
             Spacer()
         }
@@ -51,7 +60,7 @@ struct ProfileSetupView: View {
         guard let id = auth.userID else { return }
         isSaving = true
         defer { isSaving = false }
-        let profile = Profile(id: id, nickname: trimmedNickname, weightKg: Double(weightText), avatarURL: nil)
+        let profile = Profile(id: id, nickname: trimmedNickname, weightKg: weight, heightCm: height, avatarURL: nil)
         do {
             try await ProfileService.upsert(profile)
             profile.cacheLocally()
