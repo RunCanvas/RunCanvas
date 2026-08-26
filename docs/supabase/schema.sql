@@ -63,10 +63,12 @@ begin
   if uid is null then
     raise exception 'not authenticated';
   end if;
-  delete from storage.objects
-    where bucket_id = 'avatars' and (storage.foldername(name))[1] = uid::text;
+  -- storage.objects는 직접 삭제 금지(storage.protect_delete 트리거) → 아바타는 클라이언트가 Storage API로 삭제
   delete from auth.users where id = uid;   -- profiles/runs/user_badges는 cascade
 end;
 $$;
 revoke execute on function public.delete_own_account() from public, anon;
 grant execute on function public.delete_own_account() to authenticated;
+-- migration "delete_own_account_v2": 계정 삭제 시 앱이 본인 아바타를 지울 수 있도록
+create policy "avatar delete own folder" on storage.objects
+  for delete using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);

@@ -29,9 +29,13 @@ final class AuthService {
         try await supabase.auth.signOut()
     }
 
-    /// 서버 RPC delete_own_account()가 auth.users 행을 지우면 profiles/runs/user_badges는 cascade, 아바타 파일도 함수 안에서 삭제된다.
-    /// 그 뒤엔 로컬 세션·캐시만 정리한다 (서버 signOut은 사용자가 이미 없어 실패하므로 .local).
+    /// 1) 아바타 파일 삭제(Storage API — DB 함수에서 storage.objects 직접 삭제는 Supabase가 막음)
+    /// 2) RPC delete_own_account()가 auth.users 행 삭제 → profiles/runs/user_badges cascade
+    /// 3) 로컬 세션·캐시 정리 (서버 signOut은 사용자가 이미 없어 실패하므로 .local)
     func deleteAccount() async throws {
+        if let id = userID {
+            _ = try? await supabase.storage.from("avatars").remove(paths: ["\(id.uuidString.lowercased())/avatar.jpg"])
+        }
         try await supabase.rpc("delete_own_account").execute()
         try await supabase.auth.signOut(scope: .local)
         Profile.clearLocalCache()
