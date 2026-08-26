@@ -7,6 +7,8 @@ import Supabase
 @Observable
 final class AuthService {
     private(set) var session: Session?
+    /// 탈퇴 직후 로그인 화면이 안내 알럿을 띄우기 위한 1회성 플래그 (알럿이 닫히며 false로 돌아감)
+    var didDeleteAccount = false
 
     var userID: UUID? { session?.user.id }
     var isSignedIn: Bool { session != nil }
@@ -39,6 +41,7 @@ final class AuthService {
         try await supabase.rpc("delete_own_account").execute()
         try await supabase.auth.signOut(scope: .local)
         Profile.clearLocalCache()
+        didDeleteAccount = true
     }
 
     private func signIn(_ provider: Provider, scopes: String? = nil) async throws {
