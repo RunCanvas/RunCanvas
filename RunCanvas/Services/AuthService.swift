@@ -29,6 +29,14 @@ final class AuthService {
         try await supabase.auth.signOut()
     }
 
+    /// 서버 RPC delete_own_account()가 auth.users 행을 지우면 profiles/runs/user_badges는 cascade, 아바타 파일도 함수 안에서 삭제된다.
+    /// 그 뒤엔 로컬 세션·캐시만 정리한다 (서버 signOut은 사용자가 이미 없어 실패하므로 .local).
+    func deleteAccount() async throws {
+        try await supabase.rpc("delete_own_account").execute()
+        try await supabase.auth.signOut(scope: .local)
+        Profile.clearLocalCache()
+    }
+
     private func signIn(_ provider: Provider, scopes: String? = nil) async throws {
         // ASWebAuthenticationSession이 runcanvas:// 콜백을 잡는다 (Info.plist URL 스킴, Supabase Redirect URL 등록됨)
         _ = try await supabase.auth.signInWithOAuth(

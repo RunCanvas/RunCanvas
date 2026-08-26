@@ -49,3 +49,24 @@ create policy "avatar write own folder" on storage.objects
   for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
 create policy "avatar update own folder" on storage.objects
   for update using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- migration "delete_own_account" (2026-08-26): 본인 계정 삭제 RPC (App Store 5.1.1(v))
+create or replace function public.delete_own_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+  delete from storage.objects
+    where bucket_id = 'avatars' and (storage.foldername(name))[1] = uid::text;
+  delete from auth.users where id = uid;   -- profiles/runs/user_badges는 cascade
+end;
+$$;
+revoke execute on function public.delete_own_account() from public, anon;
+grant execute on function public.delete_own_account() to authenticated;

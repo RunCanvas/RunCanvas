@@ -20,4 +20,9 @@ struct Profile: Codable, Identifiable, Equatable {
         if let weightKg { defaults.set(weightKg, forKey: "userWeight") }
         defaults.set(avatarURL ?? "", forKey: "avatarURL")
     }
+
+    static func clearLocalCache() {
+        let defaults = UserDefaults.standard
+        ["userNickname", "userWeight", "avatarURL"].forEach { defaults.removeObject(forKey: $0) }
+    }
 }
