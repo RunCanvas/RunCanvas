@@ -14,6 +14,7 @@ struct LoginView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        @Bindable var auth = auth
         VStack(spacing: 24) {
             Spacer()
 
@@ -48,6 +49,11 @@ struct LoginView: View {
                 .frame(height: 40)
         }
         .padding(.horizontal, 24)
+        .alert("회원 탈퇴가 완료되었습니다", isPresented: $auth.didDeleteAccount) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text("계정과 러닝 기록이 모두 삭제되었습니다. 그동안 이용해 주셔서 감사합니다.")
+        }
     }
 
     private func signIn(_ action: @escaping @MainActor () async throws -> Void) {

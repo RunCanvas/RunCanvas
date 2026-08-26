@@ -7,6 +7,8 @@ import Supabase
 @Observable
 final class AuthService {
     private(set) var session: Session?
+    /// 탈퇴 직후 로그인 화면이 안내 알럿을 띄우기 위한 1회성 플래그 (알럿이 닫히며 false로 돌아감)
+    var didDeleteAccount = false
 
     var userID: UUID? { session?.user.id }
     var isSignedIn: Bool { session != nil }
@@ -27,6 +29,19 @@ final class AuthService {
 
     func signOut() async throws {
         try await supabase.auth.signOut()
+    }
+
+    /// 1) 아바타 파일 삭제(Storage API — DB 함수에서 storage.objects 직접 삭제는 Supabase가 막음)
+    /// 2) RPC delete_own_account()가 auth.users 행 삭제 → profiles/runs/user_badges cascade
+    /// 3) 로컬 세션·캐시 정리 (서버 signOut은 사용자가 이미 없어 실패하므로 .local)
+    func deleteAccount() async throws {
+        if let id = userID {
+            _ = try? await supabase.storage.from("avatars").remove(paths: ["\(id.uuidString.lowercased())/avatar.jpg"])
+        }
+        try await supabase.rpc("delete_own_account").execute()
+        try await supabase.auth.signOut(scope: .local)
+        Profile.clearLocalCache()
+        didDeleteAccount = true
     }
 
     private func signIn(_ provider: Provider, scopes: String? = nil) async throws {

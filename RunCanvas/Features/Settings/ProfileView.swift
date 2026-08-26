@@ -34,6 +34,7 @@ struct ProfileView: View {
     @State private var pickedAvatar: PhotosPickerItem?
     @State private var isUploadingAvatar = false
     @State private var statusMessage: String?
+    @State private var isConfirmingDelete = false
     
     var body: some View {
         NavigationStack {
@@ -223,6 +224,17 @@ struct ProfileView: View {
                     .foregroundStyle(.red)
             }
             .padding(.top, 8)
+
+            Button("계정 삭제") { isConfirmingDelete = true }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+                .confirmationDialog("계정을 삭제할까요?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+                    Button("계정 삭제", role: .destructive) { Task { await deleteAccount() } }
+                    Button("취소", role: .cancel) {}
+                } message: {
+                    Text("프로필과 러닝 기록이 모두 삭제되며 되돌릴 수 없습니다.")
+                }
         }
     }
     
@@ -264,7 +276,7 @@ struct ProfileView: View {
         }
         do {
             try await ProfileService.upsert(
-                Profile(id: id, nickname: userNickname, weightKg: userWeight, avatarURL: avatarURL.isEmpty ? nil : avatarURL)
+                Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: avatarURL.isEmpty ? nil : avatarURL)
             )
             statusMessage = "저장되었습니다."
         } catch {
@@ -272,6 +284,14 @@ struct ProfileView: View {
         }
     }
     
+    private func deleteAccount() async {
+        do {
+            try await auth.deleteAccount()   // 성공하면 AppRouter가 세션 변화를 보고 로그인 화면으로
+        } catch {
+            statusMessage = "계정 삭제에 실패했어요. 네트워크를 확인해 주세요."
+        }
+    }
+
     private func uploadAvatar(_ item: PhotosPickerItem) async {
         guard let id = auth.userID else { return }
         isUploadingAvatar = true
@@ -286,7 +306,7 @@ struct ProfileView: View {
             }
             let url = try await ProfileService.uploadAvatar(userID: id, jpeg: jpeg)
             avatarURL = url
-            try await ProfileService.upsert(Profile(id: id, nickname: userNickname, weightKg: userWeight, avatarURL: url))
+            try await ProfileService.upsert(Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: url))
             statusMessage = "프로필 사진을 바꿨어요."
         } catch {
             statusMessage = "사진 업로드에 실패했어요."
