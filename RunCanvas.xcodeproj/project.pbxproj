@@ -22,9 +22,19 @@
 
 /* Begin PBXFileReference section */
 		15CF48812E4EF7B5002F5A44 /* RunCanvas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RunCanvas.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C0DE0000000000000000C001 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		C0DE00000000000000000101 /* RunCanvasTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunCanvasTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0DE0000000000000000C001 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C0DE0000000000000000C003 /* Exceptions for "RunCanvas" folder in "RunCanvas" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 15CF48802E4EF7B5002F5A44 /* RunCanvas */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		15CF48832E4EF7B5002F5A44 /* RunCanvas */ = {
@@ -41,16 +51,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		C0DE0000000000000000C003 /* Exceptions for "RunCanvas" folder in "RunCanvas" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 15CF48802E4EF7B5002F5A44 /* RunCanvas */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		15CF487E2E4EF7B5002F5A44 /* Frameworks */ = {
@@ -366,9 +366,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RunCanvas/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수를 기록하기 위해 건강 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "러닝 기록을 건강 앱에 저장합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -397,9 +397,9 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RunCanvas/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수를 기록하기 위해 건강 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "러닝 기록을 건강 앱에 저장합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

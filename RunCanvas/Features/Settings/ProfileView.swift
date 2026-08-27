@@ -61,9 +61,20 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 24)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .dismissKeyboardOnTap()
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("프로필")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("완료") { hideKeyboard() }
+                        .fontWeight(.semibold)
+                }
+            }
             .onAppear {
                 loadSavedData()
                 Task { await auth.refreshIdentities() }
