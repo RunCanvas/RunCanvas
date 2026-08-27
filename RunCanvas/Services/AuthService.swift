@@ -12,8 +12,15 @@ final class AuthService {
     /// 탈퇴 직후 로그인 화면이 안내 알럿을 띄우기 위한 1회성 플래그 (알럿이 닫히며 false로 돌아감)
     var didDeleteAccount = false
 
+    #if DEBUG
+    /// UI 테스트 전용: 런치 인자 `-uiTestSkipLogin`이면 AppRouter가 고정 계정으로 세팅한다 (릴리즈 빌드엔 없음)
+    var debugUserID: UUID?
+    var userID: UUID? { debugUserID ?? session?.user.id }
+    var isSignedIn: Bool { debugUserID != nil || session != nil }
+    #else
     var userID: UUID? { session?.user.id }
     var isSignedIn: Bool { session != nil }
+    #endif
 
     private static let redirectURL = URL(string: "runcanvas://auth-callback")!
     /// 카카오 콘솔 동의항목과 정확히 일치해야 한다(불일치 시 invalid_scope). 이메일은 비즈 앱 전환 후 추가됨.
