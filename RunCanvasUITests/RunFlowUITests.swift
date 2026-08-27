@@ -15,6 +15,10 @@ final class RunFlowUITests: XCTestCase {
         // 홈 → 러닝 시작
         let start = app.buttons["러닝 시작"]
         XCTAssertTrue(start.waitForExistence(timeout: 10), "홈에 러닝 시작 버튼이 없음")
+
+        // 시작 전에 시뮬레이터 위치를 서울숲으로 (기본값 쿠퍼티노 → 첫 점 튐 방지)
+        let base = (lat: 37.5445, lon: 127.0374)
+        XCUIDevice.shared.location = XCUILocation(location: CLLocation(latitude: base.lat, longitude: base.lon))
         start.tap()
 
         // 위치 권한 알럿 (영문/한글 시뮬레이터 모두)
@@ -25,12 +29,11 @@ final class RunFlowUITests: XCTestCase {
         // 러닝 중 화면
         XCTAssertTrue(app.staticTexts["거리"].waitForExistence(timeout: 5))
 
-        // 서울숲 근처를 약 600m 이동 (5m 간격 필터를 넘도록 20m씩)
-        let base = (lat: 37.5445, lon: 127.0374)
-        for i in 0..<30 {
-            let loc = CLLocation(latitude: base.lat + Double(i) * 0.00018, longitude: base.lon)
+        // 약 320m 이동: 1초마다 7.8m (러닝으로 가능한 속도 — LocationService.maxSpeed 12m/s 아래)
+        for i in 1..<42 {
+            let loc = CLLocation(latitude: base.lat + Double(i) * 0.00007, longitude: base.lon)
             XCUIDevice.shared.location = XCUILocation(location: loc)
-            Thread.sleep(forTimeInterval: 0.4)
+            Thread.sleep(forTimeInterval: 1.0)
         }
 
         // 종료 → 결과
@@ -43,6 +46,7 @@ final class RunFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '새 뱃지'")).firstMatch.waitForExistence(timeout: 3), "새 뱃지 토스트가 안 뜸")
 
         XCTAssertTrue(app.staticTexts["km"].exists)
+        attachScreenshot(app, name: "run_result")
 
         // 거리 값이 0이 아닌지 (결과 화면의 큰 숫자)
         let distanceTexts = app.staticTexts.matching(NSPredicate(format: "label MATCHES '\\\\d+\\\\.\\\\d{2}'"))
@@ -54,5 +58,19 @@ final class RunFlowUITests: XCTestCase {
         app.buttons["홈으로"].tap()
         XCTAssertTrue(app.staticTexts["최근 러닝"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS ' km'")).firstMatch.exists)
+        attachScreenshot(app, name: "home_after_run")
+
+        // 최근 러닝 → 상세 (지도)
+        app.staticTexts.matching(NSPredicate(format: "label CONTAINS ' km'")).firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["러닝 상세"].waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 2)   // 지도 타일 로딩
+        attachScreenshot(app, name: "run_detail")
+    }
+
+    private func attachScreenshot(_ app: XCUIApplication, name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }
