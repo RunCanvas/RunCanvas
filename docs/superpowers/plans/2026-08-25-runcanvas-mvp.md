@@ -38,13 +38,13 @@
 | F4 | 기록 저장 — 거리/시간/페이스/칼로리 계산 | 러닝 종료 | **완료** — `Run`(SwiftData, `ownerID`), `RunMath` |
 | F5 | 러닝 상세 — 지도 경로 + 수치 | 러닝 상세 | **완료** — `RunResultView`/`RunDetailView`, NRC 스타일 `RouteMapView` |
 | F6 | 심박수 (HealthKit, 워치가 기록한 값) | 러닝 중 BPM | **남음 → Phase 3** (`RunSession.heartRate`·`Run.averageHeartRate` 자리만 있음) |
-| F7 | 나의 기록 — 목록, 주/월/년 통계, 그래프 | 나의 기록 | **남음 → Phase 4** (`RunStatsView` 하드코딩) |
-| F8 | 홈 — 최신 기록 카드, 배경 지도+현재 위치, Run Start | 홈 | **반쯤** — 오늘 거리·최근 3개 실데이터 완료, 배경 지도는 Phase 4 |
+| F7 | 나의 기록 — 목록, 주/월/년 통계, 그래프 | 나의 기록 | **완료** — `RunStatsView`(Swift Charts) + `RunListView`, `StatsEngine` |
+| F8 | 홈 — 최신 기록 카드, 배경 지도+현재 위치, Run Start | 홈 | **완료** — 오늘 거리 + 현재 위치 지도 카드, 최근 3개, 전체 보기 |
 | F9 | 러닝 레벨/뱃지 부여 | 프로필 | **완료** — 레벨 7단계, 뱃지 19종(일러스트), 로컬 챌린지 4개, 획득 토스트 |
 | F10 | 런꾸 — 배경 이미지 선택 → 기록 선택 → 스티커 편집 → 저장/공유 | 런꾸 1~4 | **남음 → Phase 6** (`RunDecorateView` 껍데기) |
 | F11 | 기록 이미지 저장 및 공유 | 런꾸 4 | **남음 → Phase 6** |
 | F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS 기본 음성, 음악 덕킹), 설정에서 켬/끔·간격 |
-| — | 서버 동기화 · TestFlight | — | **남음 → Phase 7** |
+| — | 서버 동기화 · TestFlight | — | 동기화 **완료**(7.1) · 출시 준비 **남음 → Phase 7.2** |
 
 ### MVP 2.0 (이 플랜 범위 밖, 스키마만 대비)
 
@@ -66,15 +66,15 @@
 ```
 RunCanvas/
 ├── App/            RunCanvasApp, RootTabView, AppRouter(스플래시→로그인/프로필설정/탭, DEBUG 테스트 계정)
-├── Models/         Run(@Model, ownerID), RoutePoint, Profile, Badge, Level, Challenge, ✱Sticker, ✱RunDTO
+├── Models/         Run(@Model, ownerID), RoutePoint, RunDTO(+UserBadgeDTO), Profile, Badge, Level, Challenge, ✱Sticker
 ├── Services/       Supabase, AuthService, ProfileService, LocationService, RunMath,
-│                   BadgeEngine, BadgeStore, ChallengeEngine, VoiceCoach(+VoiceCue), ✱HealthService, ✱SyncService
+│                   BadgeEngine, BadgeStore, ChallengeEngine, VoiceCoach(+VoiceCue), SyncService, ✱HealthService
 ├── Features/
 │   ├── Onboarding/ SplashView
 │   ├── Auth/       LoginView, ProfileSetupView
-│   ├── Home/       RunnerHomeView(HomeContent @Query, RunHistoryRow)
+│   ├── Home/       RunnerHomeView(HomeContent @Query, 현재 위치 지도 카드, RunHistoryRow)
 │   ├── Running/    RunView, RunSession, RunResultView, RunDetailView, RouteMapView(PaceSegment)
-│   ├── Records/    RunStatsView(하드코딩) → ✱StatsEngine, ✱RunListView
+│   ├── Records/    RunStatsView(Swift Charts), RunListView, StatsEngine
 │   ├── Canvas/     RunDecorateView(껍데기) → ✱CanvasFlowView, BackgroundPickerView, RunPickerView,
 │   │               StickerEditorView, StickerCanvas, CanvasExportView
 │   ├── Badges/     BadgesView(LevelCard·ChallengeRow·BestTile·BadgeCell·BadgeArt), BadgeEarnedToast
@@ -84,8 +84,8 @@ RunCanvas/
 ├── Info.plist      (배열 키 전용: UIBackgroundModes location, runcanvas:// 스킴, 사진 추가 권한)
 └── RunCanvas.entitlements  applesignin, healthkit
 RunCanvasTests/     RunMathTests, RunSessionTests, LocationServiceTests, BadgeEngineTests(+LevelTests),
-                    ChallengeTests(+BadgeStoreTests), ProfileTests  — 34개
-RunCanvasUITests/   RunFlowUITests(러닝 E2E + 스크린샷), BadgesScreenUITests
+                    ChallengeTests(+BadgeStoreTests), ProfileTests, StatsEngineTests, VoiceCoachTests, RunDTOTests — 46개
+RunCanvasUITests/   RunFlowUITests(러닝 E2E + 스크린샷), BadgesScreenUITests, RecordsScreenUITests, VoiceSettingsUITests
 docs/               supabase/schema.sql, design/badge-illustration-prompts.md, superpowers/plans/(이 문서)
 Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 ```
@@ -99,15 +99,15 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 | 2 | 로그인·프로필 (Supabase Auth/Storage) | 0 | 동하 | ✅ PR #8~#14 |
 | 5 | 레벨/뱃지 + 로컬 챌린지 | 1 | Claude | ✅ PR #15·#16 |
 | 3 | HealthKit 심박 + 워크아웃 저장 | 1 | 다은 | 남음 |
-| 4 | 나의 기록 통계·홈 지도 | 1 | 미정 (동하/Claude 또는 다은) | 남음 |
+| 4 | 나의 기록 통계·홈 지도 | 1 | Claude | ✅ PR #18 |
 | 6 | 런꾸 + 이미지 저장/공유 | 1 | 미정 (동하/Claude 또는 다은) | 남음 |
-| 7 | 서버 동기화 + 출시 준비 (TestFlight) | 1, 2 | 동하 | 남음 |
+| 7 | 서버 동기화(7.1) + 출시 준비(7.2, TestFlight) | 1, 2 | 동하 | 7.1 ✅ PR #20 · 7.2 남음 |
 
-3·4·6은 서로 파일이 안 겹쳐 병렬 가능. 7은 마지막. 각 Phase = PR 1~3개.
+3·6은 서로 파일이 안 겹쳐 병렬 가능. 7.2는 마지막. 각 Phase = PR 1~3개.
 
 ---
 
-## 완료된 Phase 요약 (0 · 1 · 2 · 5)
+## 완료된 Phase 요약 (0 · 1 · 2 · 4 · 5 · 7.1)
 
 원래 플랜과 달라진 점만 적는다. 코드가 문서이므로 세부 단계는 제거했다.
 
@@ -130,7 +130,17 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 화면: `AppRouter`, `LoginView`, `ProfileSetupView`(검증·포커스·키보드 툴바), `SettingsView`(인셋 그룹: 프로필 카드→`ProfileEditView`, 레벨과 뱃지, 러닝/앱 설정, 연결된 계정, 계정), `Components/Keyboard.swift`, `AppleSignInButton`+`AppleAuthorizer`.
 - 외부 설정: Google OAuth(Testing, 테스트 사용자 2명), Kakao 비즈 앱(이메일 동의), Apple Services ID·Supabase Apple 패널.
 
-### 음성 안내 (PR feature/voice-coach, 플랜 외 추가)
+### Phase 4 — 나의 기록·홈 (PR #18)
+- `Features/Records/StatsEngine.swift`(순수 함수): `Period` 주/월/년, `summary`(합계·횟수·시간·평균 페이스), `buckets`(요일 7·일별·월 12, 빈 구간 0). 요일 라벨은 한글 고정 — 영어 로케일의 T/S 중복 라벨을 Swift Charts가 한 막대로 합치는 버그 회피.
+- `RunStatsView`: 다은 레이아웃 유지 + `@Query(ownerID)`, 전체 기록 카드 4개, 기간 세그먼트 + `Chart(BarMark)`, 주간 목표(설정 `weeklyTargetDistance`) 진행, 최근 3개·전체 보기. `RunListView`: 전체 목록 + 스와이프 삭제(뱃지 유지).
+- 홈: "오늘의 러닝" 카드 배경에 `Map(.userLocation)` + `UserAnnotation`(권한 요청은 러닝 화면에서만), 전체 보기, 러닝 시작 버튼 다크 모드 수정. 안 쓰던 `HomeView`/`RecordsView` 삭제.
+
+### Phase 7.1 — 동기화 (PR #20)
+- `Models/RunDTO.swift`(`runs` 컬럼 1:1, ISO 8601 문자열, route jsonb) + `UserBadgeDTO`. `Services/SyncService.pushPending(context:ownerID:)`: `syncedAt == nil` 기록 upsert → 성공 시 `syncedAt`, 뱃지 upsert. 실패는 조용히, 다음 기회 재시도.
+- 호출: `AppRouter.syncIfPossible()`(로그인 로드 뒤 + `scenePhase == .active`), `RunResultView.task`. `AuthService.canSync`(실제 세션만, UI 테스트 계정 제외).
+- 서버 드라이런(동하 계정 RLS)으로 삽입·중복 upsert·뱃지 확인.
+
+### 음성 안내 (PR #19, 플랜 외 추가)
 - `Services/VoiceCoach.swift`: `AVSpeechSynthesizer`(ko-KR 기본 음성) + 오디오 세션 `.playback/.spokenAudio` + `duckOthers`(안내 중 음악 작아짐, 끝나면 복구), 설정 키 `voiceGuideEnabled/voiceGuideIntervalMeters`. `VoiceCue`는 문장 생성 순수 함수.
 - `RunSession(coach:)`: 시작·일시정지·재개·종료 한 마디 + 설정 간격(500m/1km/2km)마다 거리·시간·페이스. 매초 틱의 `checkVoiceCue()`.
 - `VoiceSettingsView`(설정 → 러닝 설정 → 음성 안내): 켬/끔, 간격(500m/1km/2km), 미리 듣기. `Info.plist` UIBackgroundModes에 `audio` 추가.
@@ -167,9 +177,9 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 
 ---
 
-## Phase 4 — 나의 기록·홈 (태스크 레벨)
+## Phase 4 — 나의 기록·홈 — ✅ 완료 (PR #18, 위 요약 참고. 아래는 원래 태스크)
 
-브랜치: `feature/records`. 담당 미정. 현재 `RunStatsView`(218줄)는 하드코딩 카드(전체 기록·이번 주·최근 기록) — 레이아웃은 유지하고 데이터만 실데이터로 바꾼다.
+브랜치: `feature/records`. 현재 `RunStatsView`(218줄)는 하드코딩 카드(전체 기록·이번 주·최근 기록) — 레이아웃은 유지하고 데이터만 실데이터로 바꾼다.
 
 참고 패턴: 계정 기록 조회는 `RunnerHomeView.swift`의 `HomeContent`처럼 `init(ownerID: UUID?)`에서 `_runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)`. `ownerID`는 `@Environment(AuthService.self) auth.userID`. 포맷은 `RunMath.formatKm/formatDuration/formatPace`. 최장 거리·최고 페이스·연속일은 `BadgeEngine.personalBests`/`longestDailyStreak`가 이미 계산한다.
 
@@ -221,9 +231,9 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 
 ## Phase 7 — 동기화 + 출시 준비 (태스크 레벨)
 
-브랜치: `feature/sync`. 담당 동하. 의존: Phase 1·2 (완료). 3·4·6 머지 뒤 마지막에.
+담당 동하. 7.1은 ✅ 완료(PR #20, `feature/sync`). 7.2는 3·6 머지 뒤 마지막에 (`release/1.0` 브랜치).
 
-### Task 7.1: SyncService
+### Task 7.1: SyncService — ✅ 완료
 - Create `Models/RunDTO.swift`: `runs` 테이블 컬럼과 1:1 `Codable` — `id, user_id, started_at, ended_at, distance_m, moving_s, avg_hr, max_hr, calories, route`(`[["lat":..,"lon":..,"t":..]]`, ISO8601). `init(run: Run)`(`user_id = run.ownerID`).
 - Create `Services/SyncService.swift`: `static func pushPending(context: ModelContext, ownerID: UUID) async` — `FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == ownerID && $0.syncedAt == nil })` → `supabase.from("runs").upsert(dtos).execute()` → 성공한 것만 `syncedAt = .now`. 뱃지는 `BadgeStore.earnedDates(for: ownerID)` → `user_badges` upsert(`badge = rawValue, earned_at`).
 - 호출 시점: `RunResultView` 등장 시, `RunCanvasApp`의 `scenePhase == .active`. 오프라인이면 조용히 실패(다음 기회에 재시도). 로그인 안 됐거나 DEBUG 테스트 계정이면 스킵.
