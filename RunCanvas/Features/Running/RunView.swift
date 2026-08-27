@@ -16,7 +16,7 @@ struct RunView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @AppStorage("userWeight") private var userWeight: Double = 60
-    @State private var session = RunSession()
+    @State private var session = RunSession(coach: VoiceCoach())
     @State private var finishedRun: Run?
 
     var body: some View {

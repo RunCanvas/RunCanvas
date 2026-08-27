@@ -14,6 +14,7 @@ struct SettingsView: View {
     // 러닝 설정
     @AppStorage("targetDistance") private var targetDistance: Double = 5.0
     @AppStorage("weeklyTargetDistance") private var weeklyTargetDistance: Double = 20.0
+    @AppStorage(VoiceCoach.Keys.enabled) private var voiceGuideEnabled = true
 
     // 앱 설정
     @AppStorage("isNotificationEnabled") private var isNotificationEnabled: Bool = true
@@ -101,10 +102,17 @@ struct SettingsView: View {
         Section {
             numberRow("1회 목표 거리", text: $targetDistanceText, unit: "km")
             numberRow("주간 목표 거리", text: $weeklyTargetDistanceText, unit: "km")
+            NavigationLink {
+                VoiceSettingsView()
+            } label: {
+                LabeledContent("음성 안내") {
+                    Text(voiceGuideEnabled ? "켬" : "끔")
+                }
+            }
         } header: {
             Text("러닝 설정")
         } footer: {
-            Text("목표는 홈과 기록 화면의 진행률에 쓰여요.")
+            Text("목표는 홈과 기록 화면의 진행률에 쓰여요. 음성 안내는 달리는 동안 거리·시간·페이스를 읽어줘요.")
         }
     }
 
