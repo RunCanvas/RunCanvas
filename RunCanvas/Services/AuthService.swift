@@ -27,6 +27,14 @@ final class AuthService {
     /// scope는 카카오 콘솔 동의항목과 정확히 일치해야 한다(불일치 시 invalid_scope). 이메일은 비즈 앱 전환 후 추가됨.
     func signInWithKakao() async throws { try await signIn(.kakao, scopes: "profile_nickname profile_image account_email") }
 
+    /// 네이티브 Sign in with Apple: SignInWithAppleButton이 받은 identityToken + 요청 때 쓴 원본 nonce.
+    /// (버튼의 request.nonce에는 sha256(rawNonce)를 넣고, 여기엔 rawNonce를 넘긴다.)
+    func signInWithApple(idToken: String, rawNonce: String) async throws {
+        _ = try await supabase.auth.signInWithIdToken(
+            credentials: .init(provider: .apple, idToken: idToken, nonce: rawNonce)
+        )
+    }
+
     func signOut() async throws {
         try await supabase.auth.signOut()
     }
