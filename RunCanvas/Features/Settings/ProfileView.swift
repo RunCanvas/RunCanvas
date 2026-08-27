@@ -303,38 +303,59 @@ struct ProfileView: View {
     // MARK: - 계정
 
     private var accountSection: some View {
-        VStack(spacing: 12) {
-
-            PrimaryButton(title: "저장") {
-                Task { await saveData() }
-            }
-
-            if let statusMessage {
-                Text(statusMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button {
-                Task { try? await auth.signOut() }   // AppRouter가 세션 변화를 보고 로그인 화면으로
-            } label: {
-                Text("로그아웃")
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-            }
-            .padding(.top, 8)
-
-            Button("계정 삭제") { isConfirmingDelete = true }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
-                .confirmationDialog("계정을 삭제할까요?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
-                    Button("계정 삭제", role: .destructive) { Task { await deleteAccount() } }
-                    Button("취소", role: .cancel) {}
-                } message: {
-                    Text("프로필과 러닝 기록이 모두 삭제되며 되돌릴 수 없습니다.")
+        VStack(spacing: 24) {
+            VStack(spacing: 12) {
+                PrimaryButton(title: "저장") {
+                    Task { await saveData() }
                 }
+
+                if let statusMessage {
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+
+            ProfileSection(title: "계정") {
+                VStack(spacing: 0) {
+                    Button {
+                        Task { try? await auth.signOut() }   // AppRouter가 세션 변화를 보고 로그인 화면으로
+                    } label: {
+                        HStack {
+                            Text("로그아웃")
+                            Spacer()
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.subheadline)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .foregroundStyle(.red)
+                    .padding(.vertical, 14)
+
+                    Divider()
+
+                    Button {
+                        isConfirmingDelete = true
+                    } label: {
+                        HStack {
+                            Text("회원 탈퇴")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 14)
+                    .confirmationDialog("회원 탈퇴할까요?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+                        Button("탈퇴하기", role: .destructive) { Task { await deleteAccount() } }
+                        Button("취소", role: .cancel) {}
+                    } message: {
+                        Text("프로필과 러닝 기록이 모두 삭제되며 되돌릴 수 없습니다.")
+                    }
+                }
+            }
         }
     }
 
