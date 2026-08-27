@@ -62,7 +62,7 @@ struct ProfileView: View {
                 loadSavedData()
             }
             .onChange(of: pickedAvatar) { _, item in
-                guard let item else { return }
+                guard let item, !isUploadingAvatar else { return }   // PhotosPicker가 선택을 두 번 알리는 경우 중복 업로드 방지
                 Task { await uploadAvatar(item) }
             }
         }
