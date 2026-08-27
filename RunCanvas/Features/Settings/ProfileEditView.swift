@@ -26,34 +26,31 @@ struct ProfileEditView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
+        List {
+            Section {
                 avatarPicker
-                    .padding(.top, 8)
-
-                ProfileSection(title: "기본 정보") {
-                    VStack(spacing: 0) {
-                        ProfileTextFieldRow(title: "닉네임", text: $nicknameText, keyboardType: .default)
-                        Divider()
-                        ProfileTextFieldRow(title: "키", text: $heightText, unit: "cm", keyboardType: .decimalPad)
-                        Divider()
-                        ProfileTextFieldRow(title: "체중", text: $weightText, unit: "kg", keyboardType: .decimalPad)
-                    }
-                }
-
-                if let statusMessage {
-                    Text(statusMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-            .dismissKeyboardOnTap()
+
+            Section {
+                LabeledContent("닉네임") {
+                    TextField("입력해 주세요", text: $nicknameText)
+                        .multilineTextAlignment(.trailing)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .foregroundStyle(.primary)
+                }
+                numberRow("키", text: $heightText, unit: "cm")
+                numberRow("체중", text: $weightText, unit: "kg")
+            } header: {
+                Text("기본 정보")
+            } footer: {
+                Text(statusMessage ?? "키와 체중은 칼로리 계산에 쓰여요.")
+            }
         }
+        .listStyle(.insetGrouped)
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
             PrimaryButton(title: isSaving ? "저장 중…" : "저장") {
@@ -64,7 +61,7 @@ struct ProfileEditView: View {
             .opacity(canSave ? 1 : 0.3)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .background(.background)
+            .background(.bar)
         }
         .navigationTitle("프로필 편집")
         .navigationBarTitleDisplayMode(.inline)
@@ -77,8 +74,8 @@ struct ProfileEditView: View {
         }
         .onAppear {
             nicknameText = userNickname
-            weightText = String(format: "%.1f", userWeight)
-            heightText = String(format: "%.1f", userHeight)
+            weightText = formatted(userWeight)
+            heightText = formatted(userHeight)
         }
         .onChange(of: pickedAvatar) { _, item in
             guard let item, !isUploadingAvatar else { return }   // PhotosPicker가 선택을 두 번 알리는 경우 중복 업로드 방지
@@ -97,14 +94,28 @@ struct ProfileEditView: View {
                         .padding(7)
                         .background(.black)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(.background, lineWidth: 2))
+                        .overlay(Circle().stroke(Color(.systemGroupedBackground), lineWidth: 2))
                 }
                 Text(isUploadingAvatar ? "업로드 중…" : "사진 변경")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+            .padding(.vertical, 8)
         }
         .disabled(isUploadingAvatar)
+    }
+
+    private func numberRow(_ title: String, text: Binding<String>, unit: String) -> some View {
+        LabeledContent(title) {
+            HStack(spacing: 4) {
+                TextField("0", text: text)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(.primary)
+                Text(unit)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     private func save() async {
@@ -147,6 +158,10 @@ struct ProfileEditView: View {
         } catch {
             statusMessage = "사진 업로드에 실패했어요."
         }
+    }
+
+    private func formatted(_ value: Double) -> String {
+        value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
     }
 }
 

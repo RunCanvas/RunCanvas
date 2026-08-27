@@ -8,6 +8,7 @@ struct RootTabView: View {
             Tab("런꾸", systemImage: "photo.on.rectangle") { RunDecorateView() }
             Tab("설정", systemImage: "gearshape") { SettingsView() }
         }
+        .tint(.primary)
     }
 }
 
