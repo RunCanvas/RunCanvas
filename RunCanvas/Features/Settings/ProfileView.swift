@@ -35,6 +35,7 @@ struct ProfileView: View {
     @State private var pickedAvatar: PhotosPickerItem?
     @State private var isUploadingAvatar = false
     @State private var isLinking = false
+    @State private var appleAuthorizer = AppleAuthorizer()
     @State private var statusMessage: String?
     @State private var isConfirmingDelete = false
 
@@ -215,12 +216,10 @@ struct ProfileView: View {
         ProfileSection(title: "연결된 계정") {
             VStack(spacing: 0) {
                 linkedRow(name: "Apple", provider: "apple") {
-                    AppleSignInButton(
-                        onToken: { idToken, nonce in link { try await auth.linkApple(idToken: idToken, rawNonce: nonce) } },
-                        onError: { statusMessage = $0 }
-                    )
-                    .frame(width: 88, height: 32)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    linkButton(systemImage: "apple.logo") {
+                        let (idToken, nonce) = try await appleAuthorizer.authorize()
+                        try await auth.linkApple(idToken: idToken, rawNonce: nonce)
+                    }
                 }
                 Divider()
                 linkedRow(name: "Google", provider: "google") {
@@ -257,8 +256,13 @@ struct ProfileView: View {
         .disabled(isLinking)
     }
 
-    private func linkButton(_ action: @escaping @MainActor () async throws -> Void) -> some View {
-        Button("연결") { link(action) }
+    private func linkButton(systemImage: String? = nil, _ action: @escaping @MainActor () async throws -> Void) -> some View {
+        Button { link(action) } label: {
+            HStack(spacing: 4) {
+                if let systemImage { Image(systemName: systemImage).font(.caption) }
+                Text("연결")
+            }
+        }
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
@@ -277,6 +281,8 @@ struct ProfileView: View {
                 statusMessage = "계정 연결을 변경했어요."
             } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
                 // 사용자가 창을 닫음
+            } catch let error as ASAuthorizationError where error.code == .canceled {
+                // Apple 시트 취소
             } catch {
                 statusMessage = "연결하지 못했어요. 이미 다른 계정에 연결된 로그인 방법이면 그 계정으로 로그인해 주세요."
             }
