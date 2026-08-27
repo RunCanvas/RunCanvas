@@ -7,11 +7,8 @@ struct BadgeEarnedToast: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(Color.primary).frame(width: 48, height: 48)
-                Image(systemName: badges.first?.symbolName ?? "medal.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color(.systemBackground))
+            if let first = badges.first {
+                BadgeArt(badge: first, isEarned: true, size: 48)
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(badges.count == 1 ? "새 뱃지를 땄어요" : "새 뱃지 \(badges.count)개를 땄어요")

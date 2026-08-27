@@ -12,8 +12,15 @@ final class AuthService {
     /// 탈퇴 직후 로그인 화면이 안내 알럿을 띄우기 위한 1회성 플래그 (알럿이 닫히며 false로 돌아감)
     var didDeleteAccount = false
 
+    #if DEBUG
+    /// UI 테스트 전용: 런치 인자 `-uiTestSkipLogin`이면 AppRouter가 고정 계정으로 세팅한다 (릴리즈 빌드엔 없음)
+    var debugUserID: UUID?
+    var userID: UUID? { debugUserID ?? session?.user.id }
+    var isSignedIn: Bool { debugUserID != nil || session != nil }
+    #else
     var userID: UUID? { session?.user.id }
     var isSignedIn: Bool { session != nil }
+    #endif
 
     private static let redirectURL = URL(string: "runcanvas://auth-callback")!
     /// 카카오 콘솔 동의항목과 정확히 일치해야 한다(불일치 시 invalid_scope). 이메일은 비즈 앱 전환 후 추가됨.
@@ -88,13 +95,14 @@ final class AuthService {
     /// 2) RPC delete_own_account()가 auth.users 행 삭제 → profiles/runs/user_badges cascade
     /// 3) 로컬 세션·캐시 정리 (서버 signOut은 사용자가 이미 없어 실패하므로 .local)
     func deleteAccount() async throws {
-        if let id = userID {
+        let id = userID
+        if let id {
             _ = try? await supabase.storage.from("avatars").remove(paths: ["\(id.uuidString.lowercased())/avatar.jpg"])
         }
         try await supabase.rpc("delete_own_account").execute()
         try await supabase.auth.signOut(scope: .local)
         Profile.clearLocalCache()
-        BadgeStore.reset()   // 같은 폰에서 새 계정을 만들 때 옛 뱃지·챌린지 캐시가 남지 않도록
+        if let id { BadgeStore.reset(for: id) }   // 같은 폰에서 새 계정을 만들 때 옛 뱃지·챌린지 캐시가 남지 않도록
         didDeleteAccount = true
     }
 }

@@ -6,156 +6,51 @@
 //
 
 import SwiftUI
+import SwiftData
 
+/// 러닝 종료 직후: 상세 + 새로 딴 뱃지 토스트 + 런꾸/홈 버튼
 struct RunResultView: View {
-    let elapsedTime: Int
-    let totalDistance: Double
-    
-    // 저장된 체중
-    @AppStorage("userWeight") private var userWeight: Double = 60.0
-    
-    private var formattedTime: String {
-        let minutes = elapsedTime / 60
-        let seconds = elapsedTime % 60
-        
-        return String(format: "%02d:%02d", minutes, seconds)
+    let run: Run
+
+    @Environment(\.dismiss) private var dismiss
+    @Query private var ownerRuns: [Run]
+    @State private var newBadges: [Badge] = []
+    @State private var completedChallenges: [Challenge] = []
+
+    init(run: Run) {
+        self.run = run
+        let owner = run.ownerID
+        _ownerRuns = Query(filter: #Predicate<Run> { $0.ownerID == owner })
     }
-    
-    private var formattedDistance: String {
-        String(format: "%.2f", totalDistance / 1000)
-    }
-    
-    // 페이스 표시
-    private var formattedPace: String {
-        let distanceInKm = totalDistance / 1000
-        
-        guard distanceInKm > 0 else {
-            return "--'--\""
-        }
-        
-        let paceInSeconds = Double(elapsedTime) / distanceInKm
-        
-        let minutes = Int(paceInSeconds) / 60
-        let seconds = Int(paceInSeconds) % 60
-        
-        return String(format: "%02d'%02d\"", minutes, seconds)
-    }
-    
-    // 칼로리 계산
-    private var calories: Int {
-        let distanceInKm = totalDistance / 1000
-        
-        let calculatedCalories = userWeight * distanceInKm * 1.036
-        
-        return Int(calculatedCalories.rounded())
-    }
-    
+
     var body: some View {
-        VStack(spacing: 0) {
-            
-            // 상단
-            Text("러닝 완료 🎉")
-                .font(.system(size: 30, weight: .bold))
-                .padding(.top, 40)
-            
-            Spacer()
-            
-            // 거리
-            VStack(spacing: 8) {
-                Text("거리")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                
-                Text(formattedDistance)
-                    .font(.system(size: 64, weight: .bold))
-                
-                Text("km")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Spacer()
-            
-            // 러닝 기록
-            HStack(spacing: 0) {
-                ResultStatView(
-                    title: "시간",
-                    value: formattedTime
-                )
-                
-                Divider()
-                    .frame(height: 50)
-                
-                ResultStatView(
-                    title: "페이스",
-                    value: formattedPace
-                )
-                
-                Divider()
-                    .frame(height: 50)
-                
-                ResultStatView(
-                    title: "칼로리",
-                    value: "\(calories) kcal"
-                )
-            }
-            .padding(.horizontal, 20)
-            
-            Spacer()
-            
-            // 사진 꾸미기 버튼
-            Button {
-                // 나중에 사진 꾸미기 화면 연결
-            } label: {
-                HStack {
-                    Image(systemName: "photo")
-                    Text("사진으로 꾸미기")
+        NavigationStack {
+            VStack(spacing: 0) {
+                Text("러닝 완료").font(.system(size: 30, weight: .bold)).padding(.top, 24)
+                RunDetailView(run: run)
+
+                if !completedChallenges.isEmpty {
+                    Label("챌린지 완료: \(completedChallenges.map(\.title).joined(separator: ", "))", systemImage: "checkmark.seal.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 8)
                 }
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(.black)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                PrimaryButton(title: "사진으로 꾸미기", systemImage: "photo") {
+                    // Phase 6: CanvasFlowView(run: run) 연결
+                }
+                .padding(.horizontal, 24)
+
+                Button("홈으로") { dismiss() }
+                    .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 16)
             }
-            .padding(.horizontal, 24)
-            
-            // 홈으로
-            Button {
-                // 나중에 홈으로 이동
-            } label: {
-                Text("홈으로")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 16)
-            }
-            
-            Spacer()
-                .frame(height: 30)
+            .toolbar(.hidden, for: .navigationBar)
+        }
+        .badgeEarnedToast($newBadges)
+        .onAppear {
+            let badgeRuns = ownerRuns.map(\.badgeRun)
+            newBadges = BadgeStore.recordNewlyEarned(from: badgeRuns, ownerID: run.ownerID)
+            completedChallenges = BadgeStore.recordCompletedChallenges(from: badgeRuns, ownerID: run.ownerID)
         }
     }
-}
-
-struct ResultStatView: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            
-            Text(value)
-                .font(.headline)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-#Preview {
-    RunResultView(
-        elapsedTime: 1920,
-        totalDistance: 5240
-    )
 }

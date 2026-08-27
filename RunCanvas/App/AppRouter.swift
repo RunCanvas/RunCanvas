@@ -6,6 +6,7 @@ struct AppRouter: View {
     @State private var hasProfile = false
     @State private var isLoading = true
     @State private var didShowSplash = false
+    @Environment(\.modelContext) private var context
 
     var body: some View {
         Group {
@@ -24,6 +25,20 @@ struct AppRouter: View {
     }
 
     private func load() async {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-uiTestSkipLogin") {
+            let testUser = UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE")!
+            if ProcessInfo.processInfo.arguments.contains("-uiTestReset") {
+                try? context.delete(model: Run.self, where: #Predicate { $0.ownerID == testUser })
+                try? context.save()
+                BadgeStore.reset(for: testUser)
+            }
+            auth.debugUserID = testUser
+            hasProfile = true
+            isLoading = false
+            return
+        }
+        #endif
         isLoading = true
         let started = Date()
         if let id = auth.userID {

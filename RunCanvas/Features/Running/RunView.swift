@@ -6,217 +6,79 @@
 //
 
 import SwiftUI
+import SwiftData
 
+/// 러닝 중 화면: 거리·시간·페이스·BPM, 시작/일시정지/재개, 종료 → 결과 화면
 struct RunView: View {
-    @StateObject private var locationManager = LocationManager()
-    @State private var isRunning = false
-    @State private var elapsedTime = 0
-    @State private var timer: Timer?
-    @State private var isShowingResult = false
-    
-    // 화면에 들어오자마자 러닝을 시작할지 여부
     let startImmediately: Bool
-    
-    // 저장된 체중
-    @AppStorage("userWeight") private var userWeight: Double = 60.0
-    
+
+    @Environment(AuthService.self) private var auth
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("userWeight") private var userWeight: Double = 60
+    @State private var session = RunSession()
+    @State private var finishedRun: Run?
+
     var body: some View {
         VStack(spacing: 0) {
-            
-            // 상단
-            HStack {
-                Text("러닝")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-            
+            HStack { Text("러닝").font(.title2).bold(); Spacer() }
+                .padding(.horizontal, 24).padding(.top, 20)
+
             Spacer()
-            
-            // 거리
+
             VStack(spacing: 8) {
-                Text("거리")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                
-                Text(String(format: "%.2f", locationManager.totalDistance / 1000))
-                    .font(.system(size: 64, weight: .bold))
-                
-                Text("km")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                Text("거리").font(.subheadline).foregroundStyle(.secondary)
+                Text(RunMath.formatKm(session.distanceMeters)).font(.system(size: 64, weight: .bold))
+                Text("km").font(.title3).foregroundStyle(.secondary)
             }
-            
+
             Spacer()
-            
-            // 러닝 정보
+
             HStack(spacing: 0) {
-                RunStatView(
-                    title: "시간",
-                    value: formattedTime
-                )
-                
-                Divider()
-                    .frame(height: 50)
-                
-                RunStatView(
-                    title: "페이스",
-                    value: formattedPace
-                )
-                
-                Divider()
-                    .frame(height: 50)
-                
-                RunStatView(
-                    title: "칼로리",
-                    value: "\(calories) kcal"
-                )
+                StatLabel(title: "시간", value: RunMath.formatDuration(session.elapsedSeconds))
+                Divider().frame(height: 50)
+                StatLabel(title: "페이스", value: RunMath.formatPace(RunMath.paceSecondsPerKm(distanceMeters: session.distanceMeters, seconds: session.elapsedSeconds)))
+                Divider().frame(height: 50)
+                StatLabel(title: "BPM", value: session.heartRate.map { "\(Int($0))" } ?? "--")
             }
-            
+
             Spacer()
-            
-            // 러닝 시작 / 일시정지 버튼
-            Button {
-                if isRunning {
-                    pauseRun()
-                } else {
-                    startRun()
+
+            PrimaryButton(
+                title: session.state == .running ? "일시정지" : (session.state == .paused ? "재개" : "러닝 시작"),
+                systemImage: session.state == .running ? "pause.fill" : "figure.run"
+            ) {
+                switch session.state {
+                case .idle: session.start()
+                case .running: session.pause()
+                case .paused: session.resume()
+                case .finished: break
                 }
-            } label: {
-                HStack {
-                    Image(systemName: isRunning ? "pause.fill" : "figure.run")
-                    
-                    Text(isRunning ? "일시정지" : "러닝 시작")
-                }
-                .font(.headline)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(.black)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
             }
             .padding(.horizontal, 24)
-            
-            // 러닝 종료 버튼
-            if isRunning {
-                Button {
-                    finishRun()
-                } label: {
-                    Text("러닝 종료")
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                        .padding(.top, 16)
-                }
+
+            if session.state == .running || session.state == .paused {
+                Button("러닝 종료") { finish() }
+                    .font(.subheadline).foregroundStyle(.red).padding(.top, 16)
             }
-            
-            Spacer()
-                .frame(height: 30)
+
+            Spacer().frame(height: 30)
         }
-        .onAppear {
-            if startImmediately {
-                startRun()
-            }
-        }
-        .fullScreenCover(isPresented: $isShowingResult) {
-            RunResultView(
-                elapsedTime: elapsedTime,
-                totalDistance: locationManager.totalDistance
-            )
+        .navigationBarBackButtonHidden(session.state == .running || session.state == .paused)
+        .onAppear { if startImmediately { session.start() } }
+        .fullScreenCover(item: $finishedRun, onDismiss: { dismiss() }) { run in
+            RunResultView(run: run)
         }
     }
 
-    // 시간 표시
-    private var formattedTime: String {
-        let minutes = elapsedTime / 60
-        let seconds = elapsedTime % 60
-        
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-    
-    // 페이스 표시
-    private var formattedPace: String {
-        let distanceInKm = locationManager.totalDistance / 1000
-        
-        guard distanceInKm > 0 else {
-            return "--'--\""
-        }
-        
-        let paceInSeconds = Double(elapsedTime) / distanceInKm
-        
-        let minutes = Int(paceInSeconds) / 60
-        let seconds = Int(paceInSeconds) % 60
-        
-        return String(format: "%02d'%02d\"", minutes, seconds)
-    }
-    
-    // 칼로리 계산
-    private var calories: Int {
-        let distanceInKm = locationManager.totalDistance / 1000
-        
-        let calculatedCalories = userWeight * distanceInKm * 1.036
-        
-        return Int(calculatedCalories.rounded())
-    }
-
-    // 러닝 시작
-    private func startRun() {
-        print("🔥 startRun 실행됨")
-        
-        isRunning = true
-        
-        locationManager.requestPermission()
-        locationManager.startUpdatingLocation()
-        
-        timer?.invalidate()
-        
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            elapsedTime += 1
-        }
-    }
-
-    // 러닝 일시정지
-    private func pauseRun() {
-        isRunning = false
-        
-        timer?.invalidate()
-        timer = nil
-        
-        locationManager.stopUpdatingLocation()
-    }
-
-    // 러닝 종료
-    private func finishRun() {
-        timer?.invalidate()
-        timer = nil
-        
-        locationManager.stopUpdatingLocation()
-        
-        isRunning = false
-        isShowingResult = true
-    }
-}
-
-// 러닝 기록 한 칸
-struct RunStatView: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        VStack(spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            
-            Text(value)
-                .font(.headline)
-        }
-        .frame(maxWidth: .infinity)
+    private func finish() {
+        guard let ownerID = auth.userID else { return }
+        finishedRun = session.finish(ownerID: ownerID, weightKg: userWeight, context: context)
     }
 }
 
 #Preview {
-    RunView(startImmediately: true)
+    NavigationStack { RunView(startImmediately: false) }
+        .environment(AuthService())
+        .modelContainer(for: Run.self, inMemory: true)
 }

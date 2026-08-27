@@ -6,121 +6,98 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct RunnerHomeView: View {
+    @Environment(AuthService.self) private var auth
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                
-                // 상단 프로필
-                ProfileHeader()
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-                
-                ScrollView {
-                    VStack(spacing: 28) {
-                        
-                        // 오늘의 러닝
-                        VStack(spacing: 12) {
-                            Text("오늘의 러닝")
-                                .font(.headline)
-                            
-                            Text("0.00")
-                                .font(.system(size: 52, weight: .bold))
-                            
-                            Text("km")
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.top, 40)
-                        
-                        // 러닝 시작 버튼
-                        NavigationLink {
-                            RunView(startImmediately: true)
-                        } label: {
-                            HStack {
-                                Image(systemName: "figure.run")
-                                Text("러닝 시작")
-                            }
+            HomeContent(ownerID: auth.userID)
+        }
+    }
+}
+
+/// 현재 계정의 기록만 조회 (ownerID 필터)
+private struct HomeContent: View {
+    @Query private var runs: [Run]
+
+    init(ownerID: UUID?) {
+        let owner = ownerID ?? UUID()
+        _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)
+    }
+
+    private var todayMeters: Double {
+        runs.filter { Calendar.current.isDateInToday($0.startedAt) }.reduce(0) { $0 + $1.distanceMeters }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+
+            // 상단 프로필
+            ProfileHeader()
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+
+            ScrollView {
+                VStack(spacing: 28) {
+
+                    // 오늘의 러닝
+                    VStack(spacing: 12) {
+                        Text("오늘의 러닝")
                             .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                        }
-                        
-                        // 최근 러닝
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("최근 러닝")
-                                .font(.headline)
-                            
-                            RunHistoryRow(
-                                distance: "5.24 km",
-                                time: "32:18"
-                            )
-                            
-                            RunHistoryRow(
-                                distance: "3.10 km",
-                                time: "19:42"
-                            )
-                        }
+
+                        Text(RunMath.formatKm(todayMeters))
+                            .font(.system(size: 52, weight: .bold))
+
+                        Text("km")
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.horizontal, 24)
-                }
-                
-                // 하단 탭
-                HStack {
-                    
-                    // 홈
-                    TabButton(
-                        icon: "house.fill",
-                        title: "홈"
-                    )
-                    
-                    Spacer()
-                    
-                    // 러닝
+                    .padding(.top, 40)
+
+                    // 러닝 시작 버튼
                     NavigationLink {
-                        RunView(startImmediately: false)
+                        RunView(startImmediately: true)
                     } label: {
-                        VStack(spacing: 4) {
+                        HStack {
                             Image(systemName: "figure.run")
-                            Text("러닝")
-                                .font(.caption)
+                            Text("러닝 시작")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    // 최근 러닝
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("최근 러닝")
+                            .font(.headline)
+
+                        if runs.isEmpty {
+                            Text("아직 기록이 없어요. 첫 러닝을 시작해 보세요.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                                .background(Color.gray.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else {
+                            ForEach(runs.prefix(3)) { run in
+                                NavigationLink {
+                                    RunDetailView(run: run)
+                                } label: {
+                                    RunHistoryRow(run: run)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
-                    .foregroundStyle(.black)
-                    
-                    Spacer()
-                    
-                    // 나의 기록
-                    NavigationLink {
-                        RunStatsView()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: "chart.bar.fill")
-                            Text("나의 기록")
-                                .font(.caption)
-                        }
-                    }
-                    .foregroundStyle(.black)
-                    
-                    Spacer()
-                    
-                    // 런꾸
-                    NavigationLink {
-                        RunDecorateView()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: "photo")
-                            Text("런꾸")
-                                .font(.caption)
-                        }
-                    }
-                    .foregroundStyle(.black)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
             }
         }
     }
@@ -129,24 +106,23 @@ struct RunnerHomeView: View {
 // MARK: - 최근 러닝 한 줄
 
 struct RunHistoryRow: View {
-    let distance: String
-    let time: String
-    
+    let run: Run
+
     var body: some View {
         HStack {
             Image(systemName: "figure.run")
-            
+
             VStack(alignment: .leading) {
-                Text(distance)
+                Text("\(RunMath.formatKm(run.distanceMeters)) km")
                     .fontWeight(.semibold)
-                
-                Text(time)
+
+                Text("\(RunMath.formatDuration(run.movingSeconds)) · \(RunMath.formatPace(run.paceSecondsPerKm)) · \(run.startedAt.formatted(.dateTime.month().day()))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            
+
             Spacer()
-            
+
             Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
         }
@@ -156,27 +132,8 @@ struct RunHistoryRow: View {
     }
 }
 
-// MARK: - 하단 탭 버튼
-
-struct TabButton: View {
-    let icon: String
-    let title: String
-    
-    var body: some View {
-        Button {
-            // 홈 버튼
-        } label: {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                Text(title)
-                    .font(.caption)
-            }
-        }
-        .foregroundStyle(.black)
-    }
-}
-
 #Preview {
     RunnerHomeView()
         .environment(AuthService())
+        .modelContainer(for: Run.self, inMemory: true)
 }
