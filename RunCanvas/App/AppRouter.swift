@@ -31,7 +31,7 @@ struct AppRouter: View {
     /// 안 올라간 기록·뱃지를 서버로 (로그인 상태에서만, 실패는 조용히)
     private func syncIfPossible() {
         guard auth.canSync, hasProfile, let id = auth.userID else { return }
-        Task { await SyncService.pushPending(context: context, ownerID: id) }
+        Task { await SyncService.sync(context: context, ownerID: id) }
     }
 
     private func load() async {
