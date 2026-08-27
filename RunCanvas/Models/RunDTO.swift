@@ -31,6 +31,34 @@ struct RunDTO: Codable, Equatable {
         return f
     }()
 
+    /// 서버 행 → 로컬 Run (이미 서버에 있으므로 syncedAt은 지금으로). 날짜가 깨져 있으면 nil.
+    func makeRun() -> Run? {
+        guard let started = Self.parseDate(startedAt), let ended = Self.parseDate(endedAt) else { return nil }
+        let points = route.compactMap { p -> RoutePoint? in
+            guard let t = Self.parseDate(p.t) else { return nil }
+            return RoutePoint(latitude: p.lat, longitude: p.lon, timestamp: t)
+        }
+        let run = Run(id: id, ownerID: userID, startedAt: started, endedAt: ended, distanceMeters: distanceM,
+                      movingSeconds: movingS, calories: calories, averageHeartRate: avgHr, maxHeartRate: maxHr, route: points)
+        run.syncedAt = .now
+        return run
+    }
+
+    private static let isoNoFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    /// Postgres는 소수점 자릿수를 가변으로 돌려준다("…13.711+00:00", "…13.7+00:00", "…13+00:00") → 3자리로 맞춰 파싱
+    static func parseDate(_ text: String) -> Date? {
+        if let d = iso.date(from: text) ?? isoNoFraction.date(from: text) { return d }
+        guard let range = text.range(of: #"\.\d+"#, options: .regularExpression) else { return nil }
+        let digits = text[range].dropFirst()
+        let fixed = text.replacingCharacters(in: range, with: "." + String((digits + "000").prefix(3)))
+        return iso.date(from: fixed)
+    }
+
     init(run: Run) {
         id = run.id
         userID = run.ownerID

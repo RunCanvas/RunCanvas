@@ -32,6 +32,14 @@ enum BadgeStore {
         return fresh
     }
 
+    /// 서버에서 받은 획득 날짜를 합친다 — 이미 있으면 더 이른 날짜 유지
+    static func merge(_ remote: [Badge: Date], for ownerID: UUID) {
+        guard !remote.isEmpty else { return }
+        var dates = earnedDates(for: ownerID)
+        for (badge, date) in remote { dates[badge] = min(dates[badge] ?? date, date) }
+        setEarnedDates(dates, for: ownerID)
+    }
+
     // MARK: 챌린지
 
     static func completedChallenges(for ownerID: UUID) -> Set<String> {

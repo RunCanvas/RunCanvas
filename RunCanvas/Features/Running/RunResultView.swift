@@ -56,7 +56,7 @@ struct RunResultView: View {
         }
         .task {
             guard auth.canSync else { return }
-            await SyncService.pushPending(context: context, ownerID: run.ownerID)   // 이번 기록 + 새 뱃지 서버 사본
+            await SyncService.sync(context: context, ownerID: run.ownerID)   // 이번 기록 + 새 뱃지 서버 사본
         }
     }
 }
