@@ -17,9 +17,12 @@ final class AuthService {
     var debugUserID: UUID?
     var userID: UUID? { debugUserID ?? session?.user.id }
     var isSignedIn: Bool { debugUserID != nil || session != nil }
+    /// 서버 동기화 가능: 실제 세션이 있고 UI 테스트 계정이 아닐 때
+    var canSync: Bool { debugUserID == nil && session != nil }
     #else
     var userID: UUID? { session?.user.id }
     var isSignedIn: Bool { session != nil }
+    var canSync: Bool { session != nil }
     #endif
 
     private static let redirectURL = URL(string: "runcanvas://auth-callback")!
