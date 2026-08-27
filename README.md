@@ -45,7 +45,7 @@ Xcode 동기화 폴더라 Finder에서 폴더·파일을 만들면 프로젝트�
 3. `Config/Local.xcconfig` 생성:
    ```
    DEVELOPMENT_TEAM = XXXXXXXXXX
-   PRODUCT_BUNDLE_IDENTIFIER = name.<본인이름>.RunCanvas
+   PRODUCT_BUNDLE_IDENTIFIER = xxx.<본인이름>.RunCanvas
    ```
 4. 아이폰 개발자 모드 켜고 연결 → ⌘R → 설정 → 일반 → VPN 및 기기 관리 → 개발자 앱 신뢰
 
