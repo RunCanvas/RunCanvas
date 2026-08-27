@@ -52,7 +52,7 @@
 
 ### 확정된 설계 결정
 
-1. **기록 원본 = SwiftData 로컬.** 러닝은 통신 없는 곳에서도 끝나야 하고 저장에 실패하면 안 된다. Supabase `runs`엔 종료 후 업로드(실패 시 다음 앱 실행 때 재시도, Phase 7). MVP엔 다운로드 없음 → 새 폰에서 과거 기록은 안 보임(2.0).
+1. **기록 원본 = SwiftData 로컬.** 러닝은 통신 없는 곳에서도 끝나야 하고 저장에 실패하면 안 된다. Supabase `runs`엔 종료 후 업로드(실패 시 다음 기회에 재시도), 서버에만 있는 기록은 로그인·앱 활성화 때 다운로드(다른 기기·재설치 복원, 2026-08-27 1.0에 포함).
 2. **인증 = Supabase Auth, 소셜만.** 애플은 네이티브(`signInWithIdToken`, .p8 불필요), 구글·카카오는 `signInWithOAuth`(리다이렉트 `runcanvas://auth-callback`). 이메일/비밀번호 로그인은 안 한다. Apple "이메일 가리기"로 생긴 중복 계정은 **계정 연결**(`linkIdentity`, manual linking ON)로 대응. 첫 로그인 후 `profiles` 행이 없으면 프로필 설정(닉네임·키·체중 필수).
 3. **계정별 분리.** `Run.ownerID`와 `BadgeStore`의 계정별 키(`earnedBadgeDates.<uid>`)로, 화면의 `@Query`는 항상 `#Predicate { $0.ownerID == owner }`. 로그아웃해도 기록은 폰에 남고 같은 계정으로 다시 로그인하면 보인다. 탈퇴 시 그 계정의 Run·뱃지 캐시만 삭제.
 4. **심박수는 읽기만.** 아이폰 단독으론 심박이 안 잡히고, 워치가 HealthKit에 쓴 샘플을 `HKAnchoredObjectQuery`로 실시간 구독한다. 종료 시 `HKWorkoutBuilder`로 러닝 워크아웃을 건강 앱에 저장. 워치 앱 자체는 2.0.
@@ -84,7 +84,7 @@ RunCanvas/
 ├── Info.plist      (배열 키 전용: UIBackgroundModes location, runcanvas:// 스킴, 사진 추가 권한)
 └── RunCanvas.entitlements  applesignin, healthkit
 RunCanvasTests/     RunMathTests, RunSessionTests, LocationServiceTests, BadgeEngineTests(+LevelTests),
-                    ChallengeTests(+BadgeStoreTests), ProfileTests, StatsEngineTests, VoiceCoachTests, RunDTOTests — 46개
+                    ChallengeTests(+BadgeStoreTests), ProfileTests, StatsEngineTests, VoiceCoachTests, RunDTOTests — 50개
 RunCanvasUITests/   RunFlowUITests(러닝 E2E + 스크린샷), BadgesScreenUITests, RecordsScreenUITests, VoiceSettingsUITests
 docs/               supabase/schema.sql, design/badge-illustration-prompts.md, superpowers/plans/(이 문서)
 Config/             Base.xcconfig (+ Local.xcconfig gitignore)
@@ -137,7 +137,8 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 
 ### Phase 7.1 — 동기화 (PR #20)
 - `Models/RunDTO.swift`(`runs` 컬럼 1:1, ISO 8601 문자열, route jsonb) + `UserBadgeDTO`. `Services/SyncService.pushPending(context:ownerID:)`: `syncedAt == nil` 기록 upsert → 성공 시 `syncedAt`, 뱃지 upsert. 실패는 조용히, 다음 기회 재시도.
-- 호출: `AppRouter.syncIfPossible()`(로그인 로드 뒤 + `scenePhase == .active`), `RunResultView.task`. `AuthService.canSync`(실제 세션만, UI 테스트 계정 제외).
+- 호출: `AppRouter.syncIfPossible()`(로그인 로드 뒤 + `scenePhase == .active`), `RunResultView.task` → `SyncService.sync` = 업로드 → 다운로드. `AuthService.canSync`(실제 세션만, UI 테스트 계정 제외).
+- 다운로드 `pullMissing`: 서버 `runs` 중 로컬에 없는 id 삽입(`RunDTO.makeRun`, `syncedAt` 표시), `user_badges` 획득 날짜 `BadgeStore.merge`(더 이른 날짜 유지). Postgres 가변 소수점 날짜는 `RunDTO.parseDate`.
 - 서버 드라이런(동하 계정 RLS)으로 삽입·중복 upsert·뱃지 확인.
 
 ### 음성 안내 (PR #19, 플랜 외 추가)
@@ -257,7 +258,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 한국 마라톤 일정: 정적 JSON(`Resources/marathons.json`, 월 1회 갱신) → 목록/캘린더 뷰. 외부 API 없음.
 - 런꾸 월말/연말정산: `runs` 집계 + 해당 기간 `decoratedImageFilename` 콜라주 → `ImageRenderer`.
 - Apple Watch 앱: `HKWorkoutSession`으로 워치 단독 러닝, App Groups(`group.$(PRODUCT_BUNDLE_IDENTIFIER)`)로 공유.
-- 서버 → 로컬 기록 복원(새 기기 로그인 시 `runs` 다운로드), Apple 웹 로그인(.p8) 필요 시.
+- Apple 웹 로그인(.p8) 필요 시. (서버 → 로컬 복원은 1.0에 포함됨)
 
 ---
 
