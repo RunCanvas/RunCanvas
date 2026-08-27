@@ -191,6 +191,7 @@ private struct ChallengeRow: View {
                         .foregroundStyle(status.isCompleted ? Color.primary : Color.secondary)
                 }
                 ProgressView(value: status.fraction)
+                    .tint(.primary)
                 Text(valueText)
                     .font(.caption)
                     .foregroundStyle(.secondary)

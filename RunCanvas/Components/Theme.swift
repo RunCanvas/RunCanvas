@@ -14,7 +14,7 @@ extension View {
     }
 }
 
-// MARK: - 레벨 컬러 = 앱 악센트 (NRC 팔레트)
+// MARK: - 레벨 컬러 (NRC 팔레트) — 주요 버튼(러닝 시작·일시정지·재개 등)에만 쓴다
 
 extension Level.Tier {
     var color: Color {
@@ -42,7 +42,7 @@ extension Level.Tier {
     var onAccent: Color { self == .black ? Color(.systemBackground) : foreground }
 }
 
-/// 현재 계정의 레벨 — RootTabView가 넣어 주고, 버튼·진행바·차트가 악센트로 쓴다. 로그인 전(nil)은 흑백.
+/// 현재 계정의 레벨 — RootTabView가 넣어 주고, PrimaryButton·홈 러닝 시작 버튼이 색으로 쓴다. 로그인 전(nil)은 흑백.
 private struct LevelTierKey: EnvironmentKey {
     static let defaultValue: Level.Tier? = nil
 }
