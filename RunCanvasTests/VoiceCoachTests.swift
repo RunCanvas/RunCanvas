@@ -3,21 +3,15 @@ import CoreLocation
 @testable import RunCanvas
 
 final class VoiceCueTests: XCTestCase {
-    func testKoreanProgress() {
-        XCTAssertEqual(VoiceCue.progress(distanceMeters: 1000, seconds: 372, language: .ko), "1킬로미터. 시간 6분 12초. 페이스 6분 12초.")
-        XCTAssertEqual(VoiceCue.progress(distanceMeters: 2500, seconds: 900, language: .ko), "2.5킬로미터. 시간 15분. 페이스 6분.")
-    }
-
-    func testEnglishProgress() {
-        XCTAssertEqual(VoiceCue.progress(distanceMeters: 1000, seconds: 372, language: .en), "1 kilometer. Time 6 minutes 12 seconds. Pace 6 minutes 12 seconds per kilometer.")
-        XCTAssertEqual(VoiceCue.progress(distanceMeters: 2500, seconds: 900, language: .en), "2.5 kilometers. Time 15 minutes. Pace 6 minutes per kilometer.")
+    func testProgress() {
+        XCTAssertEqual(VoiceCue.progress(distanceMeters: 1000, seconds: 372), "1킬로미터. 시간 6분 12초. 페이스 6분 12초.")
+        XCTAssertEqual(VoiceCue.progress(distanceMeters: 2500, seconds: 900), "2.5킬로미터. 시간 15분. 페이스 6분.")
     }
 
     func testDurationAndFinish() {
-        XCTAssertEqual(VoiceCue.duration(3725, .ko), "1시간 2분 5초")
-        XCTAssertEqual(VoiceCue.duration(0, .ko), "0초")
-        XCTAssertEqual(VoiceCue.duration(61, .en), "1 minute 1 second")
-        XCTAssertEqual(VoiceCue.finish(distanceMeters: 3200, seconds: 1205, language: .ko), "러닝 종료. 총 3.2킬로미터, 20분 5초.")
+        XCTAssertEqual(VoiceCue.duration(3725), "1시간 2분 5초")
+        XCTAssertEqual(VoiceCue.duration(0), "0초")
+        XCTAssertEqual(VoiceCue.finish(distanceMeters: 3200, seconds: 1205), "러닝 종료. 총 3.2킬로미터, 20분 5초.")
     }
 }
 
@@ -67,12 +61,5 @@ final class RunSessionVoiceTests: XCTestCase {
         let session = RunSession(location: LocationService(), coach: makeCoach())
         session.start(); session.pause(); session.resume()
         XCTAssertEqual(spoken, [])
-    }
-
-    func testEnglishCues() {
-        defaults.set("en", forKey: VoiceCoach.Keys.language)
-        let session = RunSession(location: LocationService(), coach: makeCoach())
-        session.start()
-        XCTAssertEqual(spoken, ["Run started"])
     }
 }

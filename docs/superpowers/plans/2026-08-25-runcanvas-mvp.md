@@ -43,7 +43,7 @@
 | F9 | 러닝 레벨/뱃지 부여 | 프로필 | **완료** — 레벨 7단계, 뱃지 19종(일러스트), 로컬 챌린지 4개, 획득 토스트 |
 | F10 | 런꾸 — 배경 이미지 선택 → 기록 선택 → 스티커 편집 → 저장/공유 | 런꾸 1~4 | **남음 → Phase 6** (`RunDecorateView` 껍데기) |
 | F11 | 기록 이미지 저장 및 공유 | 런꾸 4 | **남음 → Phase 6** |
-| F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS, 음악 덕킹), 설정에서 켬/끔·간격·언어·음성 선택 |
+| F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS 기본 음성, 음악 덕킹), 설정에서 켬/끔·간격 |
 | — | 서버 동기화 · TestFlight | — | **남음 → Phase 7** |
 
 ### MVP 2.0 (이 플랜 범위 밖, 스키마만 대비)
@@ -131,10 +131,10 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 외부 설정: Google OAuth(Testing, 테스트 사용자 2명), Kakao 비즈 앱(이메일 동의), Apple Services ID·Supabase Apple 패널.
 
 ### 음성 안내 (PR feature/voice-coach, 플랜 외 추가)
-- `Services/VoiceCoach.swift`: `AVSpeechSynthesizer` + 오디오 세션 `.playback/.spokenAudio` + `duckOthers`(안내 중 음악 작아짐, 끝나면 복구), 설정 키 `voiceGuideEnabled/IntervalMeters/Language/VoiceID`, 기기 설치 음성 목록(`voices(for:)`). `VoiceCue`는 문장 생성 순수 함수(한국어/영어).
+- `Services/VoiceCoach.swift`: `AVSpeechSynthesizer`(ko-KR 기본 음성) + 오디오 세션 `.playback/.spokenAudio` + `duckOthers`(안내 중 음악 작아짐, 끝나면 복구), 설정 키 `voiceGuideEnabled/voiceGuideIntervalMeters`. `VoiceCue`는 문장 생성 순수 함수.
 - `RunSession(coach:)`: 시작·일시정지·재개·종료 한 마디 + 설정 간격(500m/1km/2km)마다 거리·시간·페이스. 매초 틱의 `checkVoiceCue()`.
-- `VoiceSettingsView`(설정 → 러닝 설정 → 음성 안내): 켬/끔, 간격, 언어, 음성 목록(탭 = 미리 듣기). `Info.plist` UIBackgroundModes에 `audio` 추가.
-- 한국어 내장 음성은 Yuna(기본/향상됨/프리미엄)뿐 — 더 받으려면 iOS 설정 → 손쉬운 사용 → 음성 콘텐츠. 사람 목소리 녹음·코칭은 2.0.
+- `VoiceSettingsView`(설정 → 러닝 설정 → 음성 안내): 켬/끔, 간격(500m/1km/2km), 미리 듣기. `Info.plist` UIBackgroundModes에 `audio` 추가.
+- 사용자 결정(2026-08-27): 음성은 기본 하나(Yuna). 목소리 선택·다른 언어·녹음 목소리는 2.0.
 
 ### Phase 5 — 레벨/뱃지 (PR #15·#16)
 - `Level`(Tier yellow→volt 7단계, 0/50/250/1000/2500/5000/15000km), `Badge` 19종(거리·누적·연속·횟수·시간대, `imageName`/`symbolName` 폴백), `Challenge.all` 4개(주 3회, 월 50km, 월 8회, 월 10K).
@@ -242,7 +242,8 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 
 - 서버 챌린지: `challenges`, `challenge_participants` 테이블, 기간·목표, 친구·단체 참여, 완료 시 뱃지 부여(서버 함수). 지금의 로컬 챌린지(`Challenge.all`)를 서버 정의로 교체.
 - 뱃지 획득 연출 풀스크린(NRC식) + 획득 뱃지 공유 카드, 런꾸 뱃지 스티커(6.3에 일부 선반영).
-- 음성 안내 2.0: 녹음된 사람 목소리, 가이드 런/코칭, 시간 기준 안내, 목표 페이스 대비 빠름/느림 알림, 워치.
+- 음성 안내 2.0: 목소리 선택(Azure 한국어 10개·클로바 등으로 조각 음성 팩 생성해 앱에 내장 — 대본은 숫자 0~59·단위·시작/종료 약 150조각), 영어, 가이드 런/코칭, 시간 기준 안내, 목표 페이스 대비 빠름/느림 알림, 워치.
+- 챌린지 트로피: 완료한 챌린지를 월별 트로피로 모아 보기(스트라바식). 서버 챌린지와 같이 설계 — 완료 키는 이미 `BadgeStore.completedChallenges`에 `id@2026-08`로 저장 중.
 - 한국 마라톤 일정: 정적 JSON(`Resources/marathons.json`, 월 1회 갱신) → 목록/캘린더 뷰. 외부 API 없음.
 - 런꾸 월말/연말정산: `runs` 집계 + 해당 기간 `decoratedImageFilename` 콜라주 → `ImageRenderer`.
 - Apple Watch 앱: `HKWorkoutSession`으로 워치 단독 러닝, App Groups(`group.$(PRODUCT_BUNDLE_IDENTIFIER)`)로 공유.

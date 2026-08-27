@@ -88,23 +88,21 @@ final class RunSession {
         context.insert(run)
         try? context.save()
         state = .finished
-        if let coach, coach.isEnabled {
-            coach.speak(VoiceCue.finish(distanceMeters: run.distanceMeters, seconds: run.movingSeconds, language: coach.language))
-        }
+        say(VoiceCue.finish(distanceMeters: run.distanceMeters, seconds: run.movingSeconds))
         return run
     }
 
     // MARK: - 음성 안내
 
-    private func say(_ cue: (VoiceCue.Language) -> String) {
+    private func say(_ text: String) {
         guard let coach, coach.isEnabled else { return }
-        coach.speak(cue(coach.language))
+        coach.speak(text)
     }
 
     /// 설정 간격(기본 1km)을 넘을 때마다 거리·시간·페이스를 읽어준다. 매초 틱에서 호출.
     func checkVoiceCue() {
         guard state == .running, let coach, coach.isEnabled, distanceMeters >= nextCueMeters else { return }
-        coach.speak(VoiceCue.progress(distanceMeters: nextCueMeters, seconds: elapsedSeconds, language: coach.language))
+        coach.speak(VoiceCue.progress(distanceMeters: nextCueMeters, seconds: elapsedSeconds))
         nextCueMeters += coach.intervalMeters
     }
 
