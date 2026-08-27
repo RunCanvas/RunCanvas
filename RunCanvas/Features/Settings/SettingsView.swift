@@ -30,14 +30,18 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                profileSection
-                runningSection
-                appSection
-                linkedAccountsSection
-                accountSection
-                versionFooter
+                Group {
+                    profileSection
+                    runningSection
+                    appSection
+                    linkedAccountsSection
+                    accountSection
+                    versionFooter
+                }
+                .listRowBackground(Color.card)
             }
             .listStyle(.insetGrouped)
+            .appListTone()
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("설정")
             .toolbar {
