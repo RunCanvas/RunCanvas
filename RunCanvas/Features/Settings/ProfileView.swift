@@ -111,7 +111,7 @@ struct ProfileView: View {
             
             Spacer()
             
-            PhotosPicker(selection: $pickedAvatar, matching: .images) {
+            PhotosPicker(selection: $pickedAvatar, matching: .any(of: [.images, .not(.livePhotos)]), preferredItemEncoding: .compatible) {
                 HStack(spacing: 10) {
                     Text(isUploadingAvatar ? "업로드 중…" : "변경")
                         .font(.subheadline)
@@ -297,7 +297,8 @@ struct ProfileView: View {
         isUploadingAvatar = true
         defer { isUploadingAvatar = false; pickedAvatar = nil }
         do {
-            guard let data = try await item.loadTransferable(type: Data.self),
+            // 시뮬레이터/일부 HEIC에서 loadTransferable이 영영 안 끝나는 경우가 있어 타임아웃을 건다
+            guard let data = try await withTimeout(seconds: 20, { try await item.loadTransferable(type: Data.self) }),
                   let image = UIImage(data: data),
                   let thumb = await image.byPreparingThumbnail(ofSize: CGSize(width: 512, height: 512)),
                   let jpeg = thumb.jpegData(compressionQuality: 0.85) else {
@@ -308,9 +309,25 @@ struct ProfileView: View {
             avatarURL = url
             try await ProfileService.upsert(Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: url))
             statusMessage = "프로필 사진을 바꿨어요."
+        } catch is CancellationError {
+            statusMessage = "사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요."
         } catch {
             statusMessage = "사진 업로드에 실패했어요."
         }
+    }
+}
+
+/// op가 seconds 안에 안 끝나면 CancellationError
+private func withTimeout<T: Sendable>(seconds: Double, _ op: @escaping @Sendable () async throws -> T) async throws -> T {
+    try await withThrowingTaskGroup(of: T.self) { group in
+        group.addTask { try await op() }
+        group.addTask {
+            try await Task.sleep(for: .seconds(seconds))
+            throw CancellationError()
+        }
+        let result = try await group.next()!
+        group.cancelAll()
+        return result
     }
 }
 
