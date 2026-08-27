@@ -94,6 +94,7 @@ final class AuthService {
         try await supabase.rpc("delete_own_account").execute()
         try await supabase.auth.signOut(scope: .local)
         Profile.clearLocalCache()
+        BadgeStore.reset()   // 같은 폰에서 새 계정을 만들 때 옛 뱃지·챌린지 캐시가 남지 않도록
         didDeleteAccount = true
     }
 }

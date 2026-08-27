@@ -84,6 +84,13 @@ struct SettingsView: View {
                 }
                 .padding(.vertical, 6)
             }
+
+            NavigationLink {
+                // TODO(Phase 1): @Query Run → BadgeRun(startedAt:distanceMeters:movingSeconds:) 매핑으로 교체
+                BadgesView(runs: [])
+            } label: {
+                Label("레벨과 뱃지", systemImage: "medal")
+            }
         }
     }
 
