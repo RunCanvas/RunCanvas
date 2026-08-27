@@ -7,13 +7,11 @@
 
 import SwiftUI
 import AuthenticationServices
-import CryptoKit
 
 struct LoginView: View {
     @Environment(AuthService.self) private var auth
     @State private var isBusy = false
     @State private var errorMessage: String?
-    @State private var appleNonce = ""
 
     var body: some View {
         @Bindable var auth = auth
@@ -31,14 +29,10 @@ struct LoginView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                SignInWithAppleButton(.continue) { request in
-                    appleNonce = Self.randomNonce()
-                    request.requestedScopes = [.fullName, .email]
-                    request.nonce = Self.sha256(appleNonce)
-                } onCompletion: { result in
-                    handleApple(result)
-                }
-                .signInWithAppleButtonStyle(.black)
+                AppleSignInButton(
+                    onToken: { idToken, nonce in signIn { try await auth.signInWithApple(idToken: idToken, rawNonce: nonce) } },
+                    onError: { errorMessage = $0 }
+                )
                 .frame(height: 52)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
@@ -81,36 +75,6 @@ struct LoginView: View {
                 errorMessage = "로그인에 실패했어요. 다시 시도해 주세요."
             }
         }
-    }
-
-    private func handleApple(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .success(let authorization):
-            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                  let tokenData = credential.identityToken,
-                  let idToken = String(data: tokenData, encoding: .utf8) else {
-                errorMessage = "Apple 로그인 정보를 읽지 못했어요. 다시 시도해 주세요."
-                return
-            }
-            let nonce = appleNonce
-            signIn { try await auth.signInWithApple(idToken: idToken, rawNonce: nonce) }
-        case .failure(let error):
-            if let authError = error as? ASAuthorizationError, authError.code == .canceled { return }
-            errorMessage = "Apple 로그인에 실패했어요. 다시 시도해 주세요."
-        }
-    }
-
-    // MARK: - Apple nonce (재전송 공격 방지: 요청엔 해시, 검증엔 원본)
-
-    private static func randomNonce(length: Int = 32) -> String {
-        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
-        var bytes = [UInt8](repeating: 0, count: length)
-        _ = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
-        return String(bytes.map { charset[Int($0) % charset.count] })
-    }
-
-    private static func sha256(_ input: String) -> String {
-        SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 }
 
