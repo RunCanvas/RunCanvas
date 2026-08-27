@@ -20,24 +20,7 @@ struct ProfileHeader: View {
                 HStack(spacing: 8) {
                     
                     // 프로필 이미지
-                    ZStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.15))
-                            .frame(width: 36, height: 36)
-                        
-                        if let url = URL(string: avatarURL), !avatarURL.isEmpty {
-                            AsyncImage(url: url) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Image(systemName: "person.fill").foregroundStyle(.secondary)
-                            }
-                            .frame(width: 36, height: 36)
-                            .clipShape(Circle())
-                        } else {
-                            Image(systemName: "person.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    AvatarView(urlString: avatarURL, size: 36)
                     
                     // 닉네임
                     Text(userNickname)
@@ -46,6 +29,7 @@ struct ProfileHeader: View {
                         .foregroundStyle(.primary)
                 }
             }
+            .buttonStyle(.plain)   // 레벨 틴트가 닉네임 색을 바꾸지 않게
             
             Spacer()
         }

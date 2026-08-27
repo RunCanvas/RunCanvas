@@ -22,6 +22,7 @@ struct RunnerHomeView: View {
 /// 현재 계정의 기록만 조회 (ownerID 필터)
 private struct HomeContent: View {
     @Query private var runs: [Run]
+    @Environment(\.levelTier) private var tier
     private let ownerID: UUID?
 
     init(ownerID: UUID?) {
@@ -80,10 +81,10 @@ private struct HomeContent: View {
                             Text("러닝 시작")
                         }
                         .font(.headline)
-                        .foregroundStyle(Color(.systemBackground))
+                        .foregroundStyle(tier?.onAccent ?? Color(.systemBackground))
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.primary)
+                        .background(tier?.accent ?? Color.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
