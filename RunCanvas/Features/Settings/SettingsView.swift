@@ -1,10 +1,12 @@
 import SwiftUI
+import SwiftData
 import AuthenticationServices
 
 /// 앱이 어떻게 동작하나: 프로필 카드(→ 편집) · 러닝 설정 · 앱 설정 · 연결된 계정 · 계정.
 /// iOS 설정 앱과 같은 인셋 그룹 리스트. 값은 즉시 저장된다(저장 버튼 없음).
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
+    @Environment(\.modelContext) private var context
 
     @AppStorage("userNickname") private var userNickname: String = ""
     @AppStorage("avatarURL") private var avatarURL: String = ""
@@ -86,8 +88,7 @@ struct SettingsView: View {
             }
 
             NavigationLink {
-                // TODO(Phase 1): @Query Run → BadgeRun(startedAt:distanceMeters:movingSeconds:) 매핑으로 교체
-                BadgesView(runs: [])
+                BadgesView(ownerID: auth.userID)
             } label: {
                 Label("레벨과 뱃지", systemImage: "medal")
             }
@@ -239,6 +240,10 @@ struct SettingsView: View {
 
     private func deleteAccount() async {
         do {
+            if let id = auth.userID {   // 이 계정의 로컬 기록 삭제 (서버는 RPC가 cascade)
+                try context.delete(model: Run.self, where: #Predicate { $0.ownerID == id })
+                try context.save()
+            }
             try await auth.deleteAccount()   // 성공하면 AppRouter가 세션 변화를 보고 로그인 화면으로
         } catch {
             linkMessage = "회원 탈퇴에 실패했어요. 네트워크를 확인해 주세요."

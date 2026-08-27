@@ -48,21 +48,37 @@ final class ChallengeEngineTests: XCTestCase {
 }
 
 final class BadgeStoreTests: XCTestCase {
-    override func setUp() { BadgeStore.reset() }
-    override func tearDown() { BadgeStore.reset() }
+    private let owner = UUID()
+    private let other = UUID()
+
+    override func tearDown() {
+        BadgeStore.reset(for: owner)
+        BadgeStore.reset(for: other)
+    }
 
     func testRecordsEarnedDateOnceAndReturnsOnlyNew() {
         let cal = Calendar(identifier: .gregorian)
         let day1 = cal.date(from: DateComponents(year: 2026, month: 8, day: 1, hour: 7))!
         let runs = [BadgeRun(startedAt: day1, distanceMeters: 5_000, movingSeconds: 1_800)]
 
-        let first = BadgeStore.recordNewlyEarned(from: runs, now: day1, calendar: cal)
+        let first = BadgeStore.recordNewlyEarned(from: runs, ownerID: owner, now: day1, calendar: cal)
         XCTAssertEqual(first, [.firstRun, .fiveK])
-        XCTAssertEqual(BadgeStore.earnedDates[.fiveK], day1)
+        XCTAssertEqual(BadgeStore.earnedDates(for: owner)[.fiveK], day1)
 
-        let again = BadgeStore.recordNewlyEarned(from: runs, now: day1.addingTimeInterval(86_400), calendar: cal)
+        let again = BadgeStore.recordNewlyEarned(from: runs, ownerID: owner, now: day1.addingTimeInterval(86_400), calendar: cal)
         XCTAssertEqual(again, [])
-        XCTAssertEqual(BadgeStore.earnedDates[.fiveK], day1)   // 처음 딴 날짜 유지
+        XCTAssertEqual(BadgeStore.earnedDates(for: owner)[.fiveK], day1)   // 처음 딴 날짜 유지
+    }
+
+    func testBadgesAreScopedPerUser() {
+        let cal = Calendar(identifier: .gregorian)
+        let day1 = cal.date(from: DateComponents(year: 2026, month: 8, day: 1, hour: 7))!
+        let runs = [BadgeRun(startedAt: day1, distanceMeters: 5_000, movingSeconds: 1_800)]
+        BadgeStore.recordNewlyEarned(from: runs, ownerID: owner, now: day1, calendar: cal)
+
+        XCTAssertTrue(BadgeStore.earnedDates(for: other).isEmpty)               // 다른 계정엔 없음
+        BadgeStore.reset(for: other)
+        XCTAssertEqual(BadgeStore.earnedDates(for: owner).count, 2)             // 다른 계정 리셋이 내 것에 영향 없음
     }
 
     func testCompletedChallengeIsRecordedPerPeriod() {
@@ -71,8 +87,8 @@ final class BadgeStoreTests: XCTestCase {
         let aug = cal.date(from: DateComponents(year: 2026, month: 8, day: 10, hour: 7))!
         let runs = [BadgeRun(startedAt: aug, distanceMeters: 10_500, movingSeconds: 3_600)]
 
-        XCTAssertEqual(BadgeStore.recordCompletedChallenges(from: runs, now: aug, calendar: cal).map(\.id), ["month_10k"])
-        XCTAssertEqual(BadgeStore.recordCompletedChallenges(from: runs, now: aug, calendar: cal), [])
-        XCTAssertTrue(BadgeStore.completedChallenges.contains("month_10k@2026-08"))
+        XCTAssertEqual(BadgeStore.recordCompletedChallenges(from: runs, ownerID: owner, now: aug, calendar: cal).map(\.id), ["month_10k"])
+        XCTAssertEqual(BadgeStore.recordCompletedChallenges(from: runs, ownerID: owner, now: aug, calendar: cal), [])
+        XCTAssertTrue(BadgeStore.completedChallenges(for: owner).contains("month_10k@2026-08"))
     }
 }

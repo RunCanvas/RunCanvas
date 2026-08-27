@@ -4,5 +4,6 @@ import SwiftUI
 struct RunCanvasApp: App {
     var body: some Scene {
         WindowGroup { AppRouter() }
+            .modelContainer(for: Run.self)
     }
 }

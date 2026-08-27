@@ -88,13 +88,14 @@ final class AuthService {
     /// 2) RPC delete_own_account()가 auth.users 행 삭제 → profiles/runs/user_badges cascade
     /// 3) 로컬 세션·캐시 정리 (서버 signOut은 사용자가 이미 없어 실패하므로 .local)
     func deleteAccount() async throws {
-        if let id = userID {
+        let id = userID
+        if let id {
             _ = try? await supabase.storage.from("avatars").remove(paths: ["\(id.uuidString.lowercased())/avatar.jpg"])
         }
         try await supabase.rpc("delete_own_account").execute()
         try await supabase.auth.signOut(scope: .local)
         Profile.clearLocalCache()
-        BadgeStore.reset()   // 같은 폰에서 새 계정을 만들 때 옛 뱃지·챌린지 캐시가 남지 않도록
+        if let id { BadgeStore.reset(for: id) }   // 같은 폰에서 새 계정을 만들 때 옛 뱃지·챌린지 캐시가 남지 않도록
         didDeleteAccount = true
     }
 }

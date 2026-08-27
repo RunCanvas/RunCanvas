@@ -1,10 +1,28 @@
 import SwiftUI
+import SwiftData
 
-/// 레벨 · 챌린지 · 최고 기록 · 뱃지 (NRC 업적 + 스트라바 챌린지 방식)
+/// 레벨 · 챌린지 · 최고 기록 · 뱃지 (NRC 업적 + 스트라바 챌린지 방식). 현재 계정의 기록만 본다.
 struct BadgesView: View {
-    let runs: [BadgeRun]
-
+    let ownerID: UUID
+    @Query private var storedRuns: [Run]
     @State private var earnedDates: [Badge: Date] = [:]
+
+    /// 로그인한 계정의 기록으로 계산
+    init(ownerID: UUID?) {
+        let owner = ownerID ?? UUID()
+        self.ownerID = owner
+        _storedRuns = Query(filter: #Predicate<Run> { $0.ownerID == owner })
+    }
+
+    /// 프리뷰·테스트용: 기록을 직접 넣는다
+    init(sampleRuns: [BadgeRun]) {
+        self.ownerID = UUID()
+        self.sampleRuns = sampleRuns
+        _storedRuns = Query(filter: #Predicate<Run> { _ in false })
+    }
+
+    private var sampleRuns: [BadgeRun]? = nil
+    private var runs: [BadgeRun] { sampleRuns ?? storedRuns.map(\.badgeRun) }
 
     private var level: Level { Level.forTotalDistance(BadgeEngine.totalDistance(runs)) }
     private var earned: Set<Badge> { BadgeEngine.earned(runs: runs) }
@@ -52,9 +70,9 @@ struct BadgesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // 기록으로 계산된 뱃지·챌린지 중 아직 저장 안 된 것은 지금 날짜로 기록 (러닝 종료 화면을 안 거친 경우 대비)
-            BadgeStore.recordNewlyEarned(from: runs)
-            BadgeStore.recordCompletedChallenges(from: runs)
-            earnedDates = BadgeStore.earnedDates
+            BadgeStore.recordNewlyEarned(from: runs, ownerID: ownerID)
+            BadgeStore.recordCompletedChallenges(from: runs, ownerID: ownerID)
+            earnedDates = BadgeStore.earnedDates(for: ownerID)
         }
     }
 
@@ -299,9 +317,9 @@ extension Level.Tier {
             movingSeconds: [1_100, 1_800, 3_300, 2_400][i % 4]
         )
     }
-    NavigationStack { BadgesView(runs: runs) }
+    NavigationStack { BadgesView(sampleRuns: runs) }
 }
 
 #Preview("기록 없음") {
-    NavigationStack { BadgesView(runs: []) }
+    NavigationStack { BadgesView(sampleRuns: []) }
 }
