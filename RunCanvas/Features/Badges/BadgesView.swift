@@ -65,7 +65,7 @@ struct BadgesView: View {
             }
             .padding(20)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color(.systemBackground))
         .navigationTitle("레벨과 뱃지")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -98,7 +98,7 @@ struct BadgesView: View {
                     if index < challenges.count - 1 { Divider().padding(.leading, 16) }
                 }
             }
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(Color.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
     }
@@ -156,7 +156,7 @@ struct LevelCard: View {
             }
         }
         .padding(18)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
@@ -225,7 +225,7 @@ private struct BestTile: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.card)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
