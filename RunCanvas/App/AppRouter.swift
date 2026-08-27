@@ -7,6 +7,7 @@ struct AppRouter: View {
     @State private var isLoading = true
     @State private var didShowSplash = false
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -22,6 +23,15 @@ struct AppRouter: View {
         }
         .environment(auth)
         .task(id: auth.userID) { await load() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { syncIfPossible() }
+        }
+    }
+
+    /// 안 올라간 기록·뱃지를 서버로 (로그인 상태에서만, 실패는 조용히)
+    private func syncIfPossible() {
+        guard auth.canSync, hasProfile, let id = auth.userID else { return }
+        Task { await SyncService.pushPending(context: context, ownerID: id) }
     }
 
     private func load() async {
@@ -54,6 +64,7 @@ struct AppRouter: View {
             if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
         }
         isLoading = false
+        syncIfPossible()
     }
 }
 
