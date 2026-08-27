@@ -29,13 +29,19 @@ struct LoginView: View {
             Spacer()
 
             VStack(spacing: 12) {
+                AppleSignInButton(
+                    onToken: { idToken, nonce in signIn { try await auth.signInWithApple(idToken: idToken, rawNonce: nonce) } },
+                    onError: { errorMessage = $0 }
+                )
+                .frame(height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+
                 PrimaryButton(title: "Google로 계속하기", systemImage: "g.circle") {
                     signIn { try await auth.signInWithGoogle() }
                 }
                 PrimaryButton(title: "카카오로 계속하기", systemImage: "message.fill") {
                     signIn { try await auth.signInWithKakao() }
                 }
-                // Apple 로그인: Supabase Apple 프로바이더(.p8) 설정 후 추가
             }
             .disabled(isBusy)
 

@@ -40,7 +40,7 @@ struct ProfileSetupView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                .padding(.top, 40)
+                .padding(.top, 8)
 
                 VStack(spacing: 0) {
                     SetupRow(title: "닉네임", text: $nickname, placeholder: "입력해 주세요", hint: nicknameHint)
@@ -65,6 +65,22 @@ struct ProfileSetupView: View {
             .padding(.bottom, 24)
         }
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .top) {
+            // 다른 방법으로 로그인하려는 사람을 위한 뒤로가기 = 로그아웃
+            HStack {
+                Button {
+                    Task { try? await auth.signOut() }
+                } label: {
+                    Label("로그인으로", systemImage: "chevron.left")
+                        .font(.subheadline)
+                }
+                .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(.background)
+        }
         .safeAreaInset(edge: .bottom) {
             PrimaryButton(title: isSaving ? "저장 중…" : "시작하기") {
                 focus = nil
