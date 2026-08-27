@@ -15,7 +15,7 @@ struct ProfileHeader: View {
         HStack(spacing: 8) {
             
             NavigationLink {
-                ProfileView()
+                ProfileEditView()
             } label: {
                 HStack(spacing: 8) {
                     

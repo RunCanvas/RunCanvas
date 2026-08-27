@@ -63,6 +63,9 @@ struct ProfileSetupView: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .dismissKeyboardOnTap()
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .top) {
