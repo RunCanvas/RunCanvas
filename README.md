@@ -44,6 +44,8 @@ docs/              supabase/schema.sql, superpowers/plans/(MVP 플랜 — 진행
 
 Xcode 동기화 폴더라 Finder에서 폴더·파일을 만들면 프로젝트에 자동 반영됩니다.
 
+**화면 톤**: 배경은 시스템색(흰/검정) + 회색 8% 카드(`Color.card`). 설정류 `List`는 `.appListTone()`. 앱 틴트는 흑백, 레벨 컬러는 `PrimaryButton`·홈 러닝 시작 버튼에만 (`Components/Theme.swift`).
+
 ## 다른 Apple 계정으로 실기기 빌드 (팀원용)
 
 서명 Team·Bundle ID는 `Config/Base.xcconfig`에 있고, 같은 폴더의 `Local.xcconfig`(gitignore)가 있으면 그 값으로 덮어씁니다. **Xcode의 Signing & Capabilities에서 Team을 직접 바꾸지 마세요** — pbxproj에 기록돼 충돌납니다.

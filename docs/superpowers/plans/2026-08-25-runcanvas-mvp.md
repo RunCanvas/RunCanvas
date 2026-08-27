@@ -21,7 +21,7 @@
 - git-flow: `feature/<기능>` → PR → `develop`. 커밋 메시지에 AI 작성 문구 없음. `main`/`develop` 직접 푸시 금지. Xcode가 pbxproj를 재정렬한 내용 없는 변경은 커밋하지 말고 되돌린다.
 - 빈 폴더에 `.gitkeep` 금지 (Xcode 동기화 폴더가 리소스로 복사해 빌드 깨짐). 폴더는 첫 파일과 함께 생성.
 - Info.plist 키: 문자열 키는 pbxproj `INFOPLIST_KEY_*`, 배열 키(`UIBackgroundModes`, `CFBundleURLTypes`)는 `RunCanvas/Info.plist` 파일.
-- UI 문구 한국어. 앱 틴트는 흑백(`.tint(.primary)`), 카드 모서리 14, 설정류는 네이티브 인셋 그룹 `List`.
+- UI 문구 한국어. 앱 틴트는 흑백(`.tint(.primary)`), 배경은 시스템색 + 회색 8% 카드(`Color.card`) — 설정류 `List`도 `.appListTone()`으로 같은 톤. 카드 모서리 14~16. 레벨 컬러는 **주요 버튼(PrimaryButton·홈 러닝 시작)에만** (사용자 결정, 탭·링크·차트 확장 금지).
 - 테스트: `xcodebuild test -project RunCanvas.xcodeproj -scheme RunCanvas -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO` (유닛 + UI). 새 순수 함수는 유닛 테스트, 새 화면 흐름은 `RunCanvasUITests`에 스크린샷 테스트 하나를 남긴다. 로그인 없이 화면을 띄우려면 DEBUG 런치 인자 `-uiTestSkipLogin`(고정 테스트 계정) · `-uiTestReset`(그 계정 데이터 초기화).
 
 ---
@@ -44,6 +44,7 @@
 | F10 | 런꾸 — 배경 이미지 선택 → 기록 선택 → 스티커 편집 → 저장/공유 | 런꾸 1~4 | **남음 → Phase 6** (`RunDecorateView` 껍데기) |
 | F11 | 기록 이미지 저장 및 공유 | 런꾸 4 | **남음 → Phase 6** |
 | F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS 기본 음성, 음악 덕킹), 설정에서 켬/끔·간격 |
+| F13 | 주요 버튼 색 = 사용자 레벨 컬러 (NRC식, 2026-08-28 추가 결정) | 러닝 시작·일시정지·재개 | **완료** — `levelTier` 환경값, `PrimaryButton`·홈 러닝 시작만 (탭·링크·차트는 흑백) |
 | — | 서버 동기화 · TestFlight | — | 동기화 **완료**(7.1) · 출시 준비 **남음 → Phase 7.2** |
 
 ### MVP 2.0 (이 플랜 범위 밖, 스키마만 대비)
@@ -79,7 +80,8 @@ RunCanvas/
 │   │               StickerEditorView, StickerCanvas, CanvasExportView
 │   ├── Badges/     BadgesView(LevelCard·ChallengeRow·BestTile·BadgeCell·BadgeArt), BadgeEarnedToast
 │   └── Settings/   SettingsView, ProfileEditView, VoiceSettingsView, ProfileHeader
-├── Components/     PrimaryButton, StatLabel, AppleSignInButton(+AppleAuthorizer, AppleNonce), Keyboard, ProfileRows(AvatarView)
+├── Components/     Theme(Color.card, appListTone, Level.Tier 색·levelTier 환경값), PrimaryButton(레벨 색), StatLabel,
+│                   AppleSignInButton(+AppleAuthorizer, AppleNonce), Keyboard, ProfileRows(AvatarView)
 ├── Assets.xcassets/Badges/  badge_<Badge.rawValue> 19개 (Gemini 일러스트, 획득=컬러/잠김=흑백은 코드 처리)
 ├── Info.plist      (배열 키 전용: UIBackgroundModes location, runcanvas:// 스킴, 사진 추가 권한)
 └── RunCanvas.entitlements  applesignin, healthkit
@@ -140,6 +142,11 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 호출: `AppRouter.syncIfPossible()`(로그인 로드 뒤 + `scenePhase == .active`), `RunResultView.task` → `SyncService.sync` = 업로드 → 다운로드. `AuthService.canSync`(실제 세션만, UI 테스트 계정 제외).
 - 다운로드 `pullMissing`: 서버 `runs` 중 로컬에 없는 id 삽입(`RunDTO.makeRun`, `syncedAt` 표시), `user_badges` 획득 날짜 `BadgeStore.merge`(더 이른 날짜 유지). Postgres 가변 소수점 날짜는 `RunDTO.parseDate`.
 - 서버 드라이런(동하 계정 RLS)으로 삽입·중복 upsert·뱃지 확인.
+
+### 화면 톤 통일 · 레벨 컬러 버튼 (PR #23·#25, 플랜 외 추가)
+- `Components/Theme.swift`: `Color.card`(회색 8%), `.appListTone()`(인셋 그룹 List를 시스템 배경으로), `Level.Tier.color/foreground/accent/onAccent`(블랙 레벨은 흑백), `EnvironmentValues.levelTier: Level.Tier?`(로그인 전 nil = 흑백).
+- `RootTabView` → `LevelThemedTabs(ownerID:)`: `@Query` 누적 거리 → 레벨 → 환경값 주입. `PrimaryButton`·홈 러닝 시작 버튼이 읽음. 사용자 요청으로 **버튼만** — 탭 tint는 `.primary` 유지.
+- `AvatarView`는 이미지 로드 실패 시 사람 아이콘(스피너 무한 회전 수정). `ProfileHeader`가 재사용.
 
 ### 음성 안내 (PR #19, 플랜 외 추가)
 - `Services/VoiceCoach.swift`: `AVSpeechSynthesizer`(ko-KR 기본 음성) + 오디오 세션 `.playback/.spokenAudio` + `duckOthers`(안내 중 음악 작아짐, 끝나면 복구), 설정 키 `voiceGuideEnabled/voiceGuideIntervalMeters`. `VoiceCue`는 문장 생성 순수 함수.
