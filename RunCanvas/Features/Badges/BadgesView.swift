@@ -240,14 +240,7 @@ struct BadgeCell: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(isEarned ? Color.primary : Color.gray.opacity(0.15))
-                    .frame(width: 72, height: 72)
-                Image(systemName: badge.symbolName)
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(isEarned ? Color(.systemBackground) : Color.gray.opacity(0.6))
-            }
+            BadgeArt(badge: badge, isEarned: isEarned, size: 72)
             Text(badge.title)
                 .font(.footnote.weight(.medium))
                 .lineLimit(1)
@@ -278,6 +271,33 @@ struct BadgeCell: View {
             return "\(Int(progress))/\(Int(badge.target))회"
         case .time:
             return badge.detail
+        }
+    }
+}
+
+/// 뱃지 그림: 에셋 일러스트(획득=컬러, 잠김=흑백 반투명). 일러스트가 없는 뱃지는 심볼 원으로.
+struct BadgeArt: View {
+    let badge: Badge
+    let isEarned: Bool
+    var size: CGFloat = 72
+
+    var body: some View {
+        if let ui = UIImage(named: badge.imageName) {
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .saturation(isEarned ? 1 : 0)
+                .opacity(isEarned ? 1 : 0.5)
+        } else {
+            ZStack {
+                Circle()
+                    .fill(isEarned ? Color.primary : Color.gray.opacity(0.15))
+                Image(systemName: badge.symbolName)
+                    .font(.system(size: size * 0.39, weight: .semibold))
+                    .foregroundStyle(isEarned ? Color(.systemBackground) : Color.gray.opacity(0.6))
+            }
+            .frame(width: size, height: size)
         }
     }
 }

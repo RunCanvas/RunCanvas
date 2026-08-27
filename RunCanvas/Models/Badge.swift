@@ -15,6 +15,9 @@ enum Badge: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Assets.xcassets/Badges 의 일러스트 이름. 없으면 symbolName 으로 대체 (BadgeArt)
+    var imageName: String { "badge_\(rawValue)" }
+
     enum Category: String, CaseIterable, Identifiable {
         case distance = "거리"
         case total = "누적"
