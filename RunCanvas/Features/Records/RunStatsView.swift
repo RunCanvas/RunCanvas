@@ -24,6 +24,7 @@ private struct StatsContent: View {
     @Query private var runs: [Run]
     @AppStorage("weeklyTargetDistance") private var weeklyTargetKm: Double = 20
     @State private var period: StatsEngine.Period = .week
+    @Environment(\.levelTier) private var tier
     private let ownerID: UUID?
 
     init(ownerID: UUID?) {
@@ -110,7 +111,7 @@ private struct StatsContent: View {
 
                 Chart(buckets) { bucket in
                     BarMark(x: .value("기간", bucket.label), y: .value("km", bucket.distanceMeters / 1000))
-                        .foregroundStyle(Color.primary)
+                        .foregroundStyle(tier?.accent ?? Color.primary)
                         .cornerRadius(3)
                 }
                 .chartXAxis {
@@ -183,7 +184,6 @@ private struct StatsContent: View {
 
                 VStack(spacing: 8) {
                     ProgressView(value: fraction)
-                        .tint(.primary)
                     HStack {
                         Text("\(Int(fraction * 100))% 달성")
                             .font(.caption)

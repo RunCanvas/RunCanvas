@@ -191,7 +191,6 @@ private struct ChallengeRow: View {
                         .foregroundStyle(status.isCompleted ? Color.primary : Color.secondary)
                 }
                 ProgressView(value: status.fraction)
-                    .tint(.primary)
                 Text(valueText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -298,30 +297,6 @@ struct BadgeArt: View {
                     .foregroundStyle(isEarned ? Color(.systemBackground) : Color.gray.opacity(0.6))
             }
             .frame(width: size, height: size)
-        }
-    }
-}
-
-// MARK: - 레벨 색상 (NRC 팔레트)
-
-extension Level.Tier {
-    var color: Color {
-        switch self {
-        case .yellow: Color(red: 0.96, green: 0.77, blue: 0.09)
-        case .orange: Color(red: 0.95, green: 0.42, blue: 0.11)
-        case .green: Color(red: 0.18, green: 0.72, blue: 0.30)
-        case .blue: Color(red: 0.12, green: 0.44, blue: 0.91)
-        case .purple: Color(red: 0.48, green: 0.24, blue: 0.91)
-        case .black: Color(red: 0.07, green: 0.07, blue: 0.07)
-        case .volt: Color(red: 0.81, green: 1.0, blue: 0.0)
-        }
-    }
-
-    /// 배경색 위 글자색
-    var foreground: Color {
-        switch self {
-        case .yellow, .volt: .black
-        default: .white
         }
     }
 }
