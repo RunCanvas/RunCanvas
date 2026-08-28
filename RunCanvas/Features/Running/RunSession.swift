@@ -109,7 +109,7 @@ final class RunSession {
         try? context.save()
         health?.stopHeartRateStream()
         if let health, !healthManagedExternally {
-            Task { try? await health.saveWorkout(run) }
+            Task { @MainActor in try? await health.saveWorkout(run) }   // run은 SwiftData 모델 — 메인에서만 읽는다
         }
         state = .finished
         say(VoiceCue.finish(distanceMeters: run.distanceMeters, seconds: run.movingSeconds))
