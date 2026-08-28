@@ -1,0 +1,9 @@
+// 서명 기본값 (동하 팀). 다른 팀 계정으로 빌드하려면 같은 폴더에 Local.xcconfig(gitignore)를 만들어
+// DEVELOPMENT_TEAM 과 APP_BUNDLE_ID 두 줄만 덮어쓴다. 이 파일과 Xcode Signing 탭은 건드리지 말 것.
+DEVELOPMENT_TEAM = 322PTHJ258
+APP_BUNDLE_ID = name.dongharyu.RunCanvas
+
+#include? "Local.xcconfig"
+
+// 앱·워치(.watchkitapp)·테스트(Tests/UITests) 번들 ID가 전부 APP_BUNDLE_ID 에서 파생된다
+PRODUCT_BUNDLE_IDENTIFIER = $(APP_BUNDLE_ID)
