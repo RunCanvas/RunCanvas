@@ -48,11 +48,11 @@ Xcode 동기화 폴더라 Finder에서 폴더·파일을 만들면 프로젝트�
 
 ## 다른 Apple 계정으로 실기기 빌드 (팀원용)
 
-서명 Team·Bundle ID는 `Config/Base.xcconfig`에 있고, 같은 폴더의 `Local.xcconfig`(gitignore)가 있으면 그 값으로 덮어씁니다. **Xcode의 Signing & Capabilities에서 Team을 직접 바꾸지 마세요** — pbxproj에 기록돼 충돌납니다.
+서명 Team·Bundle ID가 들어가는 `Config/Base.xcconfig`는 팀원별 값이 달라 gitignore됩니다. 처음 받은 저장소에서는 `Config/Base.example.xcconfig`를 `Config/Base.xcconfig`로 복사한 뒤 본인 값을 넣습니다. **Xcode의 Signing & Capabilities에서 Team을 직접 바꾸지 마세요** — pbxproj에 기록돼 충돌납니다.
 
 1. Xcode → Settings → Accounts → `+` → 본인 Apple ID 추가 (무료 계정이면 "Personal Team" 생성됨)
 2. 팀 ID 확인: 유료 계정이면 developer.apple.com → Membership details의 Team ID(10자리). 무료 계정이면 Signing & Capabilities에서 Team을 잠깐 본인 팀으로 바꾼 뒤 `git diff`로 `DEVELOPMENT_TEAM = XXXXXXXXXX` 값을 복사하고 `git checkout -- RunCanvas.xcodeproj/project.pbxproj`로 되돌립니다
-3. `Config/Local.xcconfig` 생성:
+3. `Config/Base.example.xcconfig`를 `Config/Base.xcconfig`로 복사하고 수정:
    ```
    DEVELOPMENT_TEAM = XXXXXXXXXX
    PRODUCT_BUNDLE_IDENTIFIER = xxx.<본인이름>.RunCanvas

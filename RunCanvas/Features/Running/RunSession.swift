@@ -9,10 +9,12 @@ final class RunSession {
     enum State { case idle, running, paused, finished }
 
     private(set) var state: State = .idle
+    private(set) var sessionID = UUID()
     var heartRate: Double?                // Phase 3: HealthService가 갱신
     private(set) var heartRateSamples: [Double] = []
 
     private let location: LocationService
+    private let health: HealthServicing?
     private let coach: VoiceCoach?
     private let now: () -> Date
     private var nextCueMeters: Double = .infinity   // 다음 음성 안내 지점
@@ -21,9 +23,16 @@ final class RunSession {
     private var accumulated: TimeInterval = 0
     private var ticker: Timer?
     private var tick = 0                  // 뷰 갱신용 (Observation이 변화를 감지하도록)
+    private var healthManagedExternally = false
 
-    init(location: LocationService = LocationService(), coach: VoiceCoach? = nil, now: @escaping () -> Date = Date.init) {
+    init(
+        location: LocationService = LocationService(),
+        health: HealthServicing? = nil,
+        coach: VoiceCoach? = nil,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.location = location
+        self.health = health
         self.coach = coach
         self.now = now
     }
@@ -32,20 +41,31 @@ final class RunSession {
     var route: [RoutePoint] { location.route }
     var currentLocation: CLLocation? { location.currentLocation }
 
+    func requestHealthAuthorization() async throws {
+        try await health?.requestAuthorization()
+    }
+
     var elapsedSeconds: Int {
         _ = tick
         let live = segmentStart.map { now().timeIntervalSince($0) } ?? 0
         return Int((accumulated + live).rounded(.down))
     }
 
-    func start() {
+    func start(sessionID: UUID = UUID(), healthManagedExternally: Bool = false) {
         guard state == .idle else { return }
+        self.sessionID = sessionID
+        self.healthManagedExternally = healthManagedExternally
         location.requestPermission()
         location.reset()
         location.start()
         startedAt = now()
         segmentStart = startedAt
         state = .running
+        if let startedAt, !healthManagedExternally {
+            health?.startHeartRateStream(since: startedAt) { [weak self] bpm in
+                self?.recordHeartRate(bpm)
+            }
+        }
         nextCueMeters = coach?.intervalMeters ?? .infinity
         startTicker()
         say(VoiceCue.start)
@@ -87,6 +107,10 @@ final class RunSession {
         )
         context.insert(run)
         try? context.save()
+        health?.stopHeartRateStream()
+        if let health, !healthManagedExternally {
+            Task { try? await health.saveWorkout(run) }
+        }
         state = .finished
         say(VoiceCue.finish(distanceMeters: run.distanceMeters, seconds: run.movingSeconds))
         return run
@@ -109,6 +133,17 @@ final class RunSession {
     func recordHeartRate(_ bpm: Double) {   // Phase 3에서 호출
         heartRate = bpm
         heartRateSamples.append(bpm)
+    }
+
+    /// 워치 시작에 실패했을 때 iPhone HealthKit 기록으로 안전하게 전환한다.
+    func takeOverHealthWorkout() {
+        guard healthManagedExternally,
+              state == .running || state == .paused,
+              let startedAt else { return }
+        healthManagedExternally = false
+        health?.startHeartRateStream(since: startedAt) { [weak self] bpm in
+            self?.recordHeartRate(bpm)
+        }
     }
 
     private func startTicker() {
