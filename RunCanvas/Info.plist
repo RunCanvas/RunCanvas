@@ -18,5 +18,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>꾸민 러닝 이미지를 사진 앱에 저장합니다.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>런꾸 배경 사진을 촬영합니다.</string>
 </dict>
 </plist>

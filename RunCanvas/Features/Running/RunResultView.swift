@@ -18,6 +18,7 @@ struct RunResultView: View {
     @Query private var ownerRuns: [Run]
     @State private var newBadges: [Badge] = []
     @State private var completedChallenges: [Challenge] = []
+    @State private var showsCanvas = false
 
     init(run: Run) {
         self.run = run
@@ -39,7 +40,7 @@ struct RunResultView: View {
                 }
 
                 PrimaryButton(title: "사진으로 꾸미기", systemImage: "photo") {
-                    // Phase 6: CanvasFlowView(run: run) 연결
+                    showsCanvas = true
                 }
                 .padding(.horizontal, 24)
 
@@ -49,6 +50,9 @@ struct RunResultView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .badgeEarnedToast($newBadges)
+        .fullScreenCover(isPresented: $showsCanvas) {
+            CanvasFlowView(run: run)
+        }
         .onAppear {
             let badgeRuns = ownerRuns.map(\.badgeRun)
             newBadges = BadgeStore.recordNewlyEarned(from: badgeRuns, ownerID: run.ownerID)
