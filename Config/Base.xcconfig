@@ -1,5 +1,0 @@
-// 서명 기본값 (동하 팀). 다른 팀 계정으로 빌드하려면 같은 폴더에 Local.xcconfig 를 만들어 덮어쓴다 (gitignore).
-DEVELOPMENT_TEAM = 35VCHAAS2Q
-PRODUCT_BUNDLE_IDENTIFIER = com.daun1997.RunCanvas
-
-#include? "Local.xcconfig"

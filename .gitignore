@@ -4,3 +4,4 @@ xcuserdata/
 DerivedData/
 build/
 Config/Local.xcconfig
+Config/Base.xcconfig
