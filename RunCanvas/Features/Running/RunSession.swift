@@ -15,7 +15,9 @@ final class RunSession {
 
     private let location: LocationService
     private let health: HealthServicing?
+    private let coach: VoiceCoach?
     private let now: () -> Date
+    private var nextCueMeters: Double = .infinity   // 다음 음성 안내 지점
     private var startedAt: Date?
     private var segmentStart: Date?       // 현재 달리는 구간 시작
     private var accumulated: TimeInterval = 0
@@ -26,10 +28,12 @@ final class RunSession {
     init(
         location: LocationService = LocationService(),
         health: HealthServicing? = nil,
+        coach: VoiceCoach? = nil,
         now: @escaping () -> Date = Date.init
     ) {
         self.location = location
         self.health = health
+        self.coach = coach
         self.now = now
     }
 
@@ -62,7 +66,9 @@ final class RunSession {
                 self?.recordHeartRate(bpm)
             }
         }
+        nextCueMeters = coach?.intervalMeters ?? .infinity
         startTicker()
+        say(VoiceCue.start)
     }
 
     func pause() {
@@ -72,6 +78,7 @@ final class RunSession {
         location.stop()
         state = .paused
         ticker?.invalidate()
+        say(VoiceCue.pause)
     }
 
     func resume() {
@@ -80,6 +87,7 @@ final class RunSession {
         location.start()
         state = .running
         startTicker()
+        say(VoiceCue.resume)
     }
 
     @discardableResult
@@ -104,7 +112,22 @@ final class RunSession {
             Task { try? await health.saveWorkout(run) }
         }
         state = .finished
+        say(VoiceCue.finish(distanceMeters: run.distanceMeters, seconds: run.movingSeconds))
         return run
+    }
+
+    // MARK: - 음성 안내
+
+    private func say(_ text: String) {
+        guard let coach, coach.isEnabled else { return }
+        coach.speak(text)
+    }
+
+    /// 설정 간격(기본 1km)을 넘을 때마다 거리·시간·페이스를 읽어준다. 매초 틱에서 호출.
+    func checkVoiceCue() {
+        guard state == .running, let coach, coach.isEnabled, distanceMeters >= nextCueMeters else { return }
+        coach.speak(VoiceCue.progress(distanceMeters: nextCueMeters, seconds: elapsedSeconds))
+        nextCueMeters += coach.intervalMeters
     }
 
     func recordHeartRate(_ bpm: Double) {   // Phase 3에서 호출
@@ -127,6 +150,7 @@ final class RunSession {
         ticker?.invalidate()
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             self?.tick += 1
+            self?.checkVoiceCue()
         }
     }
 }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import MapKit
 
 struct RunnerHomeView: View {
     @Environment(AuthService.self) private var auth
@@ -21,8 +22,11 @@ struct RunnerHomeView: View {
 /// 현재 계정의 기록만 조회 (ownerID 필터)
 private struct HomeContent: View {
     @Query private var runs: [Run]
+    @Environment(\.levelTier) private var tier
+    private let ownerID: UUID?
 
     init(ownerID: UUID?) {
+        self.ownerID = ownerID
         let owner = ownerID ?? UUID()
         _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)
     }
@@ -42,18 +46,31 @@ private struct HomeContent: View {
             ScrollView {
                 VStack(spacing: 28) {
 
-                    // 오늘의 러닝
-                    VStack(spacing: 12) {
-                        Text("오늘의 러닝")
-                            .font(.headline)
+                    // 오늘의 러닝 — 현재 위치 지도 위에 (위치 권한은 러닝 화면에서 받고, 허용돼 있으면 내 위치가 보인다)
+                    ZStack(alignment: .bottomLeading) {
+                        Map(position: .constant(.userLocation(fallback: .automatic)), interactionModes: []) {
+                            UserAnnotation()
+                        }
+                        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+                        .mapControlVisibility(.hidden)
 
-                        Text(RunMath.formatKm(todayMeters))
-                            .font(.system(size: 52, weight: .bold))
+                        LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
 
-                        Text("km")
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("오늘의 러닝")
+                                .font(.headline)
+                            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                                Text(RunMath.formatKm(todayMeters))
+                                    .font(.system(size: 52, weight: .bold))
+                                Text("km")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(20)
                     }
-                    .padding(.top, 40)
+                    .frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .padding(.top, 8)
 
                     // 러닝 시작 버튼
                     NavigationLink {
@@ -64,17 +81,26 @@ private struct HomeContent: View {
                             Text("러닝 시작")
                         }
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(tier?.onAccent ?? Color(.systemBackground))
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(.black)
+                        .background(tier?.accent ?? Color.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
                     // 최근 러닝
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("최근 러닝")
-                            .font(.headline)
+                        HStack {
+                            Text("최근 러닝")
+                                .font(.headline)
+                            Spacer()
+                            if !runs.isEmpty {
+                                NavigationLink("전체 보기") {
+                                    RunListView(ownerID: ownerID)
+                                }
+                                .font(.subheadline)
+                            }
+                        }
 
                         if runs.isEmpty {
                             Text("아직 기록이 없어요. 첫 러닝을 시작해 보세요.")

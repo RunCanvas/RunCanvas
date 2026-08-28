@@ -13,6 +13,8 @@ struct RunResultView: View {
     let run: Run
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+    @Environment(AuthService.self) private var auth
     @Query private var ownerRuns: [Run]
     @State private var newBadges: [Badge] = []
     @State private var completedChallenges: [Challenge] = []
@@ -51,6 +53,10 @@ struct RunResultView: View {
             let badgeRuns = ownerRuns.map(\.badgeRun)
             newBadges = BadgeStore.recordNewlyEarned(from: badgeRuns, ownerID: run.ownerID)
             completedChallenges = BadgeStore.recordCompletedChallenges(from: badgeRuns, ownerID: run.ownerID)
+        }
+        .task {
+            guard auth.canSync else { return }
+            await SyncService.sync(context: context, ownerID: run.ownerID)   // 이번 기록 + 새 뱃지 서버 사본
         }
     }
 }

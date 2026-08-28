@@ -12,18 +12,24 @@ struct AvatarView: View {
                 .frame(width: size, height: size)
 
             if let url = URL(string: urlString), !urlString.isEmpty {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    ProgressView()
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image): image.resizable().scaledToFill()
+                    case .failure: placeholderIcon          // 로드 실패 시 스피너가 계속 돌지 않게
+                    default: ProgressView()
+                    }
                 }
                 .frame(width: size, height: size)
                 .clipShape(Circle())
             } else {
-                Image(systemName: "person.fill")
-                    .font(.system(size: size * 0.4))
-                    .foregroundStyle(.secondary)
+                placeholderIcon
             }
         }
+    }
+
+    private var placeholderIcon: some View {
+        Image(systemName: "person.fill")
+            .font(.system(size: size * 0.4))
+            .foregroundStyle(.secondary)
     }
 }

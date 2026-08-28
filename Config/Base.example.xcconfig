@@ -1,0 +1,5 @@
+// 이 파일을 Base.xcconfig로 복사한 뒤 본인 Apple Developer 값을 입력한다.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+PRODUCT_BUNDLE_IDENTIFIER = com.example.RunCanvas
+
+#include? "Local.xcconfig"

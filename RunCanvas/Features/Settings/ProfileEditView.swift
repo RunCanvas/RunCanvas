@@ -27,30 +27,34 @@ struct ProfileEditView: View {
 
     var body: some View {
         List {
-            Section {
-                avatarPicker
-                    .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-            }
-
-            Section {
-                LabeledContent("닉네임") {
-                    TextField("입력해 주세요", text: $nicknameText)
-                        .multilineTextAlignment(.trailing)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .foregroundStyle(.primary)
+            Group {
+                Section {
+                    avatarPicker
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
                 }
-                numberRow("키", text: $heightText, unit: "cm")
-                numberRow("체중", text: $weightText, unit: "kg")
-            } header: {
-                Text("기본 정보")
-            } footer: {
-                Text(statusMessage ?? "키와 체중은 칼로리 계산에 쓰여요.")
+
+                Section {
+                    LabeledContent("닉네임") {
+                        TextField("입력해 주세요", text: $nicknameText)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .foregroundStyle(.primary)
+                    }
+                    numberRow("키", text: $heightText, unit: "cm")
+                    numberRow("체중", text: $weightText, unit: "kg")
+                } header: {
+                    Text("기본 정보")
+                } footer: {
+                    Text(statusMessage ?? "키와 체중은 칼로리 계산에 쓰여요.")
+                }
             }
+            .listRowBackground(Color.card)
         }
         .listStyle(.insetGrouped)
+        .appListTone()
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
             PrimaryButton(title: isSaving ? "저장 중…" : "저장") {
