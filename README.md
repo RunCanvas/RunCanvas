@@ -32,7 +32,7 @@ RunCanvas/
 │   ├── Running/    RunView, RunSession, RunResultView, RunDetailView, RouteMapView
 │   ├── Records/    RunStatsView(주·월·년 차트), RunListView, StatsEngine
 │   ├── Badges/     BadgesView(레벨·챌린지·최고 기록·뱃지), BadgeEarnedToast
-│   ├── Canvas/     런꾸 (Phase 6 예정)
+│   ├── Canvas/     런꾸 (배경·기록 선택, 스티커 편집, 이미지 저장·공유)
 │   └── Settings/   SettingsView, ProfileEditView, VoiceSettingsView
 ├── Components/   PrimaryButton, StatLabel, AppleSignInButton, Keyboard, ProfileRows
 ├── Assets.xcassets/Badges/  뱃지 일러스트 19개
@@ -61,3 +61,25 @@ Xcode 동기화 폴더라 Finder에서 폴더·파일을 만들면 프로젝트�
 5. Apple 로그인을 쓰려면 본인 번들 ID를 Supabase Apple 프로바이더 Client IDs에 추가해야 합니다 (동하에게 요청)
 
 무료 Personal Team은 앱이 7일마다 만료되므로 다시 ⌘R 하면 됩니다. HealthKit은 되지만 App Groups·iCloud·푸시는 유료 계정이 필요합니다.
+
+### `git pull` 후 Team·Provisioning 빌드 오류
+
+Pull 직후 아래 오류가 나타나면 코드 문제가 아니라 Xcode가 `Config/Base.xcconfig`의 다른 팀원 서명 값을 사용하고 있는 상태입니다.
+
+- `No Account for Team "..."`
+- `No profiles for '...' were found`
+- iPhone 앱은 빌드되지만 Watch 앱의 provisioning profile을 찾지 못함
+
+다음 순서로 복구합니다.
+
+1. `Config/Local.xcconfig`가 있는지 확인하고, 없다면 생성합니다.
+2. 파일에는 본인 값 두 줄만 입력합니다. `PRODUCT_BUNDLE_IDENTIFIER`가 아니라 `APP_BUNDLE_ID`를 사용해야 iPhone·Watch·테스트 Bundle ID가 함께 변경됩니다.
+   ```xcconfig
+   DEVELOPMENT_TEAM = 본인_TEAM_ID
+   APP_BUNDLE_ID = com.본인이름.RunCanvas
+   ```
+3. Xcode의 `Signing & Capabilities`에서 Team이나 Bundle Identifier를 직접 바꾸지 않습니다. 직접 변경하면 `project.pbxproj`에 개인 값이 기록되어 다른 팀원의 빌드가 깨집니다.
+4. 이미 Signing 탭을 변경했다면 `git diff`로 `RunCanvas.xcodeproj/project.pbxproj`와 `RunCanvas/Info.plist`를 확인합니다. 서명 값 추가나 plist 키 순서 변경뿐일 때만 해당 변경을 되돌립니다. 의도적으로 작업한 변경이 섞여 있으면 파일 전체를 되돌리지 않습니다.
+5. Xcode에서 `Product → Clean Build Folder`를 실행한 뒤 다시 빌드합니다.
+
+`Config/Local.xcconfig`는 gitignore되므로 일반적인 `git pull`, 브랜치 전환, 병합으로 삭제되지 않습니다. 단, `git clean -fdx`는 gitignore된 파일까지 삭제하므로 사용하지 않습니다. 새로 클론하거나 다른 Mac에서 작업할 때는 이 파일을 다시 만들어야 합니다.

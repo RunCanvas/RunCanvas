@@ -26,7 +26,7 @@ private struct LevelThemedTabs: View {
         TabView {
             Tab("홈", systemImage: "house") { RunnerHomeView() }
             Tab("기록", systemImage: "chart.bar") { RunStatsView() }
-            Tab("런꾸", systemImage: "photo.on.rectangle") { RunDecorateView() }
+            Tab("런꾸", systemImage: "photo.on.rectangle") { CanvasFlowView() }
             Tab("설정", systemImage: "gearshape") { SettingsView() }
         }
         .tint(.primary)

@@ -11,6 +11,17 @@ struct RunDetailView: View {
                     .frame(height: 260)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
 
+                if let decoratedImage = CanvasStorage.image(filename: run.decoratedImageFilename) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("나의 런꾸")
+                            .font(.headline)
+                        Image(uiImage: decoratedImage)
+                            .resizable()
+                            .scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                }
+
                 VStack(spacing: 8) {
                     Text(RunMath.formatKm(run.distanceMeters)).font(.system(size: 56, weight: .bold))
                     Text("km").foregroundStyle(.secondary)
