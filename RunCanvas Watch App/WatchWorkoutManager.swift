@@ -67,12 +67,14 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
             workoutSession = session
             workoutBuilder = builder
-            heartRate = nil
-            distanceMeters = 0
-            activeEnergy = 0
-            elapsedSeconds = 0
-            syncedDistanceMeters = nil
-            syncedElapsedSeconds = nil
+            await MainActor.run {   // @Published는 메인에서만 (await 뒤라 백그라운드일 수 있음)
+                heartRate = nil
+                distanceMeters = 0
+                activeEnergy = 0
+                elapsedSeconds = 0
+                syncedDistanceMeters = nil
+                syncedElapsedSeconds = nil
+            }
 
             let startDate = Date()
             session.startActivity(with: startDate)

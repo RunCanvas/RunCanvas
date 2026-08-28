@@ -65,6 +65,13 @@
 			);
 			target = 15CF48802E4EF7B5002F5A44 /* RunCanvas */;
 		};
+		C0DE0000000000000000C305 /* Exceptions for "RunCanvas Watch App" folder in "RunCanvas Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C0DE00000000000000000306 /* RunCanvas Watch App */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +95,9 @@
 		};
 		C0DE00000000000000000304 /* RunCanvas Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C0DE0000000000000000C305 /* Exceptions for "RunCanvas Watch App" folder in "RunCanvas Watch App" target */,
+			);
 			path = "RunCanvas Watch App";
 			sourceTree = "<group>";
 		};
@@ -648,6 +658,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RunCanvas Watch App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = RunCanvas;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수와 운동 데이터를 표시합니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "애플워치에서 측정한 러닝 기록을 건강 앱에 저장합니다.";
@@ -682,6 +693,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RunCanvas Watch App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = RunCanvas;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수와 운동 데이터를 표시합니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "애플워치에서 측정한 러닝 기록을 건강 앱에 저장합니다.";

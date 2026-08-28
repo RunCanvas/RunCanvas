@@ -37,7 +37,7 @@
 | F3 | 러닝 시작 → GPS 기록 → 일시정지 → 종료 | 홈 Run Start, 러닝 중 | **완료** — `RunView` + `RunSession` + `LocationService`(백그라운드, GPS 튐 필터) |
 | F4 | 기록 저장 — 거리/시간/페이스/칼로리 계산 | 러닝 종료 | **완료** — `Run`(SwiftData, `ownerID`), `RunMath` |
 | F5 | 러닝 상세 — 지도 경로 + 수치 | 러닝 상세 | **완료** — `RunResultView`/`RunDetailView`, NRC 스타일 `RouteMapView` |
-| F6 | 심박수 (HealthKit, 워치가 기록한 값) | 러닝 중 BPM | **남음 → Phase 3** (`RunSession.heartRate`·`Run.averageHeartRate` 자리만 있음) |
+| F6 | 심박수 (HealthKit) + **Apple Watch 앱** (2026-08-28 1.0 포함 결정) | 러닝 중 BPM | **코드 들어옴(다은, 리뷰 중)** — `HealthService`, `WatchConnectivityService`, 워치 타깃 `RunCanvas Watch App`(HKWorkoutSession). 실기기+워치 검증 남음 |
 | F7 | 나의 기록 — 목록, 주/월/년 통계, 그래프 | 나의 기록 | **완료** — `RunStatsView`(Swift Charts) + `RunListView`, `StatsEngine` |
 | F8 | 홈 — 최신 기록 카드, 배경 지도+현재 위치, Run Start | 홈 | **완료** — 오늘 거리 + 현재 위치 지도 카드, 최근 3개, 전체 보기 |
 | F9 | 러닝 레벨/뱃지 부여 | 프로필 | **완료** — 레벨 7단계, 뱃지 19종(일러스트), 로컬 챌린지 4개, 획득 토스트 |
@@ -100,7 +100,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 | 1 | 러닝 코어: 모델·저장·경로·세션·결과·상세 | 0 | Claude | ✅ PR #16 |
 | 2 | 로그인·프로필 (Supabase Auth/Storage) | 0 | 동하 | ✅ PR #8~#14 |
 | 5 | 레벨/뱃지 + 로컬 챌린지 | 1 | Claude | ✅ PR #15·#16 |
-| 3 | HealthKit 심박 + 워크아웃 저장 | 1 | 다은 | 남음 |
+| 3 | HealthKit 심박 + 워크아웃 저장 + Apple Watch 앱 | 1 | 다은 | 코드 머지됨(`5c4de73`), 리뷰 반영·실기기 검증 남음 |
 | 4 | 나의 기록 통계·홈 지도 | 1 | Claude | ✅ PR #18 |
 | 6 | 런꾸 + 이미지 저장/공유 | 1 | 미정 (동하/Claude 또는 다은) | 남음 |
 | 7 | 서버 동기화(7.1) + 출시 준비(7.2, TestFlight) | 1, 2 | 동하 | 7.1 ✅ PR #20 · 7.2 남음 |
@@ -161,7 +161,14 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 
 ---
 
-## Phase 3 — HealthKit 심박 (태스크 레벨)
+## Phase 3 — HealthKit 심박 + Apple Watch (다은 구현, 2026-08-28)
+
+**들어온 것** (`5c4de73`, develop 직접 푸시 — 이후 서명 설정은 PR #27로 복구): `Services/HealthService.swift`(`HealthServicing` 프로토콜, 심박 `HKAnchoredObjectQuery`, `HKWorkoutBuilder` 저장), `Services/WatchConnectivityService.swift`(iOS), `RunSession(location:health:coach:now:)` + `start(sessionID:healthManagedExternally:)`/`takeOverHealthWorkout()`, `RunView` 워치 연동(명령·스냅샷 1초 주기), 워치 타깃 `RunCanvas Watch App`(`WatchWorkoutManager` HKWorkoutSession/HKLiveWorkoutBuilder, `WatchRunView`, 워치용 `WatchConnectivityService`). 워치 번들은 `$(APP_BUNDLE_ID).watchkitapp`.
+**동작 원칙**: 워치가 연결(reachable)돼 있으면 워치가 워크아웃·심박을 담당하고 폰은 GPS·거리, 아니면 폰이 HealthKit 스트림+워크아웃 저장. 워치 시작 실패 시 `.unavailable` → 폰이 인계.
+**리뷰 반영(PR fix/watch-review)**: SwiftData 모델을 백그라운드 Task에서 읽던 `saveWorkout` 호출을 메인으로, 워치 `@Published` 초기화 메인 보장, 워치 `WKBackgroundModes = workout-processing`(없으면 손목 내리면 앱 정지).
+**남은 검증**: 실기기+워치에서 시작/일시정지/종료 양방향, 건강 앱에 워크아웃 1개만 생기는지(중복 X), 워치 앱 종료 시 폰 인계.
+
+### (원래 태스크 — 참고용)
 
 브랜치: `feature/heart-rate`. 담당 다은. **실기기 + 애플워치 필요** (시뮬레이터는 건강 앱에 수동 심박 샘플을 넣어 스트림만 확인).
 
@@ -264,7 +271,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 챌린지 트로피: 완료한 챌린지를 월별 트로피로 모아 보기(스트라바식). 서버 챌린지와 같이 설계 — 완료 키는 이미 `BadgeStore.completedChallenges`에 `id@2026-08`로 저장 중.
 - 한국 마라톤 일정: 정적 JSON(`Resources/marathons.json`, 월 1회 갱신) → 목록/캘린더 뷰. 외부 API 없음.
 - 런꾸 월말/연말정산: `runs` 집계 + 해당 기간 `decoratedImageFilename` 콜라주 → `ImageRenderer`.
-- Apple Watch 앱: `HKWorkoutSession`으로 워치 단독 러닝, App Groups(`group.$(PRODUCT_BUNDLE_IDENTIFIER)`)로 공유.
+- (Apple Watch 앱은 1.0에 들어옴 — Phase 3 참고)
 - Apple 웹 로그인(.p8) 필요 시. (서버 → 로컬 복원은 1.0에 포함됨)
 
 ---
