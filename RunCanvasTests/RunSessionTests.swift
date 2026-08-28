@@ -6,6 +6,30 @@ final class RunSessionTests: XCTestCase {
     private var now = Date(timeIntervalSince1970: 1_000_000)
     private let owner = UUID()
 
+    private final class HealthSpy: HealthServicing {
+        var didStartStream = false
+        var didStopStream = false
+        var savedRun: Run?
+        var onSample: ((Double) -> Void)?
+        var saveExpectation: XCTestExpectation?
+
+        func requestAuthorization() async throws {}
+
+        func startHeartRateStream(since startDate: Date, onSample: @escaping (Double) -> Void) {
+            didStartStream = true
+            self.onSample = onSample
+        }
+
+        func stopHeartRateStream() {
+            didStopStream = true
+        }
+
+        func saveWorkout(_ run: Run) async throws {
+            savedRun = run
+            saveExpectation?.fulfill()
+        }
+    }
+
     private func makeSession() -> RunSession {
         RunSession(location: LocationService(), now: { self.now })
     }
@@ -29,6 +53,35 @@ final class RunSessionTests: XCTestCase {
         s.resume(); XCTAssertEqual(s.state, .running)
     }
 
+    func testHealthStreamUpdatesCurrentAndSummaryHeartRate() {
+        let health = HealthSpy()
+        let s = RunSession(location: LocationService(), health: health, now: { self.now })
+
+        s.start()
+        health.onSample?(140)
+        health.onSample?(160)
+
+        XCTAssertTrue(health.didStartStream)
+        XCTAssertEqual(s.heartRate, 160)
+        XCTAssertEqual(s.heartRateSamples, [140, 160])
+    }
+
+    @MainActor
+    func testWatchManagedWorkoutSkipsPhoneHealthWorkout() throws {
+        let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let health = HealthSpy()
+        let s = RunSession(location: LocationService(), health: health, now: { self.now })
+
+        s.start(healthManagedExternally: true)
+        s.recordHeartRate(152)
+        _ = s.finish(ownerID: owner, weightKg: 60, context: context)
+
+        XCTAssertFalse(health.didStartStream)
+        XCTAssertTrue(health.didStopStream)
+        XCTAssertNil(health.savedRun)
+    }
+
     @MainActor
     func testFinishSavesRunForOwner() throws {
         let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
@@ -41,5 +94,26 @@ final class RunSessionTests: XCTestCase {
         XCTAssertEqual(run.movingSeconds, 120)
         XCTAssertEqual(run.ownerID, owner)
         XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 1)
+    }
+
+    @MainActor
+    func testFinishStopsHeartRateStreamAndCalculatesHeartRate() async throws {
+        let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let health = HealthSpy()
+        let workoutSaved = expectation(description: "HealthKit workout saved")
+        health.saveExpectation = workoutSaved
+        let s = RunSession(location: LocationService(), health: health, now: { self.now })
+        s.start()
+        health.onSample?(120)
+        health.onSample?(180)
+
+        let run = s.finish(ownerID: owner, weightKg: 60, context: context)
+
+        XCTAssertTrue(health.didStopStream)
+        XCTAssertEqual(run.averageHeartRate, 150)
+        XCTAssertEqual(run.maxHeartRate, 180)
+        await fulfillment(of: [workoutSaved], timeout: 1)
+        XCTAssertEqual(health.savedRun?.id, run.id)
     }
 }
