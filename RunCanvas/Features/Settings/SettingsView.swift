@@ -26,6 +26,8 @@ struct SettingsView: View {
     @State private var appleAuthorizer = AppleAuthorizer()
     @State private var linkMessage: String?
     @State private var isConfirmingDelete = false
+    @State private var isDeleting = false
+    @State private var deleteErrorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -58,10 +60,18 @@ struct SettingsView: View {
             }
             // 값은 입력 즉시 저장 (0 이하·숫자 아님은 무시)
             .onChange(of: targetDistanceText) { _, text in
-                if let v = Double(text), v > 0 { targetDistance = v }
+                if let v = Double(text), Self.isValidTarget(v) { targetDistance = v }
             }
             .onChange(of: weeklyTargetDistanceText) { _, text in
-                if let v = Double(text), v > 0 { weeklyTargetDistance = v }
+                if let v = Double(text), Self.isValidTarget(v) { weeklyTargetDistance = v }
+            }
+            .alert("회원 탈퇴", isPresented: Binding(
+                get: { deleteErrorMessage != nil },
+                set: { if !$0 { deleteErrorMessage = nil } }
+            )) {
+                Button("확인", role: .cancel) {}
+            } message: {
+                Text(deleteErrorMessage ?? "")
             }
             .confirmationDialog("회원 탈퇴할까요?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
                 Button("탈퇴하기", role: .destructive) { Task { await deleteAccount() } }
@@ -229,12 +239,17 @@ struct SettingsView: View {
                 HStack {
                     Text("회원 탈퇴")
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                    if isDeleting {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
             .foregroundStyle(.secondary)
+            .disabled(isDeleting)
         }
     }
 
@@ -250,20 +265,33 @@ struct SettingsView: View {
         }
     }
 
+    /// 서버를 **먼저** 지운다 — 반대 순서면 RPC 가 실패했을 때(오프라인·서버 오류) 계정은 살아있는데
+    /// 아직 업로드되지 않은 기록만 사라져 영구 손실이 된다.
     private func deleteAccount() async {
+        isDeleting = true
+        defer { isDeleting = false }
         do {
-            if let id = auth.userID {   // 이 계정의 로컬 기록 삭제 (서버는 RPC가 cascade)
-                try context.delete(model: Run.self, where: #Predicate { $0.ownerID == id })
-                try context.save()
+            let id = auth.userID
+            try await auth.deleteAccount()
+            if let id {   // 서버 삭제가 확정된 뒤에만 로컬 정리 (서버는 RPC 가 cascade)
+                let runs = (try? context.fetch(FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == id }))) ?? []
+                runs.compactMap(\.decoratedImageFilename).forEach(CanvasStorage.delete)   // 런꾸 이미지도 같이
+                runs.forEach(context.delete)
+                try? context.save()
             }
-            try await auth.deleteAccount()   // 성공하면 AppRouter가 세션 변화를 보고 로그인 화면으로
         } catch {
-            linkMessage = "회원 탈퇴에 실패했어요. 네트워크를 확인해 주세요."
+            deleteErrorMessage = "회원 탈퇴에 실패했어요. 네트워크를 확인한 뒤 다시 시도해 주세요."
         }
     }
 
+    /// 숫자 키패드로 아주 큰 수(1e20 등)를 넣을 수 있어 상한을 둔다.
+    /// 상한이 없으면 `Int(value)` 가 Int.max 를 넘어 런타임 트랩 → 설정 탭이 영구히 안 열린다.
+    private static let maxTargetKm = 1_000.0
+    private static func isValidTarget(_ v: Double) -> Bool { v > 0 && v <= maxTargetKm }
+
     private func formatted(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
+        // %.0f 는 트랩이 없다 (String(Int(value)) 는 범위를 넘으면 크래시)
+        value == value.rounded() ? String(format: "%.0f", value) : String(format: "%.1f", value)
     }
 }
 
