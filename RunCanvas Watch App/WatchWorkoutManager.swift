@@ -1,6 +1,9 @@
 import Foundation
 import HealthKit
 
+/// 워크아웃 상태·수치는 전부 메인 액터에서만 만진다 — 원격 명령(Task)과 1초 타이머가 같은 값을 건드려서
+/// 클래스 전체를 @MainActor로 묶었다. HealthKit 델리게이트 콜백만 nonisolated로 받아 메인으로 넘긴다.
+@MainActor
 final class WatchWorkoutManager: NSObject, ObservableObject {
     enum State {
         case idle
@@ -19,12 +22,21 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published private(set) var isPhoneReachable = false
     @Published var errorMessage: String?
 
+    /// 폰 스냅샷이 5초 넘게 안 오면 얼어붙은 값 대신 워치 자체 값을 보여준다
+    private static let snapshotStaleAfter: TimeInterval = 5
+    private var syncedAt: Date?
+
+    private var phoneSyncIsFresh: Bool {
+        guard isPhoneReachable, let syncedAt else { return false }
+        return Date().timeIntervalSince(syncedAt) < Self.snapshotStaleAfter
+    }
+
     var displayedDistanceMeters: Double {
-        isPhoneReachable ? (syncedDistanceMeters ?? distanceMeters) : distanceMeters
+        phoneSyncIsFresh ? (syncedDistanceMeters ?? distanceMeters) : distanceMeters
     }
 
     var displayedElapsedSeconds: Int {
-        isPhoneReachable ? (syncedElapsedSeconds ?? elapsedSeconds) : elapsedSeconds
+        phoneSyncIsFresh ? (syncedElapsedSeconds ?? elapsedSeconds) : elapsedSeconds
     }
 
     private let healthStore = HKHealthStore()
@@ -67,33 +79,28 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
             workoutSession = session
             workoutBuilder = builder
-            await MainActor.run {   // @Published는 메인에서만 (await 뒤라 백그라운드일 수 있음)
-                heartRate = nil
-                distanceMeters = 0
-                activeEnergy = 0
-                elapsedSeconds = 0
-                syncedDistanceMeters = nil
-                syncedElapsedSeconds = nil
-            }
+            heartRate = nil
+            distanceMeters = 0
+            activeEnergy = 0
+            elapsedSeconds = 0
+            syncedDistanceMeters = nil
+            syncedElapsedSeconds = nil
+            syncedAt = nil
 
             let startDate = Date()
             session.startActivity(with: startDate)
             try await builder.beginCollection(at: startDate)
 
-            await MainActor.run {
-                state = .running
-                startTimer()
-                if sendToPhone {
-                    connectivity.sendCommand(.start, sessionID: sessionID)
-                }
-                sendSnapshot()
+            state = .running
+            startTimer()
+            if sendToPhone {
+                connectivity.sendCommand(.start, sessionID: sessionID)
             }
+            sendSnapshot()
         } catch {
-            await MainActor.run {
-                errorMessage = error.localizedDescription
-                connectivity.sendCommand(.unavailable, sessionID: sessionID)
-                resetSession()
-            }
+            errorMessage = error.localizedDescription
+            connectivity.sendCommand(.unavailable, sessionID: sessionID)
+            resetSession()
         }
     }
 
@@ -121,16 +128,14 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         do {
             try await builder.endCollection(at: Date())
             _ = try await builder.finishWorkout()
-            await MainActor.run {
-                state = .finished
-                stopTimer()
-                sendSnapshot()
-            }
+            state = .finished
+            stopTimer()
+            workoutSession = nil        // 중복 .end가 와도 위 guard에서 조용히 걸린다 (에러 알럿 방지)
+            workoutBuilder = nil
+            sendSnapshot()
         } catch {
-            await MainActor.run {
-                errorMessage = error.localizedDescription
-                resetSession()
-            }
+            errorMessage = error.localizedDescription
+            resetSession()
         }
     }
 
@@ -152,9 +157,11 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private func startTimer() {
         stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self, let builder = self.workoutBuilder else { return }
-            self.elapsedSeconds = Int(builder.elapsedTime(at: Date()))
-            self.sendSnapshot()
+            MainActor.assumeIsolated {   // 메인 런루프 타이머라 이미 메인이다
+                guard let self, let builder = self.workoutBuilder else { return }
+                self.elapsedSeconds = Int(builder.elapsedTime(at: Date()))
+                self.sendSnapshot()
+            }
         }
     }
 
@@ -182,7 +189,6 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         default:
             break
         }
-        sendSnapshot()
     }
 
     private func sendSnapshot() {
@@ -208,7 +214,12 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private func applyRemoteCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
         switch action {
         case .start:
-            guard state == .idle || state == .finished else { return }
+            guard state == .idle || state == .finished else {
+                // 양쪽에서 거의 동시에 시작한 경우 — 폰을 마스터로 보고 세션 ID를 맞춘다.
+                // (안 맞추면 이후 pause/resume/end가 전부 ID 불일치로 무시된다)
+                self.sessionID = sessionID
+                return
+            }
             Task { await start(sessionID: sessionID, sendToPhone: false) }
         case .pause:
             guard sessionID == self.sessionID else { return }
@@ -229,29 +240,33 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
               state == .running || state == .paused else { return }
         syncedDistanceMeters = snapshot.distanceMeters
         syncedElapsedSeconds = snapshot.elapsedSeconds
+        syncedAt = Date()
     }
 }
 
 extension WatchWorkoutManager: HKWorkoutSessionDelegate {
-    func workoutSession(
+    nonisolated func workoutSession(
         _ workoutSession: HKWorkoutSession,
         didChangeTo toState: HKWorkoutSessionState,
         from fromState: HKWorkoutSessionState,
         date: Date
     ) {}
 
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+    nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        let message = error.localizedDescription
         DispatchQueue.main.async { [weak self] in
-            self?.errorMessage = error.localizedDescription
-            self?.resetSession()
+            MainActor.assumeIsolated {
+                self?.errorMessage = message
+                self?.resetSession()
+            }
         }
     }
 }
 
 extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {
-    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
+    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
 
-    func workoutBuilder(
+    nonisolated func workoutBuilder(
         _ workoutBuilder: HKLiveWorkoutBuilder,
         didCollectDataOf collectedTypes: Set<HKSampleType>
     ) {
@@ -262,7 +277,11 @@ extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {
         }
 
         DispatchQueue.main.async { [weak self] in
-            updates.forEach { self?.updateStatistics($0.1, for: $0.0) }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                updates.forEach { self.updateStatistics($0.1, for: $0.0) }
+                self.sendSnapshot()   // 콜백당 1회 (예전엔 루프 안이라 3~5회 전송됐다)
+            }
         }
     }
 }

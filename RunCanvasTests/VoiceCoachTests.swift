@@ -1,5 +1,6 @@
 import XCTest
 import CoreLocation
+import SwiftData
 @testable import RunCanvas
 
 final class VoiceCueTests: XCTestCase {
@@ -54,6 +55,19 @@ final class RunSessionVoiceTests: XCTestCase {
         XCTAssertEqual(spoken.count, 2)
         session.pause()
         XCTAssertEqual(spoken.last, "일시정지")
+    }
+
+    /// 회귀: finish가 시간 정산을 하려고 pause를 부르던 시절엔 "일시정지" → "러닝 종료"가 연달아 나왔다
+    @MainActor
+    func testFinishDoesNotAnnouncePause() throws {
+        let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let session = RunSession(location: LocationService(), coach: makeCoach())
+        session.start()
+        session.finish(ownerID: UUID(), weightKg: 60, context: ModelContext(container))
+
+        XCTAssertFalse(spoken.contains("일시정지"), spoken.description)
+        XCTAssertEqual(spoken.first, "러닝 시작")
+        XCTAssertTrue(spoken.last?.hasPrefix("러닝 종료") == true, spoken.description)
     }
 
     func testDisabledCoachStaysSilent() {

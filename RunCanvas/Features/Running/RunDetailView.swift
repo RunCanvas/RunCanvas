@@ -4,6 +4,9 @@ import SwiftUI
 struct RunDetailView: View {
     let run: Run
 
+    /// body에서 바로 디코드하면 화면이 다시 그려질 때마다 1080×1350 JPEG를 메인 스레드에서 푼다
+    @State private var decoratedImage: UIImage?
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -11,7 +14,7 @@ struct RunDetailView: View {
                     .frame(height: 260)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                if let decoratedImage = CanvasStorage.image(filename: run.decoratedImageFilename) {
+                if let decoratedImage {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("나의 런꾸")
                             .font(.headline)
@@ -42,5 +45,11 @@ struct RunDetailView: View {
         }
         .navigationTitle("러닝 상세")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: run.decoratedImageFilename) {
+            let filename = run.decoratedImageFilename
+            decoratedImage = await Task.detached(priority: .userInitiated) {
+                CanvasStorage.image(filename: filename)
+            }.value
+        }
     }
 }

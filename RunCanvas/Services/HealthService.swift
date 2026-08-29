@@ -1,11 +1,20 @@
 import Foundation
 import HealthKit
 
+/// 건강 앱에 넘길 값만 담은 스냅샷. SwiftData 모델(Run)을 백그라운드에서 읽지 않으려고
+/// 메인 액터에서 미리 떠서 전달한다.
+struct WorkoutSummary {
+    let startedAt: Date
+    let endedAt: Date
+    let distanceMeters: Double
+    let calories: Double
+}
+
 protocol HealthServicing: AnyObject {
     func requestAuthorization() async throws
     func startHeartRateStream(since startDate: Date, onSample: @escaping (Double) -> Void)
     func stopHeartRateStream()
-    func saveWorkout(_ run: Run) async throws
+    func saveWorkout(_ summary: WorkoutSummary) async throws
 }
 
 /// HealthKit 권한, 심박 스트림, 러닝 워크아웃 저장을 담당한다.
@@ -91,7 +100,7 @@ final class HealthService: HealthServicing {
         self.heartRateQuery = nil
     }
 
-    func saveWorkout(_ run: Run) async throws {
+    func saveWorkout(_ summary: WorkoutSummary) async throws {
         guard HKHealthStore.isHealthDataAvailable() else {
             throw HealthError.unavailable
         }
@@ -106,26 +115,26 @@ final class HealthService: HealthServicing {
             device: .local()
         )
 
-        try await builder.beginCollection(at: run.startedAt)
+        try await builder.beginCollection(at: summary.startedAt)
 
         var samples: [HKSample] = []
-        if run.distanceMeters > 0 {
+        if summary.distanceMeters > 0 {
             samples.append(
                 HKQuantitySample(
                     type: HKQuantityType(.distanceWalkingRunning),
-                    quantity: HKQuantity(unit: .meter(), doubleValue: run.distanceMeters),
-                    start: run.startedAt,
-                    end: run.endedAt
+                    quantity: HKQuantity(unit: .meter(), doubleValue: summary.distanceMeters),
+                    start: summary.startedAt,
+                    end: summary.endedAt
                 )
             )
         }
-        if run.calories > 0 {
+        if summary.calories > 0 {
             samples.append(
                 HKQuantitySample(
                     type: HKQuantityType(.activeEnergyBurned),
-                    quantity: HKQuantity(unit: .kilocalorie(), doubleValue: run.calories),
-                    start: run.startedAt,
-                    end: run.endedAt
+                    quantity: HKQuantity(unit: .kilocalorie(), doubleValue: summary.calories),
+                    start: summary.startedAt,
+                    end: summary.endedAt
                 )
             )
         }
@@ -133,7 +142,7 @@ final class HealthService: HealthServicing {
         if !samples.isEmpty {
             try await add(samples, to: builder)
         }
-        try await builder.endCollection(at: run.endedAt)
+        try await builder.endCollection(at: summary.endedAt)
         _ = try await builder.finishWorkout()
     }
 
