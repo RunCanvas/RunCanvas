@@ -50,3 +50,20 @@ struct CanvasSticker: Identifiable {
         self.color = color
     }
 }
+
+extension CanvasSticker.Kind {
+    /// 보이스오버가 읽어 줄 이름
+    var accessibilityName: String {
+        switch self {
+        case .distance: "거리"
+        case .time: "시간"
+        case .pace: "페이스"
+        case .date: "날짜"
+        case .calories: "칼로리"
+        case .heartRate: "심박수"
+        case .route: "경로"
+        case .badge(let badge): "\(badge.title) 뱃지"
+        case .text(let text): text
+        }
+    }
+}

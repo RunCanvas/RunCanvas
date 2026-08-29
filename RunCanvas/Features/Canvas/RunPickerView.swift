@@ -17,7 +17,7 @@ private struct CanvasRunList: View {
     let onSelect: (Run) -> Void
 
     init(ownerID: UUID?, onSelect: @escaping (Run) -> Void) {
-        let owner = ownerID ?? UUID()
+        let owner = ownerID ?? .noOwner
         _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)
         self.onSelect = onSelect
     }

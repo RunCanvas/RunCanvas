@@ -12,19 +12,31 @@ struct CanvasExportView: View {
 
     @Environment(\.modelContext) private var context
     @State private var renderedImage: UIImage?
+    @State private var renderFailed = false
     @State private var showsShareSheet = false
     @State private var showsExitConfirmation = false
+    @State private var showsOverwriteConfirmation = false
     @State private var message: ExportMessage?
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 if let renderedImage {
+                    // 저장되는 이미지가 직각이라 미리보기도 라운드를 주지 않는다
                     Image(uiImage: renderedImage)
                         .resizable()
                         .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
                         .shadow(color: .black.opacity(0.14), radius: 12, y: 5)
+                } else if renderFailed {
+                    VStack(spacing: 12) {
+                        Text("이미지를 만들지 못했어요.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Button("다시 시도") { render() }
+                            .buttonStyle(.bordered)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 360)
                 } else {
                     ProgressView("이미지 만드는 중…")
                         .frame(maxWidth: .infinity)
@@ -50,7 +62,14 @@ struct CanvasExportView: View {
                     .buttonStyle(.plain)
                     .disabled(renderedImage == nil)
 
-                    Button("앱에 저장") { saveToApp() }
+                    // 같은 기록을 다시 꾸미면 이전 이미지를 덮어쓰므로 먼저 알린다
+                    Button("앱에 저장") {
+                        if run.decoratedImageFilename == nil {
+                            saveToApp()
+                        } else {
+                            showsOverwriteConfirmation = true
+                        }
+                    }
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -73,19 +92,16 @@ struct CanvasExportView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button(role: .destructive) {
+                    // 아무것도 지우지 않고 플로우만 끝내는 버튼이라 위험해 보이지 않게 앱 톤으로
+                    Button {
                         showsExitConfirmation = true
                     } label: {
-                        Label("저장하지 않고 꾸미기 종료", systemImage: "xmark.circle")
+                        Label("저장 안 하고 나가기", systemImage: "xmark.circle")
                             .font(.headline)
+                            .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .foregroundStyle(.red)
-                            .background(Color.red.opacity(0.06))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.red.opacity(0.55), lineWidth: 1)
-                            }
+                            .background(Color.card)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(.plain)
@@ -110,22 +126,35 @@ struct CanvasExportView: View {
             isPresented: $showsExitConfirmation,
             titleVisibility: .visible
         ) {
-            Button("저장하지 않고 종료", role: .destructive) { onDone() }
+            Button("나가기") { onDone() }
             Button("계속 꾸미기", role: .cancel) {}
         } message: {
             Text("사진 앱이나 앱 내부에 저장하지 않은 내용은 남지 않아요.")
         }
-        .alert(item: $message) { message in
-            Alert(
-                title: Text(message.isSuccess ? "저장 완료" : "저장할 수 없어요"),
-                message: Text(message.text),
-                dismissButton: .default(Text("확인"), action: message.finishesFlow ? onDone : {})
-            )
+        .confirmationDialog(
+            "이미 저장한 런꾸가 있어요",
+            isPresented: $showsOverwriteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("덮어쓰기") { saveToApp() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("이 기록에 저장된 런꾸 이미지를 새 이미지로 바꿔요.")
+        }
+        .alert(
+            message?.isSuccess == true ? "저장 완료" : "저장할 수 없어요",
+            isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } }),
+            presenting: message
+        ) { message in
+            Button("확인") { if message.finishesFlow { onDone() } }
+        } message: { message in
+            Text(message.text)
         }
     }
 
     @MainActor
     private func render() {
+        renderFailed = false
         let content = StickerCanvas(
             background: background,
             run: run,
@@ -138,8 +167,11 @@ struct CanvasExportView: View {
         let renderer = ImageRenderer(content: content)
         renderer.scale = 1
         renderedImage = renderer.uiImage
+        renderFailed = renderedImage == nil   // nil을 안 보면 스피너가 영원히 돈다
     }
 
+    /// 권한 요청 뒤 백그라운드로 넘어가면 @State(message)를 메인 밖에서 건드리게 된다
+    @MainActor
     private func saveToPhotos() async {
         guard let renderedImage else { return }
         let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
@@ -169,8 +201,7 @@ struct CanvasExportView: View {
     }
 }
 
-private struct ExportMessage: Identifiable {
-    let id = UUID()
+private struct ExportMessage {
     let text: String
     let isSuccess: Bool
     var finishesFlow = false

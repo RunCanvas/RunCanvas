@@ -529,6 +529,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RunCanvas/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "런꾸 배경 사진을 촬영합니다.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수를 기록하기 위해 건강 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "러닝 기록을 건강 앱에 저장합니다.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
@@ -561,6 +562,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RunCanvas/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "런꾸 배경 사진을 촬영합니다.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수를 기록하기 위해 건강 데이터를 읽습니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "러닝 기록을 건강 앱에 저장합니다.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "러닝 거리 측정을 위해 위치 정보가 필요합니다.";
