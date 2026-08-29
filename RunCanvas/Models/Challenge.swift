@@ -12,14 +12,6 @@ struct Challenge: Identifiable, Equatable {
     let metric: Metric
     let target: Double   // 거리=미터, 횟수=회
 
-    var detail: String {
-        switch metric {
-        case .totalDistance: "누적 \(Int(target / 1000))km"
-        case .runCount: "러닝 \(Int(target))회"
-        case .longestRun: "한 번에 \(Int(target / 1000))km"
-        }
-    }
-
     static let all: [Challenge] = [
         Challenge(id: "week_3runs", title: "이번 주 3번 달리기", period: .week, metric: .runCount, target: 3),
         Challenge(id: "month_50km", title: "이번 달 50km", period: .month, metric: .totalDistance, target: 50_000),

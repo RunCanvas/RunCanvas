@@ -27,12 +27,14 @@ private struct HomeContent: View {
 
     init(ownerID: UUID?) {
         self.ownerID = ownerID
-        let owner = ownerID ?? UUID()
+        let owner = ownerID ?? .noOwner
         _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)
     }
 
     private var todayMeters: Double {
-        runs.filter { Calendar.current.isDateInToday($0.startedAt) }.reduce(0) { $0 + $1.distanceMeters }
+        let cal = Calendar.current
+        // 최신순 정렬이라 오늘 기록은 맨 앞에만 있다 — 전체를 훑지 않는다
+        return runs.prefix { cal.isDateInToday($0.startedAt) }.reduce(0) { $0 + $1.distanceMeters }
     }
 
     var body: some View {
@@ -108,7 +110,7 @@ private struct HomeContent: View {
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
-                                .background(Color.gray.opacity(0.1))
+                                .background(Color.card)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                         } else {
                             ForEach(runs.prefix(3)) { run in
@@ -151,9 +153,10 @@ struct RunHistoryRow: View {
 
             Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
         }
         .padding()
-        .background(Color.gray.opacity(0.1))
+        .background(Color.card)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

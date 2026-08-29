@@ -8,6 +8,7 @@ extension View {
 
     /// 빈 곳 탭 → 키보드 닫힘. 버튼·텍스트필드 탭은 그대로 동작한다.
     func dismissKeyboardOnTap() -> some View {
-        onTapGesture { hideKeyboard() }
+        contentShape(Rectangle())   // 없으면 빈 곳이 히트테스트를 안 받아 탭이 먹히지 않는다
+            .onTapGesture { hideKeyboard() }
     }
 }

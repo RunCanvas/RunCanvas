@@ -1,5 +1,11 @@
 import Foundation
 
+extension UUID {
+    /// 로그인 전 @Query 필터용 고정 오너 ID. 매번 `UUID()`를 만들면 렌더마다 predicate가 달라지고,
+    /// 그 무작위 값이 UserDefaults 키가 되면 쓰레기 항목이 쌓인다.
+    static let noOwner = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+}
+
 /// 획득한 뱃지(날짜 포함)와 완료한 챌린지를 **계정별로** 로컬에 기억해 두고, 새 기록 뒤에 "이번에 새로 딴 것"만 골라낸다.
 /// (서버 user_badges 업로드는 Phase 7 SyncService)
 enum BadgeStore {

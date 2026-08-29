@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ProfileHeader: View {
-    @AppStorage("userNickname") private var userNickname: String = "다은"
+    @AppStorage("userNickname") private var userNickname: String = ""
     @AppStorage("avatarURL") private var avatarURL: String = ""
     
     var body: some View {
@@ -23,7 +23,7 @@ struct ProfileHeader: View {
                     AvatarView(urlString: avatarURL, size: 36)
                     
                     // 닉네임
-                    Text(userNickname)
+                    Text(userNickname.isEmpty ? "러너" : userNickname)   // 설정 화면과 같은 기본값
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(.primary)
