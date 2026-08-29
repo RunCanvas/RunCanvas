@@ -34,6 +34,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session?.activate()
     }
 
+    /// 명령은 transferUserInfo — 폰이 잠깐 안 닿아도 큐에 쌓였다가 반드시 배달된다
     func sendCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
         let message: [String: Any] = [
             "kind": "command",
@@ -41,7 +42,8 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             "sessionID": sessionID.uuidString,
             "timestamp": Date().timeIntervalSince1970
         ]
-        send(message)
+        guard let session, session.activationState == .activated else { return }
+        session.transferUserInfo(message)
     }
 
     func sendSnapshot(
@@ -60,7 +62,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             "timestamp": Date().timeIntervalSince1970
         ]
         if let heartRate { message["heartRate"] = heartRate }
-        send(message)
+        send(message)   // 스냅샷은 유실돼도 다음 주기에 덮어써지니 sendMessage로 충분
     }
 
     private func send(_ message: [String: Any]) {
@@ -113,6 +115,10 @@ extension WatchConnectivityService: WCSessionDelegate {
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         DispatchQueue.main.async { [weak self] in self?.receive(message) }
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        DispatchQueue.main.async { [weak self] in self?.receive(userInfo) }
     }
 
     func session(

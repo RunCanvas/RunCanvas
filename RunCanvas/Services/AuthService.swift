@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Observation
 import Supabase
 
@@ -92,6 +93,8 @@ final class AuthService {
 
     func signOut() async throws {
         try await supabase.auth.signOut()
+        // 다음 사용자에게 이전 계정의 닉네임·아바타·체중이 남지 않도록 (기록은 ownerID 로 분리돼 그대로 둔다)
+        Profile.clearLocalCache()
     }
 
     /// 1) 아바타 파일 삭제(Storage API — DB 함수에서 storage.objects 직접 삭제는 Supabase가 막음)
@@ -100,7 +103,13 @@ final class AuthService {
     func deleteAccount() async throws {
         let id = userID
         if let id {
-            _ = try? await supabase.storage.from("avatars").remove(paths: ["\(id.uuidString.lowercased())/avatar.jpg"])
+            // 공개 버킷이라 남으면 URL 아는 사람에게 계속 노출된다 → 실패는 남겨서 추적 가능하게
+            do {
+                _ = try await supabase.storage.from("avatars").remove(paths: ["\(id.uuidString.lowercased())/avatar.jpg"])
+            } catch {
+                Logger(subsystem: "name.dongharyu.RunCanvas", category: "auth")
+                    .error("탈퇴 시 아바타 삭제 실패: \(error.localizedDescription, privacy: .public)")
+            }
         }
         try await supabase.rpc("delete_own_account").execute()
         try await supabase.auth.signOut(scope: .local)

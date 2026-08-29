@@ -3,20 +3,20 @@ import SwiftData
 
 /// 레벨 · 챌린지 · 최고 기록 · 뱃지 (NRC 업적 + 스트라바 챌린지 방식). 현재 계정의 기록만 본다.
 struct BadgesView: View {
-    let ownerID: UUID
+    let ownerID: UUID?
     @Query private var storedRuns: [Run]
     @State private var earnedDates: [Badge: Date] = [:]
 
     /// 로그인한 계정의 기록으로 계산
     init(ownerID: UUID?) {
-        let owner = ownerID ?? UUID()
-        self.ownerID = owner
+        self.ownerID = ownerID
+        let owner = ownerID ?? .noOwner
         _storedRuns = Query(filter: #Predicate<Run> { $0.ownerID == owner })
     }
 
     /// 프리뷰·테스트용: 기록을 직접 넣는다
     init(sampleRuns: [BadgeRun]) {
-        self.ownerID = UUID()
+        self.ownerID = nil
         self.sampleRuns = sampleRuns
         _storedRuns = Query(filter: #Predicate<Run> { _ in false })
     }
@@ -24,39 +24,42 @@ struct BadgesView: View {
     private var sampleRuns: [BadgeRun]? = nil
     private var runs: [BadgeRun] { sampleRuns ?? storedRuns.map(\.badgeRun) }
 
-    private var level: Level { Level.forTotalDistance(BadgeEngine.totalDistance(runs)) }
-    private var earned: Set<Badge> { BadgeEngine.earned(runs: runs) }
-    private var bests: PersonalBests { BadgeEngine.personalBests(runs) }
-    private var challenges: [ChallengeEngine.Status] { ChallengeEngine.statuses(runs: runs) }
-
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
 
     var body: some View {
+        // 계산 프로퍼티로 두면 렌더 한 번에 수십 번 다시 돈다 — 여기서 한 번만 계산해 내려보낸다
+        let badgeRuns = runs
+        let earned = BadgeEngine.earned(runs: badgeRuns)
+        let bests = BadgeEngine.personalBests(badgeRuns)
+        let level = Level.forTotalDistance(bests.totalMeters)
+        let challenges = ChallengeEngine.statuses(runs: badgeRuns)
+
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 LevelCard(level: level)
 
-                challengeSection
+                challengeSection(challenges)
 
-                personalBests
+                personalBestsSection(bests)
 
                 ForEach(Badge.Category.allCases) { category in
+                    let inCategory = Badge.allCases.filter { $0.category == category }
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text(category.rawValue)
                                 .font(.headline)
                             Spacer()
-                            Text("\(earnedCount(in: category))/\(Badge.allCases.filter { $0.category == category }.count)")
+                            Text("\(earned.filter { $0.category == category }.count)/\(inCategory.count)")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                         LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(Badge.allCases.filter { $0.category == category }) { badge in
+                            ForEach(inCategory) { badge in
                                 BadgeCell(
                                     badge: badge,
                                     isEarned: earned.contains(badge),
                                     earnedAt: earnedDates[badge],
-                                    progress: BadgeEngine.progressValue(for: badge, runs: runs)
+                                    progress: BadgeEngine.progressValue(for: badge, runs: badgeRuns)
                                 )
                             }
                         }
@@ -70,19 +73,17 @@ struct BadgesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // 기록으로 계산된 뱃지·챌린지 중 아직 저장 안 된 것은 지금 날짜로 기록 (러닝 종료 화면을 안 거친 경우 대비)
-            BadgeStore.recordNewlyEarned(from: runs, ownerID: ownerID)
-            BadgeStore.recordCompletedChallenges(from: runs, ownerID: ownerID)
+            guard let ownerID else { return }   // 로그인 전·프리뷰는 저장하지 않는다
+            let badgeRuns = runs
+            BadgeStore.recordNewlyEarned(from: badgeRuns, ownerID: ownerID)
+            BadgeStore.recordCompletedChallenges(from: badgeRuns, ownerID: ownerID)
             earnedDates = BadgeStore.earnedDates(for: ownerID)
         }
     }
 
-    private func earnedCount(in category: Badge.Category) -> Int {
-        earned.filter { $0.category == category }.count
-    }
-
     // MARK: - 챌린지 (자동 참여, 이번 주·이번 달)
 
-    private var challengeSection: some View {
+    private func challengeSection(_ challenges: [ChallengeEngine.Status]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("챌린지")
@@ -103,7 +104,7 @@ struct BadgesView: View {
         }
     }
 
-    private var personalBests: some View {
+    private func personalBestsSection(_ bests: PersonalBests) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("최고 기록")
                 .font(.headline)
@@ -125,12 +126,12 @@ struct LevelCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 Circle()
-                    .fill(level.tier.color)
+                    .fill(level.tier.accent)   // 블랙 레벨이 다크 모드 카드 위에서 안 보이지 않게
                     .frame(width: 56, height: 56)
                     .overlay(
                         Text("\(level.number)")
                             .font(.title2.weight(.bold))
-                            .foregroundStyle(level.tier.foreground)
+                            .foregroundStyle(level.tier.onAccent)
                     )
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(level.title) 레벨")
@@ -143,7 +144,8 @@ struct LevelCard: View {
             }
 
             ProgressView(value: level.progress)
-                .tint(level.tier.color)
+                .tint(level.tier.accent)
+                .accessibilityLabel("\(level.title) 레벨 진행도")
 
             if let next = level.nextTier, let remaining = level.remainingMeters {
                 Text("\(next.title) 레벨까지 \(RunMath.formatKm(remaining)) km")
@@ -168,10 +170,11 @@ private struct ChallengeRow: View {
 
     private var valueText: String {
         let c = status.challenge
+        let value = min(status.value, c.target)   // 목표를 넘어도 "5 / 3회"처럼 보이지 않게
         return switch c.metric {
-        case .totalDistance: "\(RunMath.formatKm(min(status.value, c.target))) / \(Int(c.target / 1000)) km"
-        case .runCount: "\(Int(status.value)) / \(Int(c.target))회"
-        case .longestRun: "최장 \(RunMath.formatKm(status.value)) km / \(Int(c.target / 1000)) km"
+        case .totalDistance: "\(RunMath.formatKm(value)) / \(Int(c.target / 1000)) km"
+        case .runCount: "\(Int(value)) / \(Int(c.target))회"
+        case .longestRun: "최장 \(RunMath.formatKm(value)) km / \(Int(c.target / 1000)) km"
         }
     }
 
@@ -192,6 +195,7 @@ private struct ChallengeRow: View {
                 }
                 ProgressView(value: status.fraction)
                     .tint(.primary)
+                    .accessibilityLabel(status.challenge.title)
                 Text(valueText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -254,9 +258,11 @@ struct BadgeCell: View {
         }
         .frame(maxWidth: .infinity)
         .opacity(isEarned ? 1 : 0.85)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(isEarned ? "획득" : "잠김")
     }
 
-    /// 획득: "2026.08.27 획득" / 잠김: 진행도 "3/7일", "6.00/50 km", "3/10회"
+    /// 획득: "2026.08.27 획득" / 잠김: 진행도 "3/7일", "6.00/50.00 km", "3/10회"
     private var caption: String {
         if isEarned {
             if let earnedAt { return earnedAt.formatted(.dateTime.year().month(.twoDigits).day(.twoDigits)) + " 획득" }
@@ -264,7 +270,10 @@ struct BadgeCell: View {
         }
         switch badge.category {
         case .distance, .total:
-            return "\(RunMath.formatKm(min(progress, badge.target)))/\(Int(badge.target / 1000)) km"
+            // 첫 러닝은 target이 1회(거리 아님)라 거리 포맷을 쓰면 "0.00/0 km"가 된다
+            if badge == .firstRun { return badge.detail }
+            // 마라톤 42,195m를 Int(/1000)으로 자르면 42.00km에서 "42/42 km"인데 잠김이라 버그처럼 보인다
+            return "\(RunMath.formatKm(min(progress, badge.target)))/\(RunMath.formatKm(badge.target)) km"
         case .streak:
             return "\(Int(progress))/\(Int(badge.target))일"
         case .count:
@@ -314,8 +323,10 @@ struct BadgeArt: View {
         )
     }
     NavigationStack { BadgesView(sampleRuns: runs) }
+        .modelContainer(for: Run.self, inMemory: true)   // sampleRuns여도 내부 @Query가 컨테이너를 요구한다
 }
 
 #Preview("기록 없음") {
     NavigationStack { BadgesView(sampleRuns: []) }
+        .modelContainer(for: Run.self, inMemory: true)
 }

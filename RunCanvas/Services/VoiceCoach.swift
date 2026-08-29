@@ -34,6 +34,15 @@ final class VoiceCoach: NSObject, AVSpeechSynthesizerDelegate {
 
     /// 안내가 끝나면 오디오 세션을 내려 음악 볼륨을 되돌린다
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        deactivateSession(synthesizer)
+    }
+
+    /// 취소(stopSpeaking)로 끝날 때도 세션을 내려야 음악이 계속 작아진 채 남지 않는다
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        deactivateSession(synthesizer)
+    }
+
+    private func deactivateSession(_ synthesizer: AVSpeechSynthesizer) {
         guard !synthesizer.isSpeaking else { return }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }

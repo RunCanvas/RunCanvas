@@ -37,12 +37,12 @@
 | F3 | 러닝 시작 → GPS 기록 → 일시정지 → 종료 | 홈 Run Start, 러닝 중 | **완료** — `RunView` + `RunSession` + `LocationService`(백그라운드, GPS 튐 필터) |
 | F4 | 기록 저장 — 거리/시간/페이스/칼로리 계산 | 러닝 종료 | **완료** — `Run`(SwiftData, `ownerID`), `RunMath` |
 | F5 | 러닝 상세 — 지도 경로 + 수치 | 러닝 상세 | **완료** — `RunResultView`/`RunDetailView`, NRC 스타일 `RouteMapView` |
-| F6 | 심박수 (HealthKit) + **Apple Watch 앱** (2026-08-28 1.0 포함 결정) | 러닝 중 BPM | **코드 들어옴(다은, 리뷰 중)** — `HealthService`, `WatchConnectivityService`, 워치 타깃 `RunCanvas Watch App`(HKWorkoutSession). 실기기+워치 검증 남음 |
+| F6 | 심박수 (HealthKit) + **Apple Watch 앱** (2026-08-28 1.0 포함 결정) | 러닝 중 BPM | **완료** — `HealthService`, `RunCoordinator`(앱 수명 워치 연동), 워치 타깃(HKWorkoutSession). 실기기+워치 검증 남음 |
 | F7 | 나의 기록 — 목록, 주/월/년 통계, 그래프 | 나의 기록 | **완료** — `RunStatsView`(Swift Charts) + `RunListView`, `StatsEngine` |
 | F8 | 홈 — 최신 기록 카드, 배경 지도+현재 위치, Run Start | 홈 | **완료** — 오늘 거리 + 현재 위치 지도 카드, 최근 3개, 전체 보기 |
 | F9 | 러닝 레벨/뱃지 부여 | 프로필 | **완료** — 레벨 7단계, 뱃지 19종(일러스트), 로컬 챌린지 4개, 획득 토스트 |
-| F10 | 런꾸 — 배경 이미지 선택 → 기록 선택 → 스티커 편집 → 저장/공유 | 런꾸 1~4 | **남음 → Phase 6** (`RunDecorateView` 껍데기) |
-| F11 | 기록 이미지 저장 및 공유 | 런꾸 4 | **남음 → Phase 6** |
+| F10 | 런꾸 — 배경 이미지 선택 → 기록 선택 → 스티커 편집 → 저장/공유 | 런꾸 1~4 | **완료** (PR #29, 다은) — `CanvasFlowView`·`StickerCanvas`·`CanvasExportView` |
+| F11 | 기록 이미지 저장 및 공유 | 런꾸 4 | **완료** — 사진 앱 저장 · 공유 · 앱에 저장(`CanvasStorage`) |
 | F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS 기본 음성, 음악 덕킹), 설정에서 켬/끔·간격 |
 | F13 | 주요 버튼 색 = 사용자 레벨 컬러 (NRC식, 2026-08-28 추가 결정) | 러닝 시작·일시정지·재개 | **완료** — `levelTier` 환경값, `PrimaryButton`·홈 러닝 시작만 (탭·링크·차트는 흑백) |
 | — | 서버 동기화 · TestFlight | — | 동기화 **완료**(7.1) · 출시 준비 **남음 → Phase 7.2** |
@@ -102,14 +102,14 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 | 5 | 레벨/뱃지 + 로컬 챌린지 | 1 | Claude | ✅ PR #15·#16 |
 | 3 | HealthKit 심박 + 워크아웃 저장 + Apple Watch 앱 | 1 | 다은 | 코드 머지됨(`5c4de73`), 리뷰 반영·실기기 검증 남음 |
 | 4 | 나의 기록 통계·홈 지도 | 1 | Claude | ✅ PR #18 |
-| 6 | 런꾸 + 이미지 저장/공유 | 1 | 미정 (동하/Claude 또는 다은) | 남음 |
+| 6 | 런꾸 + 이미지 저장/공유 | 1 | 다은 | ✅ PR #29 |
 | 7 | 서버 동기화(7.1) + 출시 준비(7.2, TestFlight) | 1, 2 | 동하 | 7.1 ✅ PR #20 · 7.2 남음 |
 
-3·6은 서로 파일이 안 겹쳐 병렬 가능. 7.2는 마지막. 각 Phase = PR 1~3개.
+남은 것은 **Phase 7.2 출시 준비**뿐. 전체 코드 리뷰 결과와 수정 내역은 `REVIEW-2026-08-29.md` 참고.
 
 ---
 
-## 완료된 Phase 요약 (0 · 1 · 2 · 4 · 5 · 7.1)
+## 완료된 Phase 요약 (0 · 1 · 2 · 3 · 4 · 5 · 6 · 7.1)
 
 원래 플랜과 달라진 점만 적는다. 코드가 문서이므로 세부 단계는 제거했다.
 
@@ -255,7 +255,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 완료 조건: 비행기 모드로 러닝 종료 → 네트워크 켜고 홈 복귀 → 대시보드 `runs`에 행 생성, 두 번 실행해도 중복 없음. 테스트: `RunDTOTests`(인코딩 키·route 변환).
 
 ### Task 7.2: 출시 준비
-- 앱 아이콘(1024 + 다크/틴트), 런치 스크린 색, `MARKETING_VERSION`(현재 1.0)·빌드 번호.
+- **앱 아이콘이 비어 있음(iOS·워치 둘 다 슬롯만 있고 이미지 0개) — 제출 블로커.** 1024 + 다크/틴트, 런치 스크린 색, `MARKETING_VERSION`(현재 1.0)·빌드 번호.
 - 권한 문구 재검토: 위치(러닝 중 백그라운드 인디케이터 문구 포함)·건강 읽기/쓰기·사진 추가.
 - **Google OAuth 동의 화면 Testing → Publish**(지금은 테스트 사용자 2명만 로그인 가능), **카카오 앱 아이콘 교체**(임시 PNG), 카카오 비즈 앱 검수 항목 확인.
 - App Store Connect 앱 등록(번들 `name.dongharyu.RunCanvas`, 동하 계정) → Archive → TestFlight 내부 테스트(다은 = 내부 테스터). 업로드는 번들 소유자인 동하만.

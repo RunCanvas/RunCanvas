@@ -1,0 +1,170 @@
+import Foundation
+import Observation
+import SwiftData
+
+/// 러닝 세션과 워치 연동을 앱 수명으로 들고 있는 코디네이터.
+/// 예전엔 RunView.onAppear에서 onCommand/onSnapshot을 등록하고 onDisappear에서 nil로 지워서,
+/// 탭만 옮겨도 워치의 심박·종료 명령이 버려지고 워치에서 시작한 러닝이 폰에 안 남았다.
+@Observable
+final class RunCoordinator {
+    let session: RunSession
+
+    /// 워치 → iPhone 기록 전환을 RunView가 알려주기 위한 1회성 문구
+    var takeoverMessage: String?
+    /// 종료된 러닝 — RunView가 떠 있으면 결과 화면을 띄운다 (없어도 저장은 이미 끝났다)
+    var finishedRun: Run?
+
+    /// 세션이 만료돼 auth.userID가 사라져도 기록을 잃지 않도록 마지막 계정을 들고 있는다
+    var ownerID: UUID? {
+        get { UserDefaults.standard.string(forKey: Self.ownerKey).flatMap(UUID.init(uuidString:)) }
+        set { UserDefaults.standard.set(newValue?.uuidString, forKey: Self.ownerKey) }
+    }
+
+    private static let ownerKey = "lastOwnerID"
+    /// 워치가 .start를 받고도 이 시간 안에 스냅샷을 안 보내면 워크아웃을 못 연 걸로 본다
+    private static let watchStartTimeout: TimeInterval = 15
+    /// 러닝 중 스냅샷이 이만큼 끊기면 워치가 벗겨진 걸로 본다
+    private static let watchDropTimeout: TimeInterval = 30
+
+    private let watch: WatchConnectivityService
+    private let context: ModelContext
+    private var watchStartedAt: Date?
+    private var lastWatchSnapshotAt: Date?
+    private var syncTask: Task<Void, Never>?
+
+    var weightKg: Double {
+        let v = UserDefaults.standard.double(forKey: "userWeight")
+        return v > 0 ? v : 60
+    }
+
+    init(watch: WatchConnectivityService, context: ModelContext, session: RunSession) {
+        self.watch = watch
+        self.context = context
+        self.session = session
+        watch.onCommand = { [weak self] action, remoteSessionID in
+            self?.handle(action, remoteSessionID: remoteSessionID)
+        }
+        watch.onSnapshot = { [weak self] snapshot in
+            self?.apply(snapshot)
+        }
+        startSyncLoop()
+    }
+
+    // MARK: - 러닝 조작 (RunView·워치 공용)
+
+    func start(sessionID: UUID = UUID(), sendToWatch: Bool = true) {
+        let usesWatchWorkout = sendToWatch ? watch.isReachable : true
+        session.start(sessionID: sessionID, healthManagedExternally: usesWatchWorkout)
+        lastWatchSnapshotAt = nil
+        watchStartedAt = usesWatchWorkout ? Date() : nil
+        guard sendToWatch, usesWatchWorkout else { return }
+        watch.sendCommand(.start, sessionID: sessionID)
+    }
+
+    func pause(sendToWatch: Bool = true) {
+        session.pause()
+        if sendToWatch { watch.sendCommand(.pause, sessionID: session.sessionID) }
+    }
+
+    func resume(sendToWatch: Bool = true) {
+        session.resume()
+        if sendToWatch { watch.sendCommand(.resume, sessionID: session.sessionID) }
+    }
+
+    /// 저장할 계정을 못 찾으면 false — 호출한 쪽이 알럿을 띄운다
+    @discardableResult
+    func finish(sendToWatch: Bool) -> Bool {
+        guard let ownerID else { return false }
+        if sendToWatch { watch.sendCommand(.end, sessionID: session.sessionID) }
+        finishedRun = session.finish(ownerID: ownerID, weightKg: weightKg, context: context)
+        watchStartedAt = nil
+        lastWatchSnapshotAt = nil
+        return true
+    }
+
+    /// 중단된 러닝을 기록으로 남긴다
+    @discardableResult
+    func saveRecovered(_ recovered: RecoveredRun) -> Bool {
+        guard let ownerID else { return false }
+        RunSession.save(recovered, ownerID: ownerID, weightKg: weightKg, context: context)
+        return true
+    }
+
+    // MARK: - 워치 수신
+
+    private func handle(_ action: WorkoutSyncAction, remoteSessionID: UUID) {
+        switch action {
+        case .start:
+            // 폰이 이미 달리는 중이면 폰이 마스터 — 워치가 폰 sessionID를 따라온다
+            guard session.state == .idle else { return }
+            start(sessionID: remoteSessionID, sendToWatch: false)
+        case .pause:
+            guard remoteSessionID == session.sessionID else { return }
+            pause(sendToWatch: false)
+        case .resume:
+            guard remoteSessionID == session.sessionID else { return }
+            resume(sendToWatch: false)
+        case .end:
+            guard remoteSessionID == session.sessionID,
+                  session.state == .running || session.state == .paused else { return }
+            finish(sendToWatch: false)
+        case .unavailable:
+            guard remoteSessionID == session.sessionID else { return }
+            takeOver("Apple Watch에서 운동을 시작하지 못해 iPhone 기록으로 전환했어요.")
+        }
+    }
+
+    private func apply(_ snapshot: WatchWorkoutSnapshot) {
+        guard snapshot.sessionID == session.sessionID else { return }
+        lastWatchSnapshotAt = Date()
+        guard session.state == .running || session.state == .paused,
+              let heartRate = snapshot.heartRate else { return }
+        // 값이 같아도 매번 기록한다 — 바뀔 때만 담으면 심박 변동이 큰 구간으로 평균이 쏠린다
+        session.recordHeartRate(heartRate)
+    }
+
+    // MARK: - 스냅샷 송신 + 워치 감시
+
+    private func startSyncLoop() {
+        syncTask?.cancel()
+        syncTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                self?.syncTick()
+                try? await Task.sleep(for: .seconds(3))
+            }
+        }
+    }
+
+    private func syncTick() {
+        guard session.state == .running || session.state == .paused else { return }
+        if watch.isReachable {
+            watch.sendSnapshot(
+                sessionID: session.sessionID,
+                state: session.state == .running ? "running" : "paused",
+                elapsedSeconds: session.elapsedSeconds,
+                distanceMeters: session.distanceMeters,
+                heartRate: nil
+            )
+        }
+        checkWatchAlive()
+    }
+
+    /// 워치가 워크아웃을 못 열었거나(15초 무소식) 러닝 중 끊겼으면(30초 무소식) 폰이 기록을 넘겨받는다.
+    /// sendCommand의 "전달됨"만 믿으면 워치에서 start가 실패했을 때 아무도 심박을 기록하지 않는다.
+    private func checkWatchAlive() {
+        guard session.healthManagedExternally, let watchStartedAt else { return }
+        let since = lastWatchSnapshotAt ?? watchStartedAt
+        let timeout = lastWatchSnapshotAt == nil ? Self.watchStartTimeout : Self.watchDropTimeout
+        guard Date().timeIntervalSince(since) > timeout else { return }
+        takeOver(lastWatchSnapshotAt == nil
+                 ? "Apple Watch에서 운동이 시작되지 않아 iPhone 기록으로 전환했어요."
+                 : "Apple Watch 연결이 끊겨 iPhone 기록으로 전환했어요.")
+    }
+
+    private func takeOver(_ message: String) {
+        guard session.healthManagedExternally else { return }
+        session.takeOverHealthWorkout()
+        watchStartedAt = nil
+        takeoverMessage = message
+    }
+}

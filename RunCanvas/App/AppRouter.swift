@@ -29,6 +29,9 @@ struct AppRouter: View {
         }
     }
 
+    /// 프로필이 확인된 마지막 계정 — 오프라인에서 "프로필 없음"과 구별하기 위해
+    private static let profiledUserKey = "profiledUserID"
+
     /// 안 올라간 기록·뱃지를 서버로 (로그인 상태에서만, 실패는 조용히)
     private func syncIfPossible() {
         guard auth.canSync, hasProfile, let id = auth.userID else { return }
@@ -77,10 +80,20 @@ struct AppRouter: View {
         #endif
         isLoading = true
         let started = Date()
-        if let id = auth.userID {
-            let profile = try? await ProfileService.fetchMine(userID: id)
-            profile?.cacheLocally()
-            hasProfile = profile != nil
+        let loadingID = auth.userID          // 이 load()가 담당하는 계정
+        if let id = loadingID {
+            do {
+                let profile = try await ProfileService.fetchMine(userID: id)
+                guard auth.userID == loadingID else { return }   // 그 사이 계정이 바뀌었으면 이 결과는 버린다
+                profile?.cacheLocally()
+                hasProfile = profile != nil
+                UserDefaults.standard.set(profile != nil ? id.uuidString : "", forKey: Self.profiledUserKey)
+            } catch {
+                // 네트워크 오류를 "프로필 없음"으로 착각하면 기존 사용자가 오프라인에서 프로필 설정 화면에 갇힌다.
+                // 마지막으로 확인된 계정이면 프로필이 있는 것으로 본다.
+                guard auth.userID == loadingID else { return }
+                hasProfile = UserDefaults.standard.string(forKey: Self.profiledUserKey) == id.uuidString
+            }
         } else {
             hasProfile = false
         }
@@ -89,6 +102,7 @@ struct AppRouter: View {
             let remaining = 1.0 - Date().timeIntervalSince(started)
             if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
         }
+        guard auth.userID == loadingID else { return }
         isLoading = false
         syncIfPossible()
     }

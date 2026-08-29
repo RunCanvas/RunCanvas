@@ -19,8 +19,9 @@ struct Profile: Codable, Identifiable, Equatable {
     func cacheLocally() {
         let defaults = UserDefaults.standard
         defaults.set(nickname, forKey: "userNickname")
-        if let weightKg { defaults.set(weightKg, forKey: "userWeight") }
-        if let heightCm { defaults.set(heightCm, forKey: "userHeight") }
+        // nil 이면 지운다 — 안 지우면 이전 계정의 체중·키가 남아 다음 사용자의 칼로리가 잘못 계산된다
+        if let weightKg { defaults.set(weightKg, forKey: "userWeight") } else { defaults.removeObject(forKey: "userWeight") }
+        if let heightCm { defaults.set(heightCm, forKey: "userHeight") } else { defaults.removeObject(forKey: "userHeight") }
         defaults.set(avatarURL ?? "", forKey: "avatarURL")
     }
 

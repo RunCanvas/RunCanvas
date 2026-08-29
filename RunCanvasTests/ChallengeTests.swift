@@ -9,6 +9,14 @@ final class ChallengeEngineTests: XCTestCase {
         return c
     }()
 
+    /// ko_KR 기기 기본값 — 실제 사용자 대부분이 타는 경로
+    private var sundayCalendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        c.firstWeekday = 1   // 일요일 시작
+        return c
+    }()
+
     private func date(_ month: Int, _ day: Int, hour: Int = 7) -> Date {
         calendar.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour))!
     }
@@ -39,6 +47,30 @@ final class ChallengeEngineTests: XCTestCase {
         let s = ChallengeEngine.status(Challenge.all.first { $0.id == "month_10k" }!, runs: [run(8, 10, km: 10.5)], now: now, calendar: calendar)
         XCTAssertTrue(s.isCompleted)
         XCTAssertEqual(s.fraction, 1)
+    }
+
+    // 일요일 시작이면 8/23이 이번 주에 들어와 같은 기록이 완료로 바뀐다
+    func testWeeklyChallengeWithSundayFirstWeekday() {
+        let now = date(8, 27)
+        let runs = [run(8, 24, km: 3), run(8, 25, km: 3), run(8, 23, km: 3)]
+        let s = ChallengeEngine.status(Challenge.all.first { $0.id == "week_3runs" }!, runs: runs, now: now, calendar: sundayCalendar)
+        XCTAssertEqual(s.value, 3)
+        XCTAssertTrue(s.isCompleted)
+        XCTAssertEqual(s.daysLeft, 3)   // 27·28·29 → 8/30 00:00
+    }
+
+    func testDaysLeftOnLastDayOfMonth() {
+        let s = ChallengeEngine.status(Challenge.all.first { $0.id == "month_50km" }!, runs: [], now: date(8, 31, hour: 23), calendar: calendar)
+        XCTAssertEqual(s.daysLeft, 1)   // 오늘이 마지막 날이어도 0이 되지 않는다
+        XCTAssertEqual(s.value, 0)
+        XCTAssertEqual(s.fraction, 0)
+    }
+
+    func testZeroDistanceRunStillCountsAsARun() {
+        let now = date(8, 27)
+        let zero = [BadgeRun(startedAt: date(8, 25), distanceMeters: 0, movingSeconds: 0)]
+        XCTAssertEqual(ChallengeEngine.status(Challenge.all.first { $0.id == "week_3runs" }!, runs: zero, now: now, calendar: calendar).value, 1)
+        XCTAssertEqual(ChallengeEngine.status(Challenge.all.first { $0.id == "month_10k" }!, runs: zero, now: now, calendar: calendar).fraction, 0)
     }
 
     func testPeriodKeys() {

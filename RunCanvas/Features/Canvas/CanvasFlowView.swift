@@ -36,12 +36,17 @@ struct CanvasFlowView: View {
                             background: background,
                             run: selectedRun,
                             initialStickers: stickers,
-                            onBack: { step = skipsRunPicker ? .background : .run },
+                            onBack: { edited in
+                                stickers = edited   // 이전으로 돌아가도 배치한 스티커를 잃지 않게
+                                step = skipsRunPicker ? .background : .run
+                            },
                             onExport: { edited in
                                 stickers = edited
                                 step = .export
                             }
                         )
+                    } else {
+                        stepFallback
                     }
                 case .export:
                     if let background, let selectedRun {
@@ -52,6 +57,8 @@ struct CanvasFlowView: View {
                             onBack: { step = .editor },
                             onDone: { finishFlow() }
                         )
+                    } else {
+                        stepFallback
                     }
                 }
             }
@@ -63,6 +70,11 @@ struct CanvasFlowView: View {
                 }
             }
         }
+    }
+
+    /// 배경·기록이 어떤 이유로든 비면 툴바만 남은 빈 화면이 되므로 1단계로 돌려보낸다
+    private var stepFallback: some View {
+        Color.clear.onAppear { step = .background }
     }
 
     private func reset() {

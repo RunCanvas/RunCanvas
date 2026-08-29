@@ -24,6 +24,13 @@ enum CanvasStorage {
         return UIImage(contentsOfFile: documents.appendingPathComponent(filename).path)
     }
 
+    /// 기록·계정을 지울 때 남는 파일 정리 (이미 없으면 조용히 무시)
+    static func delete(filename: String) {
+        let fileManager = FileManager.default
+        guard let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        try? fileManager.removeItem(at: documents.appendingPathComponent(filename))
+    }
+
     private static func canvasDirectory(fileManager: FileManager) throws -> URL {
         let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let directory = documents.appendingPathComponent("canvas", isDirectory: true)

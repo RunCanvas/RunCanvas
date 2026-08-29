@@ -31,11 +31,35 @@ final class RunDTOTests: XCTestCase {
         XCTAssertEqual(Set(obj.keys), ["id", "user_id", "started_at", "ended_at", "distance_m", "moving_s", "avg_hr", "max_hr", "calories", "route"])
     }
 
-    func testNilHeartRateIsOmitted() throws {
+    /// PostgREST 벌크 upsert는 배열 원소의 키 집합이 전부 같아야 한다(다르면 400 PGRST102).
+    /// nil 이라고 키를 생략하면 심박 있는 기록과 없는 기록이 한 배치에 섞였을 때 업로드가 영구히 실패한다.
+    func testNilHeartRateIsEncodedAsNullNotOmitted() throws {
         let run = Run(ownerID: UUID(), startedAt: .now, endedAt: .now, distanceMeters: 100, movingSeconds: 60, calories: 5)
         let obj = try json(RunDTO(run: run))
-        XCTAssertNil(obj["avg_hr"])   // 키 생략 → 서버 컬럼은 null (nullable)
-        XCTAssertNil(obj["max_hr"])
+        XCTAssertTrue(obj["avg_hr"] is NSNull)
+        XCTAssertTrue(obj["max_hr"] is NSNull)
+    }
+
+    /// 위 규칙의 본질: 어떤 조합이든 배열 원소들의 키 집합이 동일해야 한다.
+    func testBatchWithAndWithoutHeartRateHasIdenticalKeySets() throws {
+        let owner = UUID()
+        let withoutHR = Run(ownerID: owner, startedAt: .now, endedAt: .now, distanceMeters: 100, movingSeconds: 60, calories: 5)
+        let withHR = Run(ownerID: owner, startedAt: .now, endedAt: .now, distanceMeters: 200, movingSeconds: 90, calories: 9,
+                         averageHeartRate: 150, maxHeartRate: 170)
+        let batch = [RunDTO(run: withoutHR), RunDTO(run: withHR)]
+        let rows = try JSONSerialization.jsonObject(with: JSONEncoder().encode(batch)) as! [[String: Any]]
+        XCTAssertEqual(Set(rows[0].keys), Set(rows[1].keys))
+        XCTAssertTrue(rows[0].keys.contains("avg_hr"))
+    }
+
+    /// 서버 `route` 컬럼은 nullable — null 행 하나 때문에 다운로드 전체가 실패하면 안 된다.
+    func testDecodesRowWithNullRoute() throws {
+        let json = """
+        {"id":"47073C7A-F778-4D9C-8DF2-91E733011FE8","user_id":"287104BB-A011-4E0A-85A3-232F58514703","started_at":"2026-08-27T14:07:13.711+00:00","ended_at":"2026-08-27T14:07:38.947+00:00","distance_m":0,"moving_s":14,"avg_hr":null,"max_hr":null,"calories":0,"route":null}
+        """
+        let dto = try JSONDecoder().decode(RunDTO.self, from: Data(json.utf8))
+        XCTAssertEqual(dto.route, [])
+        XCTAssertNotNil(dto.makeRun())
     }
 
     func testBadgeEncodesToUserBadgesColumns() throws {

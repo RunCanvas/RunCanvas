@@ -25,6 +25,38 @@ struct RunDTO: Codable, Equatable {
         case distanceM = "distance_m", movingS = "moving_s", avgHr = "avg_hr", maxHr = "max_hr"
     }
 
+    /// PostgREST 벌크 upsert는 배열 원소의 키 집합이 전부 같아야 한다(다르면 400 `PGRST102 All object keys must match`).
+    /// 합성 Encodable은 nil 옵셔널의 키를 통째로 생략하므로, 심박 있는 기록(워치)과 없는 기록(폰)이 한 배치에 섞이면
+    /// 업로드가 영구히 실패한다 → 옵셔널도 명시적으로 `null`을 쓴다.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(userID, forKey: .userID)
+        try c.encode(startedAt, forKey: .startedAt)
+        try c.encode(endedAt, forKey: .endedAt)
+        try c.encode(distanceM, forKey: .distanceM)
+        try c.encode(movingS, forKey: .movingS)
+        try c.encode(avgHr, forKey: .avgHr)          // nil이어도 키를 남긴다
+        try c.encode(maxHr, forKey: .maxHr)
+        try c.encode(calories, forKey: .calories)
+        try c.encode(route, forKey: .route)
+    }
+
+    /// `route`는 서버에서 nullable이라 null인 행도 받아들인다 — 한 행 때문에 다운로드 전체가 실패하지 않게.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        userID = try c.decode(UUID.self, forKey: .userID)
+        startedAt = try c.decode(String.self, forKey: .startedAt)
+        endedAt = try c.decode(String.self, forKey: .endedAt)
+        distanceM = try c.decode(Double.self, forKey: .distanceM)
+        movingS = try c.decode(Int.self, forKey: .movingS)
+        avgHr = try c.decodeIfPresent(Double.self, forKey: .avgHr)
+        maxHr = try c.decodeIfPresent(Double.self, forKey: .maxHr)
+        calories = try c.decode(Double.self, forKey: .calories)
+        route = try c.decodeIfPresent([Point].self, forKey: .route) ?? []
+    }
+
     static let iso: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

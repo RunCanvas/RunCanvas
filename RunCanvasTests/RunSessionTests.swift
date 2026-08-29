@@ -9,7 +9,7 @@ final class RunSessionTests: XCTestCase {
     private final class HealthSpy: HealthServicing {
         var didStartStream = false
         var didStopStream = false
-        var savedRun: Run?
+        var savedSummary: WorkoutSummary?
         var onSample: ((Double) -> Void)?
         var saveExpectation: XCTestExpectation?
 
@@ -24,8 +24,8 @@ final class RunSessionTests: XCTestCase {
             didStopStream = true
         }
 
-        func saveWorkout(_ run: Run) async throws {
-            savedRun = run
+        func saveWorkout(_ summary: WorkoutSummary) async throws {
+            savedSummary = summary
             saveExpectation?.fulfill()
         }
     }
@@ -79,7 +79,7 @@ final class RunSessionTests: XCTestCase {
 
         XCTAssertFalse(health.didStartStream)
         XCTAssertTrue(health.didStopStream)
-        XCTAssertNil(health.savedRun)
+        XCTAssertNil(health.savedSummary)
     }
 
     @MainActor
@@ -114,6 +114,9 @@ final class RunSessionTests: XCTestCase {
         XCTAssertEqual(run.averageHeartRate, 150)
         XCTAssertEqual(run.maxHeartRate, 180)
         await fulfillment(of: [workoutSaved], timeout: 1)
-        XCTAssertEqual(health.savedRun?.id, run.id)
+        XCTAssertEqual(health.savedSummary?.startedAt, run.startedAt)
+        XCTAssertEqual(health.savedSummary?.endedAt, run.endedAt)
+        XCTAssertEqual(health.savedSummary?.distanceMeters, run.distanceMeters)
+        XCTAssertEqual(health.savedSummary?.calories, run.calories)
     }
 }

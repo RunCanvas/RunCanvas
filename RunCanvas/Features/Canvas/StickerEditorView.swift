@@ -1,22 +1,28 @@
 import SwiftUI
 
 struct StickerEditorView: View {
+    /// 텍스트 스티커 최대 길이 — 캔버스 밖으로 넘치지 않게
+    private static let textLimit = 30
+
     let background: CanvasBackground
     let run: Run
-    let onBack: () -> Void
+    let onBack: ([CanvasSticker]) -> Void
     let onExport: ([CanvasSticker]) -> Void
+
+    @Environment(AuthService.self) private var auth
 
     @State private var stickers: [CanvasSticker]
     @State private var selectedStickerID: UUID?
     @State private var showsTextPrompt = false
     @State private var customText = ""
     @State private var editingTextStickerID: UUID?
+    @State private var earnedBadges: [Badge] = []
 
     init(
         background: CanvasBackground,
         run: Run,
         initialStickers: [CanvasSticker],
-        onBack: @escaping () -> Void,
+        onBack: @escaping ([CanvasSticker]) -> Void,
         onExport: @escaping ([CanvasSticker]) -> Void
     ) {
         self.background = background
@@ -43,7 +49,6 @@ struct StickerEditorView: View {
                 stickers: $stickers,
                 selectedStickerID: $selectedStickerID
             )
-            .clipShape(RoundedRectangle(cornerRadius: 18))
             .padding(.horizontal, 20)
             .padding(.top, 12)
 
@@ -54,14 +59,14 @@ struct StickerEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button { onBack() } label: { Label("이전", systemImage: "chevron.left") }
+                Button { onBack(stickers) } label: { Label("이전", systemImage: "chevron.left") }
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("완료") { onExport(stickers) }
                     .fontWeight(.semibold)
-                    .disabled(stickers.isEmpty)
             }
         }
+        .onAppear { loadEarnedBadges() }
         .alert(editingTextStickerID == nil ? "텍스트 추가" : "텍스트 수정", isPresented: $showsTextPrompt) {
             TextField("문구를 입력하세요", text: $customText)
             Button("취소", role: .cancel) { clearTextEditor() }
@@ -85,6 +90,14 @@ struct StickerEditorView: View {
 
                     Button { beginAddingText() } label: {
                         toolLabel("텍스트", systemImage: "textformat")
+                    }
+
+                    if !earnedBadges.isEmpty {
+                        Menu {
+                            ForEach(earnedBadges) { badge in
+                                Button(badge.title) { add(.badge(badge)) }
+                            }
+                        } label: { toolLabel("뱃지", systemImage: "rosette") }
                     }
 
                     if selectedIndex != nil {
@@ -146,6 +159,13 @@ struct StickerEditorView: View {
         selectedStickerID = sticker.id
     }
 
+    /// 획득한 뱃지만 스티커로 붙일 수 있다. UserDefaults를 매 렌더에 읽지 않도록 한 번만.
+    private func loadEarnedBadges() {
+        guard let ownerID = auth.userID else { return }
+        let dates = BadgeStore.earnedDates(for: ownerID)
+        earnedBadges = Badge.allCases.filter { dates[$0] != nil }
+    }
+
     private func deleteSelected() {
         guard let selectedStickerID else { return }
         stickers.removeAll { $0.id == selectedStickerID }
@@ -166,7 +186,7 @@ struct StickerEditorView: View {
     }
 
     private func saveText() {
-        let trimmed = customText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = String(customText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.textLimit))
         guard !trimmed.isEmpty else {
             clearTextEditor()
             return

@@ -7,8 +7,11 @@ struct BadgeEarnedToast: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            if let first = badges.first {
-                BadgeArt(badge: first, isEarned: true, size: 48)
+            // 한 번에 여러 개를 따는 경우(첫 러닝 5km 등)가 흔해서 겹쳐 보여준다
+            HStack(spacing: -18) {
+                ForEach(badges.prefix(3), id: \.self) { badge in
+                    BadgeArt(badge: badge, isEarned: true, size: 48)
+                }
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(badges.count == 1 ? "새 뱃지를 땄어요" : "새 뱃지 \(badges.count)개를 땄어요")
@@ -16,7 +19,7 @@ struct BadgeEarnedToast: View {
                 Text(badges.map(\.title).joined(separator: " · "))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
             Spacer()
         }

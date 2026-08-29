@@ -37,9 +37,11 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session?.activate()
     }
 
-    func sendCommand(_ action: WorkoutSyncAction, sessionID: UUID, completion: ((Bool) -> Void)? = nil) {
-        let message = commandMessage(action, sessionID: sessionID)
-        send(message, completion: completion)
+    /// 명령은 transferUserInfo — 워치가 잠깐 안 닿아도 큐에 쌓였다가 반드시 배달된다.
+    /// (sendMessage로 보내면 isReachable false일 때 조용히 사라져서 워치 워크아웃이 안 끝났다)
+    func sendCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
+        guard let session, session.activationState == .activated, session.isWatchAppInstalled else { return }
+        session.transferUserInfo(commandMessage(action, sessionID: sessionID))
     }
 
     func sendSnapshot(
@@ -58,7 +60,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             "timestamp": Date().timeIntervalSince1970
         ]
         if let heartRate { message["heartRate"] = heartRate }
-        send(message)
+        send(message)   // 스냅샷은 유실돼도 다음 주기에 덮어써지니 sendMessage로 충분
     }
 
     private func commandMessage(_ action: WorkoutSyncAction, sessionID: UUID) -> [String: Any] {
@@ -70,17 +72,9 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         ]
     }
 
-    private func send(_ message: [String: Any], completion: ((Bool) -> Void)? = nil) {
-        guard let session, session.activationState == .activated, session.isReachable else {
-            completion?(false)
-            return
-        }
-
-        session.sendMessage(message, replyHandler: { _ in
-            DispatchQueue.main.async { completion?(true) }
-        }, errorHandler: { _ in
-            DispatchQueue.main.async { completion?(false) }
-        })
+    private func send(_ message: [String: Any]) {
+        guard let session, session.activationState == .activated, session.isReachable else { return }
+        session.sendMessage(message, replyHandler: nil, errorHandler: nil)
     }
 
     private func receive(_ message: [String: Any]) {
@@ -135,6 +129,10 @@ extension WatchConnectivityService: WCSessionDelegate {
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         DispatchQueue.main.async { [weak self] in self?.receive(message) }
+    }
+
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        DispatchQueue.main.async { [weak self] in self?.receive(userInfo) }
     }
 
     func session(

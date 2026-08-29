@@ -14,7 +14,7 @@ private struct LevelThemedTabs: View {
     @Query private var runs: [Run]
 
     init(ownerID: UUID?) {
-        let owner = ownerID ?? UUID()
+        let owner = ownerID ?? .noOwner
         _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner })
     }
 

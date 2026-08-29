@@ -6,10 +6,11 @@ struct RouteMapView: View {
     let route: [RoutePoint]
     var showsLegend: Bool = true
 
-    private var segments: [PaceSegment] { PaceSegment.build(from: route) }
+    // 계산 프로퍼티로 두면 body가 그려질 때마다 전 경로를 다시 계산한다(마라톤이면 렌더당 수만 개 할당)
+    @State private var segments: [PaceSegment] = []
+    @State private var coords: [CLLocationCoordinate2D] = []
 
     var body: some View {
-        let coords = route.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
         Map(initialPosition: .automatic, interactionModes: [.pan, .zoom]) {
             if coords.count > 1 {
                 // 흰 테두리(케이싱) → 그 위에 페이스 색 구간
@@ -36,6 +37,10 @@ struct RouteMapView: View {
                 PaceLegend()
                     .padding(10)
             }
+        }
+        .task(id: route.count) {
+            coords = route.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            segments = PaceSegment.build(from: route)
         }
         .overlay {
             if coords.count < 2 {

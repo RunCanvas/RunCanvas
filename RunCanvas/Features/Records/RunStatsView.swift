@@ -28,17 +28,20 @@ private struct StatsContent: View {
 
     init(ownerID: UUID?) {
         self.ownerID = ownerID
-        let owner = ownerID ?? UUID()
+        let owner = ownerID ?? .noOwner
         _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)
     }
 
-    private var badgeRuns: [BadgeRun] { runs.map(\.badgeRun) }
-    private var bests: PersonalBests { BadgeEngine.personalBests(badgeRuns) }
-    private var summary: StatsEngine.Summary { StatsEngine.summary(runs: badgeRuns, period: period) }
-    private var buckets: [StatsEngine.Bucket] { StatsEngine.buckets(runs: badgeRuns, period: period) }
-    private var weekMeters: Double { StatsEngine.summary(runs: badgeRuns, period: .week).totalMeters }
-
     var body: some View {
+        // 계산 프로퍼티로 두면 렌더 한 번에 전체 배열을 열 몇 번씩 다시 훑는다 — 여기서 한 번만
+        let badgeRuns = runs.map(\.badgeRun)
+        let bests = BadgeEngine.personalBests(badgeRuns)
+        let summary = StatsEngine.summary(runs: badgeRuns, period: period)
+        let buckets = StatsEngine.buckets(runs: badgeRuns, period: period)
+        let weekMeters = StatsEngine.summary(runs: badgeRuns, period: .week).totalMeters
+        let overallPace = RunMath.paceSecondsPerKm(distanceMeters: bests.totalMeters,
+                                                   seconds: badgeRuns.reduce(0) { $0 + $1.movingSeconds })
+
         ScrollView {
             if runs.isEmpty {
                 ContentUnavailableView("아직 기록이 없어요", systemImage: "figure.run",
@@ -46,9 +49,9 @@ private struct StatsContent: View {
                     .padding(.top, 80)
             } else {
                 VStack(spacing: 24) {
-                    overallSection
-                    periodSection
-                    weeklyGoalSection
+                    overallSection(bests, pace: overallPace)
+                    periodSection(summary, buckets)
+                    weeklyGoalSection(weekMeters)
                     recentSection
                 }
                 .padding(.horizontal, 20)
@@ -61,7 +64,7 @@ private struct StatsContent: View {
 
     // MARK: - 전체 기록
 
-    private var overallSection: some View {
+    private func overallSection(_ bests: PersonalBests, pace: Double?) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("전체 기록")
                 .font(.headline)
@@ -71,19 +74,15 @@ private struct StatsContent: View {
                 StatCard(title: "러닝 횟수", value: "\(bests.totalRuns)", unit: "회")
             }
             HStack(spacing: 12) {
-                StatCard(title: "평균 페이스", value: RunMath.formatPace(overallPace), unit: "/km")
+                StatCard(title: "평균 페이스", value: RunMath.formatPace(pace), unit: "/km")
                 StatCard(title: "최장 거리", value: RunMath.formatKm(bests.longestRunMeters), unit: "km")
             }
         }
     }
 
-    private var overallPace: Double? {
-        RunMath.paceSecondsPerKm(distanceMeters: bests.totalMeters, seconds: badgeRuns.reduce(0) { $0 + $1.movingSeconds })
-    }
-
     // MARK: - 기간별 (주/월/년 차트)
 
-    private var periodSection: some View {
+    private func periodSection(_ summary: StatsEngine.Summary, _ buckets: [StatsEngine.Bucket]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("기간별")
@@ -114,7 +113,7 @@ private struct StatsContent: View {
                         .cornerRadius(3)
                 }
                 .chartXAxis {
-                    AxisMarks(values: axisLabels) { _ in
+                    AxisMarks(values: axisLabels(buckets)) { _ in
                         AxisValueLabel()
                     }
                 }
@@ -133,7 +132,7 @@ private struct StatsContent: View {
                 }
             }
             .padding(20)
-            .background(Color.gray.opacity(0.08))
+            .background(Color.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
     }
@@ -147,13 +146,13 @@ private struct StatsContent: View {
     }
 
     /// 월은 31개라 5일 간격만 표시
-    private var axisLabels: [String] {
+    private func axisLabels(_ buckets: [StatsEngine.Bucket]) -> [String] {
         period == .month ? buckets.filter { $0.id % 5 == 0 }.map(\.label) : buckets.map(\.label)
     }
 
     // MARK: - 이번 주 목표 (설정의 주간 목표 거리)
 
-    private var weeklyGoalSection: some View {
+    private func weeklyGoalSection(_ weekMeters: Double) -> some View {
         let targetMeters = weeklyTargetKm * 1000
         let fraction = targetMeters > 0 ? min(weekMeters / targetMeters, 1) : 0
         return VStack(alignment: .leading, spacing: 16) {
@@ -184,6 +183,7 @@ private struct StatsContent: View {
                 VStack(spacing: 8) {
                     ProgressView(value: fraction)
                         .tint(.primary)
+                        .accessibilityLabel("주간 목표 달성률")
                     HStack {
                         Text("\(Int(fraction * 100))% 달성")
                             .font(.caption)
@@ -196,7 +196,7 @@ private struct StatsContent: View {
                 }
             }
             .padding(20)
-            .background(Color.gray.opacity(0.08))
+            .background(Color.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
     }
@@ -257,7 +257,7 @@ struct StatCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(Color.gray.opacity(0.08))
+        .background(Color.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
@@ -297,9 +297,10 @@ struct RunStatHistoryRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 8)
+                .accessibilityHidden(true)
         }
         .padding(16)
-        .background(Color.gray.opacity(0.08))
+        .background(Color.card)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
