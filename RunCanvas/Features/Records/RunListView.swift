@@ -7,7 +7,7 @@ struct RunListView: View {
     @Query private var runs: [Run]
 
     init(ownerID: UUID?) {
-        let owner = ownerID ?? UUID()
+        let owner = ownerID ?? .noOwner
         _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)
     }
 
@@ -23,7 +23,13 @@ struct RunListView: View {
                 .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
             }
             .onDelete { offsets in
-                offsets.map { runs[$0] }.forEach(context.delete)
+                let deleted = offsets.map { runs[$0] }
+                let ids = deleted.map(\.id)
+                deleted.compactMap(\.decoratedImageFilename).forEach(CanvasStorage.delete)   // 꾸민 이미지도 같이
+                deleted.forEach(context.delete)
+                try? context.save()
+                // 서버에서도 지운다 — 안 지우면 다음 동기화가 그대로 되살린다
+                Task { await SyncService.deleteRemote(runIDs: ids) }
             }
         }
         .listStyle(.plain)
