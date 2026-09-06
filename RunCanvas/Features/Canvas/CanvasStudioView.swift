@@ -24,6 +24,8 @@ struct CanvasStudioView: View {
     @State private var editingTextStickerID: UUID?
     @State private var earnedBadges: [Badge] = []
     @State private var didPromptForRun = false
+    @State private var showsDiscardConfirmation = false
+    @State private var didSave = false
 
     /// 러닝 결과 화면에서 들어오면 그 기록으로 고정된다 (런꾸 탭에서 열면 기록을 고를 수 있다)
     private let hasFixedRun: Bool
@@ -75,9 +77,21 @@ struct CanvasStudioView: View {
                 CanvasRunSheet(ownerID: auth.userID) { pick($0) }
             case .export:
                 if let selectedRun {
-                    CanvasExportSheet(background: background, run: selectedRun, stickers: stickers) { dismiss() }
+                    CanvasExportSheet(
+                        background: background,
+                        run: selectedRun,
+                        stickers: stickers,
+                        onSaved: { didSave = true },
+                        onSavedToApp: { dismiss() }
+                    )
                 }
             }
+        }
+        .confirmationDialog("꾸미던 내용을 버릴까요?", isPresented: $showsDiscardConfirmation, titleVisibility: .visible) {
+            Button("버리고 나가기", role: .destructive) { dismiss() }
+            Button("계속 꾸미기", role: .cancel) {}
+        } message: {
+            Text("저장하지 않은 스티커 배치는 남지 않아요.")
         }
         .alert(editingTextStickerID == nil ? "텍스트 추가" : "텍스트 수정", isPresented: $showsTextPrompt) {
             TextField("문구를 입력하세요", text: $customText)
@@ -90,13 +104,13 @@ struct CanvasStudioView: View {
 
     private var topBar: some View {
         HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 34, height: 34)
-                    .background(Studio.surface, in: Circle())
+            Button { close() } label: {
+                Text("취소")
+                    .font(.system(size: 15, weight: .semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Studio.surface, in: Capsule())
             }
-            .accessibilityLabel("닫기")
 
             Spacer()
 
@@ -319,6 +333,15 @@ struct CanvasStudioView: View {
     }
 
     // MARK: - 동작
+
+    /// 저장한 적 없이 꾸미던 중이면 한 번 물어본다 (인스타가 하는 방식)
+    private func close() {
+        if selectedRun != nil && !didSave {
+            showsDiscardConfirmation = true
+        } else {
+            dismiss()
+        }
+    }
 
     private func promptForRunIfNeeded() {
         guard !didPromptForRun, selectedRun == nil else { return }

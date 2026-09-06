@@ -65,10 +65,15 @@ final class CanvasScreenUITests: XCTestCase {
 
         // 편집기가 탭바를 덮고 있어야 한다 (탭이 어두워지는 게 아니라 별도 전체 화면)
         app.navigationBars.buttons["닫기"].tap()          // 저장 시트 닫기
-        let studioClose = app.buttons["닫기"]
-        XCTAssertTrue(studioClose.waitForExistence(timeout: 3))
-        studioClose.tap()                                  // 편집기 닫기
-        XCTAssertTrue(create.waitForExistence(timeout: 5), "닫으면 런꾸 탭으로 돌아와야 함")
+
+        // 저장하지 않고 나가면 한 번 물어본다
+        let cancel = app.buttons["취소"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 3), "취소 버튼이 없음")
+        cancel.tap()
+        let discard = app.buttons["버리고 나가기"]
+        XCTAssertTrue(discard.waitForExistence(timeout: 3), "나가기 확인이 안 뜸")
+        discard.tap()
+        XCTAssertTrue(create.waitForExistence(timeout: 5), "나가면 런꾸 탭으로 돌아와야 함")
     }
 
     private func attach(_ app: XCUIApplication, _ name: String) {

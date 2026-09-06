@@ -7,6 +7,8 @@ struct CanvasExportSheet: View {
     let background: CanvasBackground
     let run: Run
     let stickers: [CanvasSticker]
+    /// 사진 앱이든 앱 내부든 한 번이라도 저장하면 알린다 (편집 화면이 나갈 때 안 물어보도록)
+    let onSaved: () -> Void
     /// 앱에 저장까지 끝나면 편집 화면도 닫는다
     let onSavedToApp: () -> Void
 
@@ -118,6 +120,7 @@ struct CanvasExportSheet: View {
         guard let renderedImage else { return }
         do {
             try await CanvasExporter.savePNGToPhotos(renderedImage)
+            onSaved()
             message = ExportMessage(text: "사진 앱에 PNG로 저장했어요.", isSuccess: true)
         } catch {
             message = ExportMessage(text: error.localizedDescription, isSuccess: false)
@@ -129,6 +132,7 @@ struct CanvasExportSheet: View {
         do {
             run.decoratedImageFilename = try CanvasStorage.save(image: renderedImage, runID: run.id)
             try context.save()
+            onSaved()
             message = ExportMessage(text: "이 러닝의 상세 화면에 저장했어요.", isSuccess: true, finishesFlow: true)
         } catch {
             message = ExportMessage(text: error.localizedDescription, isSuccess: false)
