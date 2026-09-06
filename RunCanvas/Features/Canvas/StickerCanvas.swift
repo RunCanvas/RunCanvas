@@ -295,7 +295,8 @@ private struct StickerContent: View {
             case .distance:
                 VStack(spacing: -2) {
                     Text(RunMath.formatKm(run.distanceMeters))
-                        .font(.system(size: 46, weight: .black, design: fontDesign))
+                        .font(.system(size: 46, weight: sticker.fontStyle.weight, design: fontDesign))
+                        .tracking(sticker.fontStyle.tracking)
                     Text("KILOMETERS")
                         .font(.system(size: 11, weight: .bold, design: fontDesign))
                         .tracking(2)
@@ -352,7 +353,7 @@ private struct StickerContent: View {
     private var fontDesign: Font.Design { sticker.fontStyle.design }
 
     private func stickerFont(size: CGFloat) -> Font {
-        .system(size: size, weight: .bold, design: fontDesign)
+        .system(size: size, weight: sticker.fontStyle.weight, design: fontDesign)
     }
 }
 
