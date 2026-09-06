@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "badge_total1000km.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
