@@ -30,7 +30,7 @@
 
 ### MVP 1.0 기능
 
-| # | 기능 | 와이어프레임 | 상태 (2026-08-27) |
+| # | 기능 | 와이어프레임 | 상태 (2026-09-06) |
 |---|---|---|---|
 | F1 | 회원가입/로그인 — 구글·카카오·애플 | 스플래시 → 로그인 | **완료** — `LoginView`(Apple 기본 버튼 + 구글·카카오), 계정 연결/해제, 탈퇴 |
 | F2 | 마이페이지 — 닉네임·키·체중·프로필 이미지·로그아웃 | 러닝 설정 화면 | **완료** — `SettingsView` + `ProfileEditView`, 첫 로그인 `ProfileSetupView` |
@@ -45,11 +45,14 @@
 | F11 | 기록 이미지 저장 및 공유 | 런꾸 4 | **완료** — 사진 앱 저장 · 공유 · 앱에 저장(`CanvasStorage`) |
 | F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS 기본 음성, 음악 덕킹), 설정에서 켬/끔·간격 |
 | F13 | 주요 버튼 색 = 사용자 레벨 컬러 (NRC식, 2026-08-28 추가 결정) | 러닝 시작·일시정지·재개 | **완료** — `levelTier` 환경값, `PrimaryButton`·홈 러닝 시작만 (탭·링크·차트는 흑백) |
+| F14 | 마라톤 일정 — 서버에서 받아 포스터 카드로, 종류·거리·지역 필터 (2026-09-06 추가, 원래 2.0) | (신규 화면) | **완료** — `MarathonScheduleView`·`MarathonService`, `scripts/sync_marathons.py` + Actions 6시간 주기 |
 | — | 서버 동기화 · TestFlight | — | 동기화 **완료**(7.1) · 출시 준비 **남음 → Phase 7.2** |
 
 ### MVP 2.0 (이 플랜 범위 밖, 스키마만 대비)
 
-서버 챌린지(친구·단체, 뱃지 부여), 한국 마라톤 일정 뷰, 런꾸 월말/연말정산, Apple Watch 앱, 다른 기기로 기록 복원(서버→로컬 다운로드).
+서버 챌린지(친구·단체, 뱃지 부여), 런꾸 월말/연말정산, 뱃지 획득 풀스크린 연출, 음성 목소리 선택.
+
+원래 2.0으로 잡았다가 1.0에 들어온 것: Apple Watch 앱(2026-08-28), 다른 기기로 기록 복원(PR #22), 마라톤 일정 뷰(2026-09-06).
 
 ### 확정된 설계 결정
 
@@ -153,6 +156,14 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - `RunSession(coach:)`: 시작·일시정지·재개·종료 한 마디 + 설정 간격(500m/1km/2km)마다 거리·시간·페이스. 매초 틱의 `checkVoiceCue()`.
 - `VoiceSettingsView`(설정 → 러닝 설정 → 음성 안내): 켬/끔, 간격(500m/1km/2km), 미리 듣기. `Info.plist` UIBackgroundModes에 `audio` 추가.
 - 사용자 결정(2026-08-27): 음성은 기본 하나(Yuna). 목소리 선택·다른 언어·녹음 목소리는 2.0.
+
+### 마라톤 일정 (PR #35·#36·#37, 플랜 외 추가)
+
+- 데이터는 서버에 둔다 — 앱에 JSON 을 박으면 일정 하나 바꾸는 데 앱 심사를 다시 받아야 한다.
+- `scripts/sync_marathons.py`: kormarathon 월별 목록 + 대회 상세 페이지(포스터·접수기간·참가비) → Supabase `marathon_events` upsert. GitHub Actions 6시간마다, 끝난 일정은 DB·목록에서 삭제. 상세는 DB에 포스터가 없는 대회만 조회한다.
+- `MarathonService`: 서버 → 로컬 캐시 → 번들 씨앗(`Resources/marathons.json`) 3단 폴백. 왜 옛 목록인지 화면에 알려 준다.
+- `MarathonScheduleView`: 포스터 카드(D-데이·접수 중 배지, 날짜·지역·종목 칩·참가비·신청) + 카테고리 칩 3줄(종류·거리·지역) + 월별 섹션. 톤은 레벨·뱃지 화면과 동일.
+- 주의: PostgREST 벌크 upsert 는 배열 안 객체 키가 전부 같아야 한다(PGRST102). `updated_at` 은 업서트 때 기본값이 다시 붙지 않으므로 직접 넣는다. 공공데이터포털 CSV 는 2024년에서 멈춰 있고 러너에서 타임아웃이라 뺐다.
 
 ### Phase 5 — 레벨/뱃지 (PR #15·#16)
 - `Level`(Tier yellow→volt 7단계, 0/50/250/1000/2500/5000/15000km), `Badge` 19종(거리·누적·연속·횟수·시간대, `imageName`/`symbolName` 폴백), `Challenge.all` 4개(주 3회, 월 50km, 월 8회, 월 10K).
@@ -269,7 +280,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 뱃지 획득 연출 풀스크린(NRC식) + 획득 뱃지 공유 카드, 런꾸 뱃지 스티커(6.3에 일부 선반영).
 - 음성 안내 2.0: 목소리 선택(Azure 한국어 10개·클로바 등으로 조각 음성 팩 생성해 앱에 내장 — 대본은 숫자 0~59·단위·시작/종료 약 150조각), 영어, 가이드 런/코칭, 시간 기준 안내, 목표 페이스 대비 빠름/느림 알림, 워치.
 - 챌린지 트로피: 완료한 챌린지를 월별 트로피로 모아 보기(스트라바식). 서버 챌린지와 같이 설계 — 완료 키는 이미 `BadgeStore.completedChallenges`에 `id@2026-08`로 저장 중.
-- 한국 마라톤 일정: 정적 JSON(`Resources/marathons.json`, 월 1회 갱신) → 목록/캘린더 뷰. 외부 API 없음.
+- (마라톤 일정은 1.0에 들어옴 — 정적 JSON 대신 Supabase `marathon_events` + 6시간 동기화. 2.0 후보: 관심 대회 알림, 캘린더 뷰, 접수 시작 알림)
 - 런꾸 월말/연말정산: `runs` 집계 + 해당 기간 `decoratedImageFilename` 콜라주 → `ImageRenderer`.
 - (Apple Watch 앱은 1.0에 들어옴 — Phase 3 참고)
 - Apple 웹 로그인(.p8) 필요 시. (서버 → 로컬 복원은 1.0에 포함됨)
