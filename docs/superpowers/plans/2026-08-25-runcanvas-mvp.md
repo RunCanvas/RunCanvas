@@ -46,13 +46,15 @@
 | F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS 기본 음성, 음악 덕킹), 설정에서 켬/끔·간격 |
 | F13 | 주요 버튼 색 = 사용자 레벨 컬러 (NRC식, 2026-08-28 추가 결정) | 러닝 시작·일시정지·재개 | **완료** — `levelTier` 환경값, `PrimaryButton`·홈 러닝 시작만 (탭·링크·차트는 흑백) |
 | F14 | 마라톤 일정 — 서버에서 받아 포스터 카드로, 종류·거리·지역 필터 (2026-09-06 추가, 원래 2.0) | (신규 화면) | **완료** — `MarathonScheduleView`·`MarathonService`, `scripts/sync_marathons.py` + Actions 6시간 주기 |
+| F15 | 러닝 코스 — 내 기록을 코스로 공유(지역별), 남의 코스 따라뛰기 (2026-09-06 추가, 원래 2.0) | (신규 화면) | **완료** — `CourseListView`·`CourseService`, Supabase `courses` |
+| F16 | 트레이닝 — 내장 프로그램(런데이식 8주 5K 등) + 사용자 제작, 구간 타이머·음성 (2026-09-06 추가, 원래 2.0) | (신규 화면) | **완료** — `TrainingProgramListView`·`TrainingEngine`·`TrainingStore` |
 | — | 서버 동기화 · TestFlight | — | 동기화 **완료**(7.1) · 출시 준비 **남음 → Phase 7.2** |
 
 ### MVP 2.0 (이 플랜 범위 밖, 스키마만 대비)
 
-서버 챌린지(친구·단체, 뱃지 부여), 런꾸 월말/연말정산, 뱃지 획득 풀스크린 연출, 음성 목소리 선택.
+서버 챌린지(친구·단체, 뱃지 부여), 뱃지 획득 풀스크린 연출, 음성 목소리 선택, 코스 즐겨찾기·인기순 정렬, 트레이닝 진행 서버 저장.
 
-원래 2.0으로 잡았다가 1.0에 들어온 것: Apple Watch 앱(2026-08-28), 다른 기기로 기록 복원(PR #22), 마라톤 일정 뷰(2026-09-06).
+원래 2.0으로 잡았다가 1.0에 들어온 것: Apple Watch 앱(2026-08-28), 다른 기기로 기록 복원(PR #22), 마라톤 일정 뷰·런꾸 정산·러닝 코스·트레이닝 프로그램(2026-09-06).
 
 ### 확정된 설계 결정
 
@@ -156,6 +158,17 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - `RunSession(coach:)`: 시작·일시정지·재개·종료 한 마디 + 설정 간격(500m/1km/2km)마다 거리·시간·페이스. 매초 틱의 `checkVoiceCue()`.
 - `VoiceSettingsView`(설정 → 러닝 설정 → 음성 안내): 켬/끔, 간격(500m/1km/2km), 미리 듣기. `Info.plist` UIBackgroundModes에 `audio` 추가.
 - 사용자 결정(2026-08-27): 음성은 기본 하나(Yuna). 목소리 선택·다른 언어·녹음 목소리는 2.0.
+
+### 러닝 코스 · 트레이닝 (PR #39, 플랜 외 추가)
+
+- **코스**: 기록 상세 → "코스로 등록"(이름·지역) → Supabase `courses`. 읽기는 전체 공개, 쓰기는 본인만(RLS).
+  올릴 때 경로 앞뒤 150m를 자른다(`CourseGeometry.trimmed`) — 안 자르면 코스가 아니라 집·회사를 공유하는 셈이고,
+  자르고 600m 미만이면 등록을 거부한다. 목록은 지역 칩으로 거르고(`KoreaRegion`), 상세에서 "이 코스로 달리기".
+- **따라뛰기**: `RunView(startImmediately:course:)`. 러닝 화면 위에 진행률 바, 50m 넘게 벗어나면 음성으로 한 번만 알린다.
+  계산은 `CourseGeometry`(nearestIndex/progress/offCourseMeters) 순수 함수 — 위치가 갱신될 때만 다시 돈다.
+- **트레이닝**: 내장 3개(8주 5K 24세션·30분 달리기 12세션·1분 인터벌) + 사용자 제작(`ProgramEditorView`, 30초 단위).
+  실행은 `RunCoordinator`를 그대로 써서 GPS 기록이 평소처럼 남고, 구간 전환은 `VoiceCoach`가 읽는다(`RunSession.announce`).
+  진행 상황은 `TrainingStore`(UserDefaults, 계정별) — 뱃지와 같은 방식.
 
 ### 마라톤 일정 (PR #35·#36·#37, 플랜 외 추가)
 

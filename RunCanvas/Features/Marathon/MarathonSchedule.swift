@@ -127,15 +127,16 @@ enum MarathonCourse: String, CaseIterable, Identifiable {
 }
 
 /// 지역 카테고리. 값은 서버가 준 문자열 그대로 쓰고(고정 enum 으로 두면 새 지역이 사라진다) 순서만 앱이 정한다.
-enum MarathonRegion {
+/// 마라톤 일정과 공유 코스가 같은 칩을 쓴다.
+enum KoreaRegion {
     static let all = "전체 지역"
     /// 가나다순이면 서울·경기가 한참 뒤로 밀린다 → 사람이 찾는 순서로
     static let order = ["서울", "경기", "인천", "강원", "충북", "충남", "대전", "세종",
                         "전북", "전남", "광주", "경북", "경남", "대구", "울산", "부산", "제주"]
 
     /// 목록에 실제로 있는 지역만 칩으로 만든다 — 눌러도 빈 화면인 칩을 두지 않는다
-    static func chips(for events: [MarathonEvent]) -> [String] {
-        let found = Set(events.compactMap(\.region).filter { !$0.isEmpty })
+    static func chips(regions: [String?]) -> [String] {
+        let found = Set(regions.compactMap { $0 }.filter { !$0.isEmpty })
         return [all] + order.filter(found.contains) + found.subtracting(order).sorted()
     }
 
@@ -181,13 +182,13 @@ struct MarathonSchedule: Equatable, Decodable {
     func sections(
         category: MarathonCategory = .all,
         course: MarathonCourse = .any,
-        region: String = MarathonRegion.all,
+        region: String = KoreaRegion.all,
         now: Date = .now,
         calendar: Calendar = .current
     ) -> [MonthSection] {
         let today = calendar.startOfDay(for: now)
         let filtered = events
-            .filter { category.includes($0) && course.includes($0) && MarathonRegion.includes(region, $0) }
+            .filter { category.includes($0) && course.includes($0) && KoreaRegion.includes(region, $0) }
             .filter { $0.date.map { calendar.startOfDay(for: $0) >= today } ?? true }
 
         var dated: [String: [MarathonEvent]] = [:]

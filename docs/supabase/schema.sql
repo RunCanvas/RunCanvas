@@ -106,3 +106,29 @@ alter table public.marathon_events enable row level security;
 -- 공개 일정이라 로그인 없이 읽는다. 쓰기는 service_role(동기화 스크립트)만.
 create policy "마라톤 일정 읽기" on public.marathon_events
   for select using (true);
+
+-- migration "courses" (2026-09-06): 사용자가 등록해 공유하는 러닝 코스
+-- 기록 하나를 코스로 올리면 지역별로 누구나 받아서 "따라뛰기" 한다.
+-- 경로 앞뒤는 클라이언트가 잘라서 올린다(집·직장이 그대로 드러나지 않게) — CourseGeometry.trimmed
+create table public.courses (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  owner_nickname text not null default '',        -- 목록에서 조인 없이 보여주려고 복사해 둔다
+  name text not null,
+  region text not null,                           -- '서울' 등 앱의 지역 칩과 같은 문자열
+  distance_m double precision not null,
+  path jsonb not null,                            -- [{"lat":..,"lon":..}]
+  created_at timestamptz not null default now()
+);
+create index courses_region on public.courses (region, created_at desc);
+
+alter table public.courses enable row level security;
+-- 공유가 목적이라 읽기는 열고, 쓰기는 본인 것만
+create policy "코스 읽기" on public.courses
+  for select using (true);
+create policy "본인 코스 등록" on public.courses
+  for insert with check (auth.uid() = owner_id);
+create policy "본인 코스 수정" on public.courses
+  for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+create policy "본인 코스 삭제" on public.courses
+  for delete using (auth.uid() = owner_id);

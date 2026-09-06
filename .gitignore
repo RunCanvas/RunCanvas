@@ -6,3 +6,4 @@ build/
 Config/Local.xcconfig
 graphify-out/
 __pycache__/
+GATES.md

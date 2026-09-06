@@ -146,7 +146,7 @@ final class MarathonScheduleTests: XCTestCase {
         func names(_ region: String) -> [String] {
             schedule.sections(region: region, now: now, calendar: calendar).flatMap { $0.events.map(\.name) }
         }
-        XCTAssertEqual(names(MarathonRegion.all).count, 3)
+        XCTAssertEqual(names(KoreaRegion.all).count, 3)
         XCTAssertEqual(names("서울"), ["서울 대회"])
         XCTAssertEqual(names("부산"), ["부산 대회"])
     }
@@ -160,9 +160,9 @@ final class MarathonScheduleTests: XCTestCase {
             event("해외", "2026-10-06", region: "괌"),
             event("미상", "2026-10-07", region: nil),
         ]
-        XCTAssertEqual(MarathonRegion.chips(for: events),
-                       [MarathonRegion.all, "서울", "경기", "제주", "괌"])
-        XCTAssertEqual(MarathonRegion.chips(for: []), [MarathonRegion.all])
+        XCTAssertEqual(KoreaRegion.chips(regions: events.map(\.region)),
+                       [KoreaRegion.all, "서울", "경기", "제주", "괌"])
+        XCTAssertEqual(KoreaRegion.chips(regions: []), [KoreaRegion.all])
     }
 
     func testCategoryCourseRegionCombine() {
