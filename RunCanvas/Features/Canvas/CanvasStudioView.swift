@@ -24,13 +24,15 @@ struct CanvasStudioView: View {
     @State private var editingTextStickerID: UUID?
     @State private var earnedBadges: [Badge] = []
     @State private var didPromptForRun = false
+    @State private var showsDiscardConfirmation = false
+    @State private var didSave = false
 
-    /// 러닝 결과 화면에서 들어오면 그 기록으로 고정된다
-    private let isPresentedModally: Bool
+    /// 러닝 결과 화면에서 들어오면 그 기록으로 고정된다 (런꾸 탭에서 열면 기록을 고를 수 있다)
+    private let hasFixedRun: Bool
 
     init(run: Run? = nil) {
         _selectedRun = State(initialValue: run)
-        isPresentedModally = run != nil
+        hasFixedRun = run != nil
     }
 
     private enum StudioSheet: Identifiable {
@@ -75,9 +77,21 @@ struct CanvasStudioView: View {
                 CanvasRunSheet(ownerID: auth.userID) { pick($0) }
             case .export:
                 if let selectedRun {
-                    CanvasExportSheet(background: background, run: selectedRun, stickers: stickers) { dismiss() }
+                    CanvasExportSheet(
+                        background: background,
+                        run: selectedRun,
+                        stickers: stickers,
+                        onSaved: { didSave = true },
+                        onSavedToApp: { dismiss() }
+                    )
                 }
             }
+        }
+        .confirmationDialog("꾸미던 내용을 버릴까요?", isPresented: $showsDiscardConfirmation, titleVisibility: .visible) {
+            Button("버리고 나가기", role: .destructive) { dismiss() }
+            Button("계속 꾸미기", role: .cancel) {}
+        } message: {
+            Text("저장하지 않은 스티커 배치는 남지 않아요.")
         }
         .alert(editingTextStickerID == nil ? "텍스트 추가" : "텍스트 수정", isPresented: $showsTextPrompt) {
             TextField("문구를 입력하세요", text: $customText)
@@ -90,15 +104,13 @@ struct CanvasStudioView: View {
 
     private var topBar: some View {
         HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 34, height: 34)
-                    .background(Studio.surface, in: Circle())
+            Button { close() } label: {
+                Text("취소")
+                    .font(.system(size: 15, weight: .semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Studio.surface, in: Capsule())
             }
-            .accessibilityLabel("닫기")
-            .opacity(isPresentedModally ? 1 : 0)      // 탭에서 열면 닫을 곳이 없다
-            .disabled(!isPresentedModally)
 
             Spacer()
 
@@ -107,7 +119,7 @@ struct CanvasStudioView: View {
                     HStack(spacing: 5) {
                         Text("\(RunMath.formatKm(selectedRun.distanceMeters)) km")
                             .font(.system(size: 14, weight: .semibold))
-                        if !isPresentedModally {
+                        if !hasFixedRun {
                             Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
                         }
                     }
@@ -115,7 +127,7 @@ struct CanvasStudioView: View {
                     .padding(.vertical, 7)
                     .background(Studio.surface, in: Capsule())
                 }
-                .disabled(isPresentedModally)
+                .disabled(hasFixedRun)
                 .accessibilityLabel("꾸미는 기록 \(RunMath.formatKm(selectedRun.distanceMeters))킬로미터")
             }
 
@@ -321,6 +333,15 @@ struct CanvasStudioView: View {
     }
 
     // MARK: - 동작
+
+    /// 저장한 적 없이 꾸미던 중이면 한 번 물어본다 (인스타가 하는 방식)
+    private func close() {
+        if selectedRun != nil && !didSave {
+            showsDiscardConfirmation = true
+        } else {
+            dismiss()
+        }
+    }
 
     private func promptForRunIfNeeded() {
         guard !didPromptForRun, selectedRun == nil else { return }
