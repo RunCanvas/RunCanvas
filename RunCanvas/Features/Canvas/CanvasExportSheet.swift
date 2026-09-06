@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import Photos
 import UIKit
 
 /// 저장·공유 시트 — 편집 화면 위에 올라온다 (예전 4/4 단계였던 CanvasExportView 대체)
@@ -110,35 +109,16 @@ struct CanvasExportSheet: View {
     @MainActor
     private func render() {
         renderFailed = false
-        let content = StickerCanvas(
-            background: background,
-            run: run,
-            stickers: .constant(stickers),
-            selection: .constant([]),
-            isEditing: false
-        )
-        .frame(width: 1080, height: 1350)
-
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = 1
-        renderedImage = renderer.uiImage
+        renderedImage = CanvasExporter.render(background: background, run: run, stickers: stickers)
         renderFailed = renderedImage == nil   // nil을 안 보면 스피너가 영원히 돈다
     }
 
-    /// 권한 요청 뒤 백그라운드로 넘어가면 @State(message)를 메인 밖에서 건드리게 된다
     @MainActor
     private func saveToPhotos() async {
         guard let renderedImage else { return }
-        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-        guard status == .authorized || status == .limited else {
-            message = ExportMessage(text: "설정에서 사진 추가 권한을 허용해주세요.", isSuccess: false)
-            return
-        }
         do {
-            try await PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.creationRequestForAsset(from: renderedImage)
-            }
-            message = ExportMessage(text: "사진 앱에 저장했어요.", isSuccess: true)
+            try await CanvasExporter.savePNGToPhotos(renderedImage)
+            message = ExportMessage(text: "사진 앱에 PNG로 저장했어요.", isSuccess: true)
         } catch {
             message = ExportMessage(text: error.localizedDescription, isSuccess: false)
         }
