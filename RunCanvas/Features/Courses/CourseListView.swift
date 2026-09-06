@@ -12,10 +12,22 @@ struct CourseListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ChipRow(titles: chips, selected: region, counts: service.regionCounts) { picked in
-                region = picked
-                Task { await reload() }
+            HStack(spacing: 8) {
+                FilterMenuPill(title: "지역", options: chips, allOption: KoreaRegion.all,
+                               counts: service.regionCounts, selection: $region)
+                if mineOnly {
+                    Text("내 코스만")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(Color.card, in: Capsule())
+                }
+                Spacer()
+                Text("\(service.courses.count)개")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
+            .padding(.horizontal, 20)
             .padding(.vertical, 10)
             Divider()
 
@@ -45,6 +57,7 @@ struct CourseListView: View {
                 }
             }
         }
+        .onChange(of: region) { Task { await reload() } }
         .onChange(of: sort) { Task { await reload() } }
         .onChange(of: mineOnly) { Task { await reload() } }
         .task { await reload() }

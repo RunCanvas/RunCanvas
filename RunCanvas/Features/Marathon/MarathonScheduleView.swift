@@ -101,18 +101,42 @@ struct MarathonScheduleView: View {
 
     // MARK: 카테고리 칩
 
+    /// 두 줄로 끝낸다. 지역은 17개라 칩으로 깔면 가로 스크롤이 화면을 두 번 넘게 지나간다 → 메뉴 알약.
     private var filters: some View {
         VStack(spacing: 6) {
             ChipRow(titles: MarathonCategory.allCases.map(\.rawValue), selected: category.rawValue) {
                 category = MarathonCategory(rawValue: $0) ?? .all
             }
-            ChipRow(titles: MarathonCourse.allCases.map(\.rawValue), selected: course.rawValue) {
-                course = MarathonCourse(rawValue: $0) ?? .any
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 7) {
+                    FilterMenuPill(title: "지역",
+                                   options: KoreaRegion.chips(regions: service.events.map(\.region)),
+                                   allOption: KoreaRegion.all,
+                                   counts: regionCounts,
+                                   selection: $region)
+                    Divider().frame(height: 18)
+                    ForEach(MarathonCourse.allCases) { item in
+                        chip(item.rawValue, isOn: course == item) { course = item }
+                    }
+                }
+                .padding(.horizontal, 20)
             }
-            ChipRow(titles: KoreaRegion.chips(regions: service.events.map(\.region)),
-                    selected: region, counts: regionCounts) { region = $0 }
         }
         .padding(.vertical, 10)
+    }
+
+    /// 거리 칩 — `ChipRow` 는 한 줄을 통째로 쓰므로, 알약과 같은 줄에 놓으려고 낱개로 그린다
+    private func chip(_ title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 13)
+                .padding(.vertical, 6)
+                .background(isOn ? Color.primary : Color.card, in: Capsule())
+                .foregroundStyle(isOn ? Color(.systemBackground) : .primary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isOn ? [.isSelected] : [])
     }
 
 }
