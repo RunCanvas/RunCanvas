@@ -36,11 +36,16 @@ final class MarathonScreenUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1)
         attach(app, "marathon_theme_full")
 
-        // 지역 칩은 목록에 있는 지역만 만들어진다 — 서울 대회가 없으면 이 단언이 먼저 깨진다
         app.buttons["전체"].firstMatch.tap()
         app.buttons["전체 거리"].tap()
-        let seoul = app.buttons["서울"]
-        XCTAssertTrue(seoul.waitForExistence(timeout: 3), "지역 칩이 없음")
+
+        // 지역은 메뉴 알약이다 — 17개를 칩으로 깔면 가로 스크롤이 화면을 두 번 넘게 지나간다.
+        // 메뉴 항목은 개수까지 붙어("서울 (12)") 나오므로 앞부분으로 찾는다
+        let regionFilter = app.buttons["지역"]
+        XCTAssertTrue(regionFilter.waitForExistence(timeout: 3), "지역 필터가 없음")
+        regionFilter.tap()
+        let seoul = app.buttons.matching(NSPredicate(format: "label BEGINSWITH '서울'")).firstMatch
+        XCTAssertTrue(seoul.waitForExistence(timeout: 3), "지역 메뉴에 서울이 없음")
         seoul.tap()
         Thread.sleep(forTimeInterval: 1)
         attach(app, "marathon_region_seoul")

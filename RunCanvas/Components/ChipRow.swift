@@ -5,8 +5,6 @@ import SwiftUI
 struct ChipRow: View {
     let titles: [String]
     let selected: String
-    /// 칩 옆에 붙일 개수(있는 것만). 0이면 눌러도 빈 화면이라는 뜻이라 흐리게 보여준다
-    var counts: [String: Int] = [:]
     let onSelect: (String) -> Void
 
     var body: some View {
@@ -14,28 +12,15 @@ struct ChipRow: View {
             HStack(spacing: 7) {
                 ForEach(titles, id: \.self) { title in
                     let isOn = title == selected
-                    let count = counts[title]
                     Button { onSelect(title) } label: {
-                        HStack(spacing: 4) {
-                            Text(title)
-                            if let count {
-                                Text("\(count)")
-                                    .monospacedDigit()
-                                    .foregroundStyle(isOn ? Color(.systemBackground).opacity(0.7) : .secondary)
-                            }
-                        }
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 6)
-                        .background(isOn ? Color.primary : Color.card, in: Capsule())
-                        .foregroundStyle(isOn ? Color(.systemBackground) : .primary)
-                        .opacity(count == 0 ? 0.45 : 1)
+                        Text(title)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 6)
+                            .background(isOn ? Color.primary : Color.card, in: Capsule())
+                            .foregroundStyle(isOn ? Color(.systemBackground) : .primary)
                     }
                     .buttonStyle(.plain)
-                    // 개수를 붙이면 접근성 라벨이 "서울, 12"가 되어 이름으로 못 찾는다 →
-                    // 식별자는 이름 그대로 두고, 읽어 주는 문장에만 개수를 넣는다
-                    .accessibilityIdentifier(title)
-                    .accessibilityLabel(count.map { "\(title), \($0)개" } ?? title)
                     .accessibilityAddTraits(isOn ? [.isSelected] : [])
                 }
             }
