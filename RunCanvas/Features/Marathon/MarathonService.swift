@@ -28,7 +28,7 @@ final class MarathonService {
             let today = Self.dayFormatter.string(from: .now)
             let rows: [MarathonEvent] = try await supabase
                 .from("marathon_events")
-                .select("name,event_date,region,place,courses,type,tags,status,reg_end_date,fee_min,signup_url")
+                .select("name,event_date,region,place,courses,type,tags,status,reg_end_date,fee_min,signup_url,image_url")
                 // 날짜 미정(null)도 함께 가져온다
                 .or("event_date.gte.\(today),event_date.is.null")
                 .order("event_date", ascending: true)
@@ -99,6 +99,7 @@ private struct CachedEvent: Encodable {
     let reg_end_date: String?
     let fee_min: Int?
     let signup_url: String?
+    let image_url: String?
 
     init(_ event: MarathonEvent) {
         name = event.name
@@ -112,5 +113,6 @@ private struct CachedEvent: Encodable {
         reg_end_date = event.registrationEnd.map(MarathonService.dayFormatter.string(from:))
         fee_min = event.feeMin
         signup_url = event.signupURL?.absoluteString
+        image_url = event.imageURL?.absoluteString
     }
 }

@@ -1,86 +1,122 @@
 import SwiftUI
 
-/// 마라톤·러닝 이벤트 일정. 카테고리(종류·거리)로 걸러 보고, 신청 페이지로 넘어간다.
+/// 마라톤·러닝 이벤트 일정. 종류·거리·지역으로 거르고, 카드를 누르면 신청 페이지로 간다.
+/// 카드 톤(회색 카드 + 16 라운드 + 20 여백)은 레벨·뱃지 화면과 같게 둔다.
 struct MarathonScheduleView: View {
     @State private var service = MarathonService()
     @State private var category: MarathonCategory = .all
     @State private var course: MarathonCourse = .any
+    @State private var region = MarathonRegion.all
 
     private var sections: [MarathonSchedule.MonthSection] {
-        MarathonSchedule(events: service.events).sections(category: category, course: course)
+        MarathonSchedule(events: service.events)
+            .sections(category: category, course: course, region: region)
     }
 
     var body: some View {
-        List {
-            Section {
-                filters
-                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                    .listRowBackground(Color.clear)
-            }
-
-            if let notice = service.fallbackNotice {
-                Section {
-                    Label(notice, systemImage: "wifi.exclamationmark")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                .listRowBackground(Color.card)
-            }
-
-            if sections.isEmpty {
-                Section {
-                    ContentUnavailableView {
-                        Label(service.isLoading ? "불러오는 중" : "해당하는 일정이 없어요", systemImage: "calendar")
-                    } description: {
-                        Text(service.isLoading ? "잠시만 기다려 주세요." : "카테고리를 바꿔 보세요.")
-                    }
-                }
-                .listRowBackground(Color.clear)
-            }
-
-            ForEach(sections) { section in
-                Section(header: Text(header(for: section))) {
-                    ForEach(section.events) { event in
-                        MarathonRow(event: event)
-                    }
-                }
-                .listRowBackground(Color.card)
-            }
-
-            Section {
-                Text("출처: 공공데이터포털(문화체육관광부) · kormarathon.com\n일정은 주최 측 사정으로 바뀔 수 있어요. 신청 전 공식 공지를 확인해 주세요.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .listRowBackground(Color.clear)
+        VStack(spacing: 0) {
+            filters
+            Divider()
+            schedule
         }
-        .listStyle(.insetGrouped)
-        .appListTone()
+        .background(Color(.systemBackground))
         .navigationTitle("마라톤 일정")
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await service.load() }
         .task { await service.load() }
     }
 
-    private var filters: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            chipRow(MarathonCategory.allCases, selected: category) { category = $0 }
-            chipRow(MarathonCourse.allCases, selected: course) { course = $0 }
+    // MARK: 목록
+
+    private var schedule: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 14, pinnedViews: [.sectionHeaders]) {
+                if let notice = service.fallbackNotice {
+                    Label(notice, systemImage: "wifi.exclamationmark")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.card, in: RoundedRectangle(cornerRadius: 12))
+                }
+
+                if sections.isEmpty { placeholder }
+
+                ForEach(sections) { section in
+                    Section {
+                        ForEach(section.events) { event in
+                            MarathonCard(event: event)
+                        }
+                    } header: {
+                        monthHeader(for: section)
+                    }
+                }
+
+                Text("출처: 공공데이터포털(문화체육관광부) · kormarathon.com\n일정은 주최 측 사정으로 바뀔 수 있어요. 신청 전 공식 공지를 확인해 주세요.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
+            }
+            .padding(20)
         }
+        .refreshable { await service.load() }
     }
 
-    private func chipRow<T: Identifiable & RawRepresentable & Equatable>(
-        _ items: [T], selected: T, onSelect: @escaping (T) -> Void
-    ) -> some View where T.RawValue == String {
+    /// 앱이 한국어 전용이라 기기 로케일에 맡기지 않는다 ("September 2026" 대신 "2026년 9월")
+    private func monthHeader(for section: MarathonSchedule.MonthSection) -> some View {
+        let title: String
+        if let start = section.monthStart {
+            let parts = Calendar.current.dateComponents([.year, .month], from: start)
+            title = "\(parts.year ?? 0)년 \(parts.month ?? 0)월"
+        } else {
+            title = "날짜 미정"
+        }
+        return HStack {
+            Text(title).font(.headline)
+            Spacer()
+            Text("\(section.events.count)개")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 6)
+        .background(Color(.systemBackground))   // 스크롤할 때 카드가 제목 뒤로 비치지 않게
+    }
+
+    private var placeholder: some View {
+        ContentUnavailableView {
+            Label(service.isLoading ? "불러오는 중" : "해당하는 일정이 없어요", systemImage: "calendar")
+        } description: {
+            Text(service.isLoading ? "잠시만 기다려 주세요." : "카테고리를 바꿔 보세요.")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
+    }
+
+    // MARK: 카테고리 칩
+
+    private var filters: some View {
+        VStack(spacing: 6) {
+            chipRow(MarathonCategory.allCases.map(\.rawValue), selected: category.rawValue) {
+                category = MarathonCategory(rawValue: $0) ?? .all
+            }
+            chipRow(MarathonCourse.allCases.map(\.rawValue), selected: course.rawValue) {
+                course = MarathonCourse(rawValue: $0) ?? .any
+            }
+            chipRow(MarathonRegion.chips(for: service.events), selected: region) { region = $0 }
+        }
+        .padding(.vertical, 10)
+    }
+
+    private func chipRow(_ titles: [String], selected: String, onSelect: @escaping (String) -> Void) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(items) { item in
-                    let isOn = item == selected
-                    Button { onSelect(item) } label: {
-                        Text(item.rawValue)
+            HStack(spacing: 7) {
+                ForEach(titles, id: \.self) { title in
+                    let isOn = title == selected
+                    Button { onSelect(title) } label: {
+                        Text(title)
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 13)
-                            .padding(.vertical, 7)
+                            .padding(.vertical, 6)
                             .background(isOn ? Color.primary : Color.card, in: Capsule())
                             .foregroundStyle(isOn ? Color(.systemBackground) : .primary)
                     }
@@ -91,67 +127,166 @@ struct MarathonScheduleView: View {
             .padding(.horizontal, 20)
         }
     }
-
-    /// 앱이 한국어 전용이라 기기 로케일에 맡기지 않는다 ("September 2026" 대신 "2026년 9월")
-    private func header(for section: MarathonSchedule.MonthSection) -> String {
-        guard let start = section.monthStart else { return "날짜 미정" }
-        let parts = Calendar.current.dateComponents([.year, .month], from: start)
-        return "\(parts.year ?? 0)년 \(parts.month ?? 0)월"
-    }
 }
 
-private struct MarathonRow: View {
+// MARK: - 대회 카드
+
+private struct MarathonCard: View {
     let event: MarathonEvent
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+        Button {
+            if let url = event.signupURL { openURL(url) }
+        } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                poster
+                details
+            }
+            .background(Color.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .contentShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+        .disabled(event.signupURL == nil)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(event.signupURL == nil ? "" : "신청 페이지 열기")
+    }
+
+    /// 포스터. 없는 대회도 있어서 자리는 항상 같은 높이로 두고 비었을 때만 다르게 채운다 —
+    /// 카드 높이가 들쭉날쭉하면 목록이 지저분해 보인다.
+    private var poster: some View {
+        ZStack(alignment: .topLeading) {
+            AsyncImage(url: event.imageURL) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                ZStack {
+                    Color.primary.opacity(0.06)
+                    Image(systemName: "figure.run")
+                        .font(.system(size: 32, weight: .light))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 150)
+            .clipped()
+
+            HStack(spacing: 6) {
+                if let countdown { chip(countdown, filled: false) }
+                if event.isAcceptingSignups { chip("접수 중", filled: true) }
+            }
+            .padding(12)
+        }
+    }
+
+    private var details: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(event.name)
+                .font(.headline)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 6) {
                 Text(dateText)
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
-                Text(event.name)
-                    .font(.subheadline.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                if event.isAcceptingSignups {
-                    Text("접수 중")
-                        .font(.caption2.weight(.bold))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Color.primary, in: Capsule())
-                        .foregroundStyle(Color(.systemBackground))
+                if !placeText.isEmpty {
+                    Text("·").foregroundStyle(.tertiary)
+                    Text(placeText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
 
-            Text([event.region, event.place.isEmpty ? nil : event.place].compactMap { $0 }.joined(separator: " · "))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if !event.courses.isEmpty {
-                Text(event.courses.joined(separator: " · "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if !courseTitles.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(courseTitles, id: \.self) { title in
+                        Text(title)
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color(.systemBackground), in: Capsule())
+                    }
+                }
             }
 
-            if let deadline = event.registrationEnd, event.isAcceptingSignups {
-                Text("신청 마감 \(Calendar.current.component(.month, from: deadline))월 \(Calendar.current.component(.day, from: deadline))일")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let url = event.signupURL {
-                Link("신청 페이지", destination: url)
-                    .font(.caption.weight(.semibold))
+            if footerText != nil || event.signupURL != nil {
+                HStack(spacing: 4) {
+                    if let footerText {
+                        Text(footerText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    if event.signupURL != nil {
+                        Text("신청")
+                            .font(.caption.weight(.semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                    }
+                }
+                .padding(.top, 1)
             }
         }
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
+        .padding(16)
     }
 
+    private func chip(_ text: String, filled: Bool) -> some View {
+        Text(text)
+            .font(.caption2.weight(.bold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background {
+                // 포스터 위라 배경 밝기를 알 수 없다 → 채운 칩은 흑백 대비로, 나머지는 블러로 깐다
+                if filled { Capsule().fill(Color.primary) } else { Capsule().fill(.ultraThinMaterial) }
+            }
+            .foregroundStyle(filled ? Color(.systemBackground) : .primary)
+    }
+
+    // MARK: 표시용 문자열
+
+    /// "9월 19일 (토)" — 날짜 미정이면 그렇게 적는다
     private var dateText: String {
-        guard let date = event.date else { return "미정" }
-        let parts = Calendar.current.dateComponents([.month, .day], from: date)
-        return String(format: "%02d.%02d", parts.month ?? 0, parts.day ?? 0)
+        guard let date = event.date else { return "날짜 미정" }
+        let calendar = Calendar.current
+        let parts = calendar.dateComponents([.month, .day, .weekday], from: date)
+        let weekday = ["일", "월", "화", "수", "목", "금", "토"][(parts.weekday ?? 1) - 1]
+        return "\(parts.month ?? 0)월 \(parts.day ?? 0)일 (\(weekday))"
+    }
+
+    private var countdown: String? {
+        guard let days = event.daysAway() else { return nil }
+        return switch days {
+        case 0: "오늘"
+        case 1: "내일"
+        default: "D-\(days)"
+        }
+    }
+
+    private var placeText: String {
+        [event.region, event.place.isEmpty ? nil : event.place]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+
+    /// 종목이 다섯 가지가 넘는 대회도 있다 — 카드가 밀리지 않게 네 개까지만
+    private var courseTitles: [String] {
+        let courses = event.courses
+        guard courses.count > 4 else { return courses }
+        return courses.prefix(3) + ["+\(courses.count - 3)"]
+    }
+
+    private var footerText: String? {
+        var parts: [String] = []
+        if let deadline = event.registrationEnd, event.isAcceptingSignups {
+            let d = Calendar.current.dateComponents([.month, .day], from: deadline)
+            parts.append("신청 \(d.month ?? 0)월 \(d.day ?? 0)일 마감")
+        }
+        if let fee = event.feeMin {
+            parts.append("\(fee.formatted())원부터")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }
 

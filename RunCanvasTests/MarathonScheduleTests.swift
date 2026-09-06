@@ -12,8 +12,9 @@ final class MarathonScheduleTests: XCTestCase {
     private let now = MarathonSchedule.parseDate("2026-09-06")!
 
     private func event(_ name: String, _ date: String?, kind: String = "대회",
-                       courses: [String] = ["10km"], status: String? = nil) -> MarathonEvent {
-        MarathonEvent(name: name, date: date.flatMap(MarathonSchedule.parseDate), place: "장소",
+                       courses: [String] = ["10km"], region: String? = nil,
+                       status: String? = nil) -> MarathonEvent {
+        MarathonEvent(name: name, date: date.flatMap(MarathonSchedule.parseDate), region: region, place: "장소",
                       courses: courses, kind: kind, status: status)
     }
 
@@ -132,6 +133,60 @@ final class MarathonScheduleTests: XCTestCase {
         let names = schedule.sections(category: .theme, course: .full, now: now, calendar: calendar)
             .flatMap { $0.events.map(\.name) }
         XCTAssertEqual(names, ["테마 풀"])
+    }
+
+    // MARK: 지역
+
+    func testRegionFilter() {
+        let schedule = MarathonSchedule(events: [
+            event("서울 대회", "2026-10-03", region: "서울"),
+            event("부산 대회", "2026-10-04", region: "부산"),
+            event("지역 없는 대회", "2026-10-05", region: nil),
+        ])
+        func names(_ region: String) -> [String] {
+            schedule.sections(region: region, now: now, calendar: calendar).flatMap { $0.events.map(\.name) }
+        }
+        XCTAssertEqual(names(MarathonRegion.all).count, 3)
+        XCTAssertEqual(names("서울"), ["서울 대회"])
+        XCTAssertEqual(names("부산"), ["부산 대회"])
+    }
+
+    /// 칩은 목록에 실제로 있는 지역만, 가나다순이 아니라 서울부터
+    func testRegionChipsKeepFixedOrderAndSkipMissingRegions() {
+        let events = [
+            event("제주", "2026-10-03", region: "제주"),
+            event("서울", "2026-10-04", region: "서울"),
+            event("경기", "2026-10-05", region: "경기"),
+            event("해외", "2026-10-06", region: "괌"),
+            event("미상", "2026-10-07", region: nil),
+        ]
+        XCTAssertEqual(MarathonRegion.chips(for: events),
+                       [MarathonRegion.all, "서울", "경기", "제주", "괌"])
+        XCTAssertEqual(MarathonRegion.chips(for: []), [MarathonRegion.all])
+    }
+
+    func testCategoryCourseRegionCombine() {
+        let schedule = MarathonSchedule(events: [
+            event("서울 테마 풀", "2026-10-03", kind: "테마런", courses: ["Full"], region: "서울"),
+            event("부산 테마 풀", "2026-10-04", kind: "테마런", courses: ["Full"], region: "부산"),
+        ])
+        let names = schedule.sections(category: .theme, course: .full, region: "부산", now: now, calendar: calendar)
+            .flatMap { $0.events.map(\.name) }
+        XCTAssertEqual(names, ["부산 테마 풀"])
+    }
+
+    // MARK: 카드 표시용 값
+
+    func testDecodesPosterAndCountsDaysAway() throws {
+        let json = """
+        [{"name":"포스터 있는 대회","event_date":"2026-09-16","place":"서울","courses":["10km"],"type":"대회",
+          "image_url":"https://res.cloudinary.com/x/image/upload/w_800/poster.jpg"}]
+        """
+        let event = try XCTUnwrap(MarathonSchedule.parseEvents(Data(json.utf8)).first)
+        XCTAssertEqual(event.imageURL?.lastPathComponent, "poster.jpg")
+        XCTAssertEqual(event.daysAway(now: now, calendar: calendar), 10)
+        XCTAssertNil(self.event("날짜 미정", nil).daysAway(now: now, calendar: calendar))
+        XCTAssertEqual(self.event("오늘", "2026-09-06").daysAway(now: now, calendar: calendar), 0)
     }
 
     // MARK: 번들 씨앗

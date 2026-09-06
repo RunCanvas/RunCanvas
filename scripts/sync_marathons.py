@@ -134,6 +134,79 @@ def parse_kormarathon(html: str) -> list[dict]:
     return events
 
 
+# ---------------------------------------------------------------- 출처 2-b: 대회 상세 페이지
+
+# 월별 목록에는 포스터·접수기간·참가비가 없다. 상세 페이지에서만 가져올 수 있다.
+POSTER_RE = re.compile(r'<meta property="og:image" content="([^"]+)"')
+PERIOD_RE = re.compile(r'접수기간</p><p[^>]*>(\d{4})\.(\d{2})\.(\d{2})<span[^>]*>~</span>(\d{4})\.(\d{2})\.(\d{2})')
+FEE_RE = re.compile(r'>([\d,]+)<!-- -->원<')
+DETAIL_KEYS = ("image_url", "reg_start_date", "reg_end_date", "fee_min")
+
+
+def poster_url(url: str) -> str:
+    """Cloudinary 원본은 1200px 넘는 것도 있다 → 폰 카드에 맞게 폭 800으로 줄여 받는다."""
+    marker = "/image/upload/"
+    if "res.cloudinary.com" in url and marker in url:
+        return url.replace(marker, marker + "w_800,f_auto,q_auto:good/", 1)
+    return url
+
+
+def parse_detail(html: str) -> dict:
+    """상세 페이지에서 포스터·접수기간·참가비(최저)를 뽑는다. 없는 항목은 그냥 빠진다."""
+    detail: dict = {}
+    poster = POSTER_RE.search(html)
+    if poster:
+        detail["image_url"] = poster_url(unescape(poster.group(1)))
+    period = PERIOD_RE.search(html)
+    if period:
+        detail["reg_start_date"] = "-".join(period.groups()[:3])
+        detail["reg_end_date"] = "-".join(period.groups()[3:])
+    fees = [int(fee.replace(",", "")) for fee in FEE_RE.findall(html)]
+    if fees:
+        detail["fee_min"] = min(fees)
+    return detail
+
+
+def add_details(events: list[dict], known: dict) -> None:
+    """대회마다 상세 페이지를 한 번씩 읽어 채운다.
+
+    이미 DB에 포스터가 있는 대회는 건너뛴다 — 안 그러면 6시간마다 200번씩 남의 사이트를 긁는다.
+    상세가 없어도 목록은 나와야 하므로 실패는 조용히 넘긴다.
+    """
+    fetched = 0
+    for event in events:
+        cached = known.get((event["name"], event.get("event_date")), {})
+        if cached.get("image_url"):
+            event.update({key: cached[key] for key in DETAIL_KEYS if cached.get(key) is not None})
+            continue
+        url = event.get("signup_url")
+        if not url:
+            continue
+        try:
+            event.update(parse_detail(fetch(url).decode("utf-8", errors="replace")))
+            fetched += 1
+        except Exception as error:
+            print(f"[안내] 상세 실패 {url}: {error}", file=sys.stderr)
+    print(f"상세 페이지 {fetched}건 조회 (나머지는 이미 받아 둔 값 재사용)")
+
+
+def known_details() -> dict:
+    """DB에 이미 있는 상세값 — 없으면 빈 dict(전부 새로 받는다)."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        return {}
+    endpoint = f"{url.rstrip('/')}/rest/v1/marathon_events?select=name,event_date,{','.join(DETAIL_KEYS)}"
+    request = urllib.request.Request(endpoint, headers={"apikey": key, "Authorization": f"Bearer {key}"})
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            rows = json.loads(response.read())
+    except Exception as error:
+        print(f"[경고] 기존 상세 조회 실패: {error}", file=sys.stderr)
+        return {}
+    return {(row["name"], row.get("event_date")): row for row in rows}
+
+
 # ---------------------------------------------------------------- 정규화
 
 THEME_HINTS = ("런", "RUN", "Run", "레이스", "Race", "페스타")
@@ -221,6 +294,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--months", type=int, default=8, help="이번 달부터 몇 달치를 볼지")
     parser.add_argument("--dry-run", action="store_true", help="업로드하지 않고 결과만 출력")
+    parser.add_argument("--no-details", action="store_true",
+                        help="상세 페이지(포스터·접수기간·참가비)를 읽지 않는다 — 빠르게 목록만 볼 때")
     parser.add_argument("--out", help="정규화 결과를 JSON 파일로도 저장(앱 번들 씨앗 갱신용)")
     args = parser.parse_args()
 
@@ -236,6 +311,9 @@ def main() -> None:
     dropped = [e for e in events if (e.get("event_date") or today) < today]
     events = [e for e in events if (e.get("event_date") or today) >= today]
     print(f"정규화 {len(events)}건 (지난 일정 {len(dropped)}건 제외)")
+
+    if not args.no_details:
+        add_details(events, known_details())
 
     if args.out:
         with open(args.out, "w", encoding="utf-8") as file:

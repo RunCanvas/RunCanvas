@@ -18,6 +18,8 @@ struct MarathonEvent: Identifiable, Equatable, Decodable {
     let registrationEnd: Date?
     let feeMin: Int?
     let signupURL: URL?
+    /// 대회 포스터 — 없는 대회도 있다
+    let imageURL: URL?
 
     var id: String { "\(name)|\(date?.timeIntervalSince1970 ?? -1)" }
 
@@ -28,6 +30,7 @@ struct MarathonEvent: Identifiable, Equatable, Decodable {
         case registrationEnd = "reg_end_date"
         case feeMin = "fee_min"
         case signupURL = "signup_url"
+        case imageURL = "image_url"
     }
 
     init(from decoder: Decoder) throws {
@@ -43,11 +46,12 @@ struct MarathonEvent: Identifiable, Equatable, Decodable {
         registrationEnd = MarathonSchedule.parseDate(try? c.decode(String.self, forKey: .registrationEnd))
         feeMin = try? c.decode(Int.self, forKey: .feeMin)
         signupURL = (try? c.decode(String.self, forKey: .signupURL)).flatMap { URL(string: $0) }
+        imageURL = (try? c.decode(String.self, forKey: .imageURL)).flatMap { URL(string: $0) }
     }
 
     init(name: String, date: Date?, region: String? = nil, place: String = "", courses: [String] = [],
          kind: String = "대회", tags: [String] = [], status: String? = nil,
-         registrationEnd: Date? = nil, feeMin: Int? = nil, signupURL: URL? = nil) {
+         registrationEnd: Date? = nil, feeMin: Int? = nil, signupURL: URL? = nil, imageURL: URL? = nil) {
         self.name = name
         self.date = date
         self.region = region
@@ -59,9 +63,17 @@ struct MarathonEvent: Identifiable, Equatable, Decodable {
         self.registrationEnd = registrationEnd
         self.feeMin = feeMin
         self.signupURL = signupURL
+        self.imageURL = imageURL
     }
 
     var isAcceptingSignups: Bool { status == "open" }
+
+    /// 대회까지 남은 날. 오늘이면 0, 날짜 미정이면 nil
+    func daysAway(now: Date = .now, calendar: Calendar = .current) -> Int? {
+        guard let date else { return nil }
+        return calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
+                                       to: calendar.startOfDay(for: date)).day
+    }
 
     /// 거리 카테고리 판정 — 원본 종목 문자열이 제각각("Half", "하프", "21.1km")이라 넓게 본다
     func hasCourse(_ course: MarathonCourse) -> Bool {
@@ -114,6 +126,24 @@ enum MarathonCourse: String, CaseIterable, Identifiable {
     }
 }
 
+/// 지역 카테고리. 값은 서버가 준 문자열 그대로 쓰고(고정 enum 으로 두면 새 지역이 사라진다) 순서만 앱이 정한다.
+enum MarathonRegion {
+    static let all = "전체 지역"
+    /// 가나다순이면 서울·경기가 한참 뒤로 밀린다 → 사람이 찾는 순서로
+    static let order = ["서울", "경기", "인천", "강원", "충북", "충남", "대전", "세종",
+                        "전북", "전남", "광주", "경북", "경남", "대구", "울산", "부산", "제주"]
+
+    /// 목록에 실제로 있는 지역만 칩으로 만든다 — 눌러도 빈 화면인 칩을 두지 않는다
+    static func chips(for events: [MarathonEvent]) -> [String] {
+        let found = Set(events.compactMap(\.region).filter { !$0.isEmpty })
+        return [all] + order.filter(found.contains) + found.subtracting(order).sorted()
+    }
+
+    static func includes(_ region: String, _ event: MarathonEvent) -> Bool {
+        region == all || event.region == region
+    }
+}
+
 /// 일정 묶음 + 필터링. 순수 함수라 유닛 테스트가 쉽다.
 struct MarathonSchedule: Equatable, Decodable {
     var updatedAt: String = ""
@@ -147,16 +177,17 @@ struct MarathonSchedule: Equatable, Decodable {
         var events: [MarathonEvent]
     }
 
-    /// 카테고리·거리로 거른 뒤 월별로 묶는다. 날짜 미정은 마지막.
+    /// 카테고리·거리·지역으로 거른 뒤 월별로 묶는다. 날짜 미정은 마지막.
     func sections(
         category: MarathonCategory = .all,
         course: MarathonCourse = .any,
+        region: String = MarathonRegion.all,
         now: Date = .now,
         calendar: Calendar = .current
     ) -> [MonthSection] {
         let today = calendar.startOfDay(for: now)
         let filtered = events
-            .filter { category.includes($0) && course.includes($0) }
+            .filter { category.includes($0) && course.includes($0) && MarathonRegion.includes(region, $0) }
             .filter { $0.date.map { calendar.startOfDay(for: $0) >= today } ?? true }
 
         var dated: [String: [MarathonEvent]] = [:]
