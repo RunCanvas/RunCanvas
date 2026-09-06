@@ -10,6 +10,7 @@ struct RunDetailView: View {
     /// body에서 바로 디코드하면 화면이 다시 그려질 때마다 1080×1350 JPEG를 메인 스레드에서 푼다
     @State private var decoratedImage: UIImage?
     @State private var showsCourseRegister = false
+    @State private var courseMessage: String?
     @State private var isSavingCard = false
     @State private var saveMessage: String?
 
@@ -71,7 +72,17 @@ struct RunDetailView: View {
             }
         }
         .sheet(isPresented: $showsCourseRegister) {
-            CourseRegisterView(run: run, nickname: nickname)
+            CourseRegisterView(run: run, nickname: nickname) { course in
+                courseMessage = "‘\(course.name)’를 올렸어요. 기록 탭 → 더보기 → 러닝 코스에서 볼 수 있어요."
+            }
+        }
+        .alert("코스로 등록했어요", isPresented: Binding(
+            get: { courseMessage != nil },
+            set: { if !$0 { courseMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(courseMessage ?? "")
         }
         .navigationBarTitleDisplayMode(.inline)
         .alert("이미지 저장", isPresented: Binding(

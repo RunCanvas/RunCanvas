@@ -29,6 +29,9 @@ struct TrainingRunView: View {
 
             if let progress {
                 VStack(spacing: 10) {
+                    // 달리기와 걷기를 글자만으로 구분하면, 뛰면서 흔들리는 화면에서 잘 안 읽힌다
+                    Image(systemName: progress.step.kind.isRunning ? "figure.run" : "figure.walk")
+                        .font(.system(size: 34, weight: .semibold))
                     Text(progress.step.kind.title)
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.secondary)

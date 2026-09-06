@@ -1,15 +1,19 @@
 import SwiftUI
+import CoreLocation
 
 /// 내 기록 하나를 공유 코스로 올리는 시트. 기록 상세에서 연다.
 struct CourseRegisterView: View {
     let run: Run
     let nickname: String
+    /// 등록에 성공하면 부르는 쪽이 알림을 띄운다 — 시트가 그냥 닫히면 올라갔는지 알 수 없다
+    var onRegistered: ((Course) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var service = CourseService()
     @State private var name = ""
     @State private var region = KoreaRegion.order.first ?? "서울"
     @State private var isUploading = false
+    @State private var didGuessRegion = false
     @State private var errorMessage: String?
 
     private var canSubmit: Bool {
@@ -60,7 +64,19 @@ struct CourseRegisterView: View {
             .overlay {
                 if isUploading { ProgressView().controlSize(.large) }
             }
+            .task { await guessRegion() }
         }
+    }
+
+    /// 출발 지점으로 지역을 미리 골라 둔다. 실패하면 기본값 그대로 두고 조용히 넘어간다.
+    private func guessRegion() async {
+        guard !didGuessRegion, let first = run.route.first else { return }
+        didGuessRegion = true
+        let location = CLLocation(latitude: first.latitude, longitude: first.longitude)
+        guard let area = try? await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: Locale(identifier: "ko_KR"))
+            .first?.administrativeArea,
+              let guessed = KoreaRegion.short(administrativeArea: area) else { return }
+        region = guessed
     }
 
     private func upload() {
@@ -69,8 +85,9 @@ struct CourseRegisterView: View {
         Task {
             defer { isUploading = false }
             do {
-                _ = try await service.register(route: run.route, name: name, region: region,
-                                               ownerID: run.ownerID, ownerNickname: nickname)
+                let course = try await service.register(route: run.route, name: name, region: region,
+                                                       ownerID: run.ownerID, ownerNickname: nickname)
+                onRegistered?(course)
                 dismiss()
             } catch let error as CourseService.CourseError {
                 errorMessage = error.errorDescription

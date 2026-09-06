@@ -45,6 +45,22 @@ final class CourseTests: XCTestCase {
         XCTAssertGreaterThan(path.count, 0)
     }
 
+    /// 코스 등록 때 지역을 손으로 고르면 잘못 고른 코스가 섞인다 — 위치에서 추측한 값을 쓴다
+    func testAdministrativeAreaBecomesShortRegion() {
+        XCTAssertEqual(KoreaRegion.short(administrativeArea: "서울특별시"), "서울")
+        XCTAssertEqual(KoreaRegion.short(administrativeArea: "경기도"), "경기")
+        XCTAssertEqual(KoreaRegion.short(administrativeArea: "충청북도"), "충북")
+        XCTAssertEqual(KoreaRegion.short(administrativeArea: "전북특별자치도"), "전북")
+        XCTAssertEqual(KoreaRegion.short(administrativeArea: "강원특별자치도"), "강원")
+        XCTAssertEqual(KoreaRegion.short(administrativeArea: "제주특별자치도"), "제주")
+        XCTAssertEqual(KoreaRegion.short(administrativeArea: "경상남도"), "경남")
+        XCTAssertNil(KoreaRegion.short(administrativeArea: "Tokyo"))
+        // 추측한 값은 반드시 칩 목록에 있는 이름이어야 한다 — 아니면 필터에서 사라진다
+        for area in ["서울특별시", "경기도", "충청남도", "전라남도", "경상북도"] {
+            XCTAssertTrue(KoreaRegion.order.contains(KoreaRegion.short(administrativeArea: area) ?? ""), area)
+        }
+    }
+
     func testDecodesServerRow() throws {
         let json = """
         [{"id":"3F2504E0-4F89-11D3-9A0C-0305E82C3301",
