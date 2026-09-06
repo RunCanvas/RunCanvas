@@ -7,9 +7,7 @@ final class RecordsScreenUITests: XCTestCase {
         app.launchArguments = ["-uiTestSkipLogin"]
         app.launch()
 
-        let recordsTab = app.tabBars.buttons["기록"].exists ? app.tabBars.buttons["기록"] : app.buttons["기록"]
-        XCTAssertTrue(recordsTab.waitForExistence(timeout: 10))
-        recordsTab.tap()
+        openTab("기록", in: app)
         XCTAssertTrue(app.navigationBars["러닝 통계"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 1)
         attach(app, "stats_1")

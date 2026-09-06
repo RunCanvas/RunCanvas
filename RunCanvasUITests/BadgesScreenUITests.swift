@@ -7,9 +7,7 @@ final class BadgesScreenUITests: XCTestCase {
         app.launchArguments = ["-uiTestSkipLogin"]
         app.launch()
 
-        let settingsTab = app.tabBars.buttons["설정"].exists ? app.tabBars.buttons["설정"] : app.buttons["설정"]
-        XCTAssertTrue(settingsTab.waitForExistence(timeout: 10))
-        settingsTab.tap()
+        openTab("설정", in: app)
 
         let badgesRow = app.staticTexts["레벨과 뱃지"]
         XCTAssertTrue(badgesRow.waitForExistence(timeout: 5))

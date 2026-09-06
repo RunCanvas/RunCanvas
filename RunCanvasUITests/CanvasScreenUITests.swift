@@ -11,9 +11,7 @@ final class CanvasScreenUITests: XCTestCase {
         app.launchArguments = ["-uiTestSkipLogin", "-uiTestReset", "-uiTestSeedRun"]
         app.launch()
 
-        let canvasTab = app.tabBars.buttons["런꾸"].exists ? app.tabBars.buttons["런꾸"] : app.buttons["런꾸"]
-        XCTAssertTrue(canvasTab.waitForExistence(timeout: 10))
-        canvasTab.tap()
+        openTab("런꾸", in: app)
 
         // 탭은 앱 톤 그대로인 갤러리 — 편집기는 여기서 전체 화면으로 덮어 연다
         // PrimaryButton은 아이콘+텍스트라 label 이 정확히 일치하지 않을 수 있다

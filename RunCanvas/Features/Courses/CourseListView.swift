@@ -1,30 +1,63 @@
 import SwiftUI
 
-/// 공유 코스 목록. 지역으로 거르고, 카드를 누르면 상세 → 따라뛰기.
+/// 공유 코스 — 목록 또는 지도로 보고, 지역·정렬·내 코스만으로 좁힌다.
 /// 톤은 마라톤 일정·뱃지 화면과 같다(회색 카드 · 16 라운드 · 20 여백).
 struct CourseListView: View {
+    @Environment(AuthService.self) private var auth
     @State private var service = CourseService()
     @State private var region = KoreaRegion.all
+    @State private var sort: CourseSort = .newest
+    @State private var mineOnly = false
+    @State private var showsMap = false
 
     var body: some View {
         VStack(spacing: 0) {
-            ChipRow(titles: chips, selected: region) { picked in
+            ChipRow(titles: chips, selected: region, counts: service.regionCounts) { picked in
                 region = picked
-                Task { await service.load(region: picked) }
+                Task { await reload() }
             }
             .padding(.vertical, 10)
             Divider()
-            list
+
+            if showsMap {
+                CourseMapBrowseView(courses: service.courses, service: service)
+            } else {
+                list
+            }
         }
         .background(Color(.systemBackground))
         .navigationTitle("러닝 코스")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await service.load(region: region) }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showsMap.toggle()
+                } label: {
+                    Label(showsMap ? "목록으로" : "지도로", systemImage: showsMap ? "list.bullet" : "map")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu("보기 설정", systemImage: "arrow.up.arrow.down") {
+                    Picker("정렬", selection: $sort) {
+                        ForEach(CourseSort.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    Toggle("내 코스만", isOn: $mineOnly)
+                }
+            }
+        }
+        .onChange(of: sort) { Task { await reload() } }
+        .onChange(of: mineOnly) { Task { await reload() } }
+        .task { await reload() }
     }
 
-    /// 서버가 지역으로 이미 걸러 주므로, 칩은 앱이 아는 지역을 전부 보여준다 —
+    /// 서버가 지역으로 걸러 주므로 칩은 앱이 아는 지역을 전부 만들고 개수를 붙인다 —
     /// 목록에 있는 것만 만들면 "그 지역엔 아직 코스가 없다"는 걸 알 방법이 없다.
     private var chips: [String] { [KoreaRegion.all] + KoreaRegion.order }
+
+    private func reload() async {
+        await service.load(region: region, sort: sort, mineOnly: mineOnly, ownerID: auth.userID)
+        await service.loadRegionCounts(mineOnly: mineOnly, ownerID: auth.userID)
+    }
 
     private var list: some View {
         ScrollView {
@@ -40,10 +73,9 @@ struct CourseListView: View {
 
                 if service.courses.isEmpty {
                     ContentUnavailableView {
-                        Label(service.isLoading ? "불러오는 중" : "등록된 코스가 없어요", systemImage: "map")
+                        Label(service.isLoading ? "불러오는 중" : emptyTitle, systemImage: "map")
                     } description: {
-                        Text(service.isLoading ? "잠시만 기다려 주세요."
-                             : "기록 상세에서 마음에 든 코스를 올려 보세요.")
+                        Text(service.isLoading ? "잠시만 기다려 주세요." : emptyDescription)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 40)
@@ -60,7 +92,12 @@ struct CourseListView: View {
             }
             .padding(20)
         }
-        .refreshable { await service.load(region: region) }
+        .refreshable { await reload() }
+    }
+
+    private var emptyTitle: String { mineOnly ? "올린 코스가 없어요" : "등록된 코스가 없어요" }
+    private var emptyDescription: String {
+        mineOnly ? "기록 상세에서 ‘코스로 등록’을 눌러 보세요." : "기록 상세에서 마음에 든 코스를 올려 보세요."
     }
 }
 

@@ -7,9 +7,7 @@ final class MarathonScreenUITests: XCTestCase {
         app.launchArguments = ["-uiTestSkipLogin", "-uiTestSeedRun"]
         app.launch()
 
-        let recordsTab = app.tabBars.buttons["기록"].exists ? app.tabBars.buttons["기록"] : app.buttons["기록"]
-        XCTAssertTrue(recordsTab.waitForExistence(timeout: 10))
-        recordsTab.tap()
+        openTab("기록", in: app)
 
         // 진입점은 기록 탭 툴바의 "더보기" 메뉴 안에 있다(마라톤·코스·트레이닝 세 개라 메뉴로 묶었다)
         let menu = app.buttons["더보기"]
