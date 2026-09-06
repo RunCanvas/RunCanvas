@@ -10,7 +10,7 @@
         "11km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/ytn-seoul-tour-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -29,7 +29,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-cheongju-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -48,7 +48,7 @@
         "4km",
         "8km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-2nd-sandrun-in-yeongdeok",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -66,7 +66,7 @@
       "courses": [
         "5km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/lotte-world-adventure-busan-water-run-with-treasure-hunt",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -86,7 +86,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/bonghwa-songi-national-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -105,7 +105,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/the-11th-2026-kim-dae-jung-peace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -127,7 +127,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/23rd-hope-dream-dawn-riverside-international-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -839,7 +839,7 @@
       "courses": [
         "16.25km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-rok-army-trail-running",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1293,7 +1293,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-goheung-space-aviation-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1313,7 +1313,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/11th-super-blue-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1701,7 +1701,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/dangjin-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1763,7 +1763,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/22nd-geumcheon-gu-mayors-cup-health-run-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2643,7 +2643,7 @@
       "courses": [
         "6km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-global-6k-for-water-in-goyang",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2743,7 +2743,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/22nd-defense-daily-comrade-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2761,7 +2761,7 @@
       "courses": [
         "Half"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gangnam-half-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2875,7 +2875,7 @@
       "courses": [
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/save-race-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2914,7 +2914,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/olympic-day-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3122,7 +3122,7 @@
         "10km",
         "15km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-nanum-race-in-yongin",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3382,7 +3382,7 @@
         "10km",
         "Full"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/incheon-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
