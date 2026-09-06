@@ -75,3 +75,34 @@ create policy "avatar delete own folder" on storage.objects
 
 -- migration "profiles_height_cm" (2026-08-26): 첫 로그인 시 키 입력
 alter table public.profiles add column if not exists height_cm double precision;
+
+-- migration "marathon_events" (2026-09-06): 마라톤·러닝 이벤트 일정 (공개 읽기 전용 데이터)
+-- 앱에 JSON을 박아 두면 일정 하나 바꾸는 데 앱 심사가 필요해서 서버에 둔다.
+-- scripts/sync_marathons.py 가 6시간마다 upsert 하고 지난 일정은 지운다(GitHub Actions).
+create table public.marathon_events (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  name_en text,
+  event_date date,                                  -- 날짜 미정이면 null
+  region text,
+  place text,
+  courses text[] not null default '{}',             -- ["5km","Half","Full"] 등 원본 종목 문자열
+  type text not null default '대회',                -- '대회' | '테마런'
+  tags text[] not null default '{}',                -- 야간 / 기부·공익 / 펫 / 풀코스
+  status text,                                      -- open | closed | scheduled
+  reg_start_date date,
+  reg_end_date date,
+  fee_min integer,
+  image_url text,
+  signup_url text,
+  source text,
+  updated_at timestamptz not null default now()
+);
+-- 동기화 upsert 키. 날짜 미정(null)끼리도 같은 대회로 보도록 NULLS NOT DISTINCT
+create unique index marathon_events_name_date on public.marathon_events (name, event_date) nulls not distinct;
+create index marathon_events_date on public.marathon_events (event_date);
+
+alter table public.marathon_events enable row level security;
+-- 공개 일정이라 로그인 없이 읽는다. 쓰기는 service_role(동기화 스크립트)만.
+create policy "마라톤 일정 읽기" on public.marathon_events
+  for select using (true);

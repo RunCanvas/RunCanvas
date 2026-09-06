@@ -16,6 +16,9 @@ struct SettingsView: View {
     @AppStorage("weeklyTargetDistance") private var weeklyTargetDistance: Double = 20.0
     @AppStorage(VoiceCoach.Keys.enabled) private var voiceGuideEnabled = true
 
+    // 런꾸 설정 — 빈 값이면 "배경에 맞춤"
+    @AppStorage(CanvasTheme.storageKey) private var stickerColorHex = ""
+
     // 앱 설정
     @AppStorage("isNotificationEnabled") private var isNotificationEnabled: Bool = true
     @AppStorage("distanceUnit") private var distanceUnit: String = "km"
@@ -35,6 +38,7 @@ struct SettingsView: View {
                 Group {
                     profileSection
                     runningSection
+                    canvasSection
                     appSection
                     linkedAccountsSection
                     accountSection
@@ -128,6 +132,36 @@ struct SettingsView: View {
         } footer: {
             Text("목표는 홈과 기록 화면의 진행률에 쓰여요. 음성 안내는 달리는 동안 거리·시간·페이스를 읽어줘요.")
         }
+    }
+
+    // MARK: - 런꾸 설정
+
+    /// 기록 스티커의 기본 색. 편집기에서 하나씩 칠하지 않아도 되게 여기서 미리 정해 둔다.
+    private var canvasSection: some View {
+        Section {
+            Picker("기록 색상", selection: $stickerColorHex) {
+                Text("배경에 맞춤").tag("")
+                ForEach(CanvasTheme.presets) { preset in
+                    Text(preset.name).tag(preset.hex)
+                }
+                if isCustomStickerColor {
+                    Text("직접 고른 색").tag(stickerColorHex)
+                }
+            }
+            ColorPicker("직접 고르기", selection: Binding(
+                get: { CanvasTheme.color(hex: stickerColorHex) ?? .white },
+                set: { stickerColorHex = CanvasTheme.hex($0) }
+            ), supportsOpacity: false)
+        } header: {
+            Text("런꾸 설정")
+        } footer: {
+            Text("새로 꾸밀 때 기록 스티커가 이 색으로 시작해요. 배경과 밝기가 비슷해 글씨가 묻히는 경우에는 그 배경에 맞는 색으로 자동으로 바뀌어요.")
+        }
+    }
+
+    /// 프리셋에 없는 색을 직접 골랐으면 목록에도 그 값을 넣어 준다 (없으면 Picker 가 빈칸이 된다)
+    private var isCustomStickerColor: Bool {
+        !stickerColorHex.isEmpty && !CanvasTheme.presets.contains { $0.hex == stickerColorHex }
     }
 
     private func numberRow(_ title: String, text: Binding<String>, unit: String) -> some View {
