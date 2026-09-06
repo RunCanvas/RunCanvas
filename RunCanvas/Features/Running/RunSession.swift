@@ -215,6 +215,15 @@ final class RunSession {
         nextCueMeters += coach.intervalMeters
     }
 
+    /// 건강 권한을 러닝 시작 뒤에 받았을 때 심박 스트림을 다시 건다.
+    /// (start 시점엔 권한이 없어 스트림이 빈손으로 돌아온다 — 권한이 오면 그때 다시 걸어야 BPM이 들어온다)
+    func restartHeartRateStream() {
+        guard state == .running, !healthManagedExternally, let startedAt else { return }
+        health?.startHeartRateStream(since: startedAt) { [weak self] bpm in
+            self?.recordHeartRate(bpm)
+        }
+    }
+
     /// 화면(따라뛰기 등)이 한 문장 안내를 부탁할 때. 음성 안내가 꺼져 있으면 조용히 무시한다.
     func announce(_ text: String) { say(text) }
 

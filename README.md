@@ -38,11 +38,20 @@ RunCanvas/
 ├── Assets.xcassets/Badges/  뱃지 일러스트 19개
 └── Info.plist    배열 키(백그라운드 위치·오디오, URL 스킴)
 RunCanvasTests/    유닛 테스트 (순수 함수·DTO·세션)
-RunCanvasUITests/  시뮬레이터 화면 흐름 + 스크린샷 (런치 인자 -uiTestSkipLogin / -uiTestReset)
+RunCanvasUITests/  시뮬레이터 화면 흐름 + 스크린샷 (런치 인자 -uiTestSkipLogin / -uiTestReset / -uiTestSkipHealth)
+scripts/uitest.sh  UI 테스트 실행기 — 시뮬레이터 위치 권한을 허용한 뒤 xcodebuild 를 돌린다
 docs/              supabase/schema.sql, superpowers/plans/(MVP 플랜 — 진행 상황·남은 태스크), design/
 ```
 
 Xcode 동기화 폴더라 Finder에서 폴더·파일을 만들면 프로젝트에 자동 반영됩니다.
+
+UI 테스트는 `scripts/uitest.sh` 로 돌리세요. 시뮬레이터에 위치 권한이 한 번 "거부"로 남으면
+권한 알럿이 다시 뜨지 않아 러닝이 시작되지 않고, 테스트는 그 상태를 스스로 되돌릴 수 없습니다.
+
+```
+scripts/uitest.sh                                                   # 전체
+scripts/uitest.sh "iPhone 17 Pro" -only-testing:RunCanvasUITests    # 화면 흐름만
+```
 
 **화면 톤**: 배경은 시스템색(흰/검정) + 회색 8% 카드(`Color.card`). 설정류 `List`는 `.appListTone()`. 앱 틴트는 흑백, 레벨 컬러는 `PrimaryButton`·홈 러닝 시작 버튼에만 (`Components/Theme.swift`).
 

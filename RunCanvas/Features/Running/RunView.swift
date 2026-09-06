@@ -141,15 +141,23 @@ struct RunView: View {
         .navigationBarBackButtonHidden(isActive)
         .onChange(of: session.route.count) { _, _ in updateCourseFollow() }
         .task {
+            // 시작이 먼저다. 건강 권한 시트가 떠 있는 동안 GPS 기록이 멈춰 있으면,
+            // 사용자는 "시작을 눌렀는데 아무 일도 안 일어나는" 앱을 보게 된다.
+            if startImmediately, session.state == .idle, recovered == nil {
+                startRun()
+            }
+            #if DEBUG
+            // UI 테스트에서는 건강 권한 시트를 띄우지 않는다 — 시스템 시트가 러닝 화면을 덮어
+            // 종료 버튼을 누를 수 없고, 시트 자동화는 로케일·OS 버전마다 깨진다.
+            if ProcessInfo.processInfo.arguments.contains("-uiTestSkipHealth") { return }
+            #endif
             guard !didRequestHealthAuthorization else { return }
             didRequestHealthAuthorization = true
             do {
                 try await session.requestHealthAuthorization()
+                session.restartHeartRateStream()   // 권한이 늦게 와도 심박을 놓치지 않게
             } catch {
                 healthAuthorizationMessage = error.localizedDescription
-            }
-            if startImmediately, session.state == .idle, recovered == nil {
-                startRun()
             }
         }
         .onAppear {

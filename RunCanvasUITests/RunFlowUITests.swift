@@ -9,7 +9,7 @@ final class RunFlowUITests: XCTestCase {
 
     func testRecordARunEndToEnd() {
         let app = XCUIApplication()
-        app.launchArguments = ["-uiTestSkipLogin", "-uiTestReset"]
+        app.launchArguments = ["-uiTestSkipLogin", "-uiTestReset", "-uiTestSkipHealth"]
         app.launch()
 
         // 홈 → 러닝 시작
@@ -28,6 +28,14 @@ final class RunFlowUITests: XCTestCase {
 
         // 러닝 중 화면
         XCTAssertTrue(app.staticTexts["거리"].waitForExistence(timeout: 5))
+
+        // 시뮬레이터에 위치 권한이 "거부"로 남아 있으면 권한 알럿이 아예 안 뜨고 러닝도 시작되지 않는다.
+        // 테스트가 되돌릴 수 없는 상태라, 원인을 바로 알려 주고 끝낸다.
+        if app.alerts["위치 권한이 필요해요"].waitForExistence(timeout: 2) {
+            XCTFail("시뮬레이터 위치 권한이 거부돼 있습니다. scripts/uitest.sh 로 실행하거나 "
+                    + "`xcrun simctl privacy <UDID> grant location name.dongharyu.RunCanvas` 를 먼저 실행하세요.")
+            return
+        }
 
         // 약 320m 이동: 1초마다 7.8m (러닝으로 가능한 속도 — LocationService.maxSpeed 12m/s 아래)
         for i in 1..<42 {
