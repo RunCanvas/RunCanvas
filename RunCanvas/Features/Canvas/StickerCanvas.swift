@@ -153,6 +153,8 @@ private struct StickerLayer: View {
 
     @State private var dragStartPosition: CGPoint?
     @State private var resizeStartScale: CGFloat?
+    @State private var magnifyStartScale: CGFloat?
+    @State private var rotateStartAngle: Angle?
 
     private var contentScale: CGFloat {
         canvasSize.width / 350
@@ -182,13 +184,15 @@ private struct StickerLayer: View {
                 }
             }
             .opacity(sticker.opacity)
+            .rotationEffect(sticker.rotation)
             .scaleEffect(sticker.scale * contentScale)
             .position(
                 x: sticker.position.x * canvasSize.width,
                 y: sticker.position.y * canvasSize.height
             )
             .onTapGesture { if isEditing { onSelect() } }
-            .gesture(dragGesture)
+            // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
+            .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
     }
 
     private var dragGesture: some Gesture {
@@ -208,6 +212,33 @@ private struct StickerLayer: View {
                 dragStartPosition = nil
                 onDragEnded()
             }
+    }
+
+    /// 두 손가락 확대·축소. 핸들 드래그보다 이쪽이 주 조작이다.
+    private var magnifyGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+                let start = magnifyStartScale ?? sticker.scale
+                if magnifyStartScale == nil { magnifyStartScale = start }
+                sticker.scale = min(max(start * value.magnification, 0.3), 4)
+            }
+            .onEnded { _ in magnifyStartScale = nil }
+    }
+
+    /// 두 손가락 회전. 똑바로 세운 각도(0°) 근처에서는 살짝 붙여 준다.
+    private var rotateGesture: some Gesture {
+        RotateGesture()
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+                let start = rotateStartAngle ?? sticker.rotation
+                if rotateStartAngle == nil { rotateStartAngle = start }
+                let next = start + value.rotation
+                sticker.rotation = abs(next.degrees.truncatingRemainder(dividingBy: 360)) < 4 ? .zero : next
+            }
+            .onEnded { _ in rotateStartAngle = nil }
     }
 
     private var resizeOverlay: some View {

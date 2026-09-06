@@ -39,6 +39,8 @@ struct CanvasSticker: Identifiable {
     /// 캔버스 크기에 독립적인 0...1 정규화 좌표.
     var position: CGPoint
     var scale: CGFloat
+    /// 스티커 기울기 (핀치와 함께 두 손가락으로 돌린다)
+    var rotation: Angle
     var opacity: Double
     var fontStyle: FontStyle
     var color: Color
@@ -48,6 +50,7 @@ struct CanvasSticker: Identifiable {
         kind: Kind,
         position: CGPoint = CGPoint(x: 0.5, y: 0.5),
         scale: CGFloat = 1,
+        rotation: Angle = .zero,
         opacity: Double = 1,
         fontStyle: FontStyle = .bold,
         color: Color = .white
@@ -56,6 +59,7 @@ struct CanvasSticker: Identifiable {
         self.kind = kind
         self.position = position
         self.scale = scale
+        self.rotation = rotation
         self.opacity = opacity
         self.fontStyle = fontStyle
         self.color = color
