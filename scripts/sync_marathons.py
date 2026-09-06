@@ -204,6 +204,19 @@ def upload(events: list[dict]) -> None:
             print(f"  {start + 1}~{start + len(chunk)}번 → HTTP {response.status}")
 
 
+def purge_past() -> None:
+    """이미 끝난 대회는 지운다. 앱은 다가오는 일정만 보여주므로 계속 쌓아둘 이유가 없다."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        return
+    endpoint = f"{url.rstrip('/')}/rest/v1/marathon_events?event_date=lt.{date.today().isoformat()}"
+    headers = {"apikey": key, "Authorization": f"Bearer {key}", "Prefer": "return=minimal"}
+    request = urllib.request.Request(endpoint, headers=headers, method="DELETE")
+    with urllib.request.urlopen(request, timeout=60) as response:
+        print(f"  지난 일정 삭제 → HTTP {response.status}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--months", type=int, default=8, help="이번 달부터 몇 달치를 볼지")
@@ -218,8 +231,11 @@ def main() -> None:
         raise SystemExit("두 출처 모두 0건 — 원본이 바뀌었을 수 있습니다. 파서를 확인하세요.")
 
     events = normalize(official + community)
-    upcoming = sum(1 for e in events if (e.get("event_date") or "") >= date.today().isoformat())
-    print(f"정규화 {len(events)}건 (다가오는 일정 {upcoming}건)")
+    # 끝난 일정은 담지 않는다 — 목록에서도 DB에서도 지운다. 날짜 미정(None)은 남긴다.
+    today = date.today().isoformat()
+    dropped = [e for e in events if (e.get("event_date") or today) < today]
+    events = [e for e in events if (e.get("event_date") or today) >= today]
+    print(f"정규화 {len(events)}건 (지난 일정 {len(dropped)}건 제외)")
 
     if args.out:
         with open(args.out, "w", encoding="utf-8") as file:
@@ -232,6 +248,7 @@ def main() -> None:
             print(" ", event["event_date"], event["type"], event["name"])
         return
     upload(events)
+    purge_past()
     print("업로드 완료")
 
 

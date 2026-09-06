@@ -21,8 +21,10 @@ private struct CanvasGallery: View {
     @State private var isCreating = false
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    private let ownerID: UUID?
 
     init(ownerID: UUID?) {
+        self.ownerID = ownerID
         let owner = ownerID ?? .noOwner
         _runs = Query(filter: #Predicate<Run> { $0.ownerID == owner }, sort: \Run.startedAt, order: .reverse)
     }
@@ -39,6 +41,18 @@ private struct CanvasGallery: View {
                     isCreating = true
                 }
                 .disabled(runs.isEmpty)
+
+                NavigationLink {
+                    RecapView(ownerID: ownerID)
+                } label: {
+                    Label("이달의 러닝 정산", systemImage: "calendar")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
 
                 if runs.isEmpty {
                     hint("러닝을 한 번 기록하면 꾸밀 수 있어요.")

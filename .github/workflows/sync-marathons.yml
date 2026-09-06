@@ -4,7 +4,7 @@ name: 마라톤 일정 동기화
 # 데이터는 Supabase 에 두고 이 작업이 주기적으로 갱신한다.
 on:
   schedule:
-    - cron: "0 20 * * *"        # 매일 05:00 KST (UTC 20:00) — 접수 열림/마감이 자주 바뀐다
+    - cron: "0 */6 * * *"       # 6시간마다 — 인기 대회는 접수가 열리고 몇 시간 만에 마감된다
   workflow_dispatch:            # 수동 실행도 가능
     inputs:
       months:

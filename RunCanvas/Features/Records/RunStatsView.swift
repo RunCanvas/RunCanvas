@@ -15,6 +15,7 @@ struct RunStatsView: View {
     var body: some View {
         NavigationStack {
             StatsContent(ownerID: auth.userID)
+                .toolbar { NavigationLink("마라톤 일정") { MarathonScheduleView() } }
         }
     }
 }

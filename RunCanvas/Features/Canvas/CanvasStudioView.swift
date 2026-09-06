@@ -14,6 +14,9 @@ struct CanvasStudioView: View {
     @Environment(AuthService.self) private var auth
     @Environment(\.dismiss) private var dismiss
 
+    /// 설정에서 미리 정해 둔 기록 기본 색 (빈 값이면 "배경에 맞춤")
+    @AppStorage(CanvasTheme.storageKey) private var stickerColorHex = ""
+
     @State private var background: CanvasBackground = .preset(.midnight)
     @State private var selectedRun: Run?
     @State private var stickers: [CanvasSticker] = []
@@ -49,6 +52,11 @@ struct CanvasStudioView: View {
         selectedIndices.first.map { stickers[$0] }
     }
 
+    /// 새로 붙이는 스티커·기본 배치가 쓸 색 — 테마 색이 배경에 묻히면 배경 대비색으로 물러난다
+    private var defaultStickerColor: Color {
+        CanvasTheme.resolvedColor(hex: stickerColorHex, background: background)
+    }
+
     /// 고른 스티커 전부에 같은 변경을 적용한다 — "선택한 것들 한 번에 색 바꾸기"
     private func applyToSelection(_ change: (inout CanvasSticker) -> Void) {
         for index in selectedIndices { change(&stickers[index]) }
@@ -72,7 +80,7 @@ struct CanvasStudioView: View {
         .sheet(item: $sheet) { which in
             switch which {
             case .background:
-                CanvasBackgroundSheet { background = $0; recolorDefaultStickers() }
+                CanvasBackgroundSheet { changeBackground(to: $0) }
             case .run:
                 CanvasRunSheet(ownerID: auth.userID) { pick($0) }
             case .export:
@@ -352,7 +360,7 @@ struct CanvasStudioView: View {
     private func pick(_ run: Run) {
         selectedRun = run
         if stickers.isEmpty {
-            stickers = Self.defaultStickers(for: run, color: background.foregroundColor)
+            stickers = Self.defaultStickers(for: run, color: defaultStickerColor)
         }
     }
 
@@ -361,17 +369,22 @@ struct CanvasStudioView: View {
         let sticker = CanvasSticker(
             kind: kind,
             position: CGPoint(x: 0.5, y: 0.48 + offset),
-            color: background.foregroundColor
+            color: defaultStickerColor
         )
         stickers.append(sticker)
         selection = [sticker.id]
     }
 
-    /// 배경을 바꾸면, 색을 따로 만진 적 없는 스티커만 새 배경 대비색을 따라가게 한다
-    private func recolorDefaultStickers() {
-        let newColor = background.foregroundColor
-        for index in stickers.indices where stickers[index].color == .white || stickers[index].color == .black {
-            stickers[index].color = newColor
+    /// 배경을 바꾸면, 아직 기본 색 그대로인 스티커만 새 기본 색을 따라가게 한다.
+    /// 색을 직접 고른 스티커는 건드리지 않는다 — 기준이 "흰/검정"에서 "바뀌기 전 기본 색"으로 바뀌었을 뿐,
+    /// 테마가 "배경에 맞춤"이면 그 기본 색이 곧 흰/검정이라 예전 동작 그대로다.
+    private func changeBackground(to newBackground: CanvasBackground) {
+        let previous = defaultStickerColor
+        background = newBackground
+        let current = defaultStickerColor
+        guard previous != current else { return }
+        for index in stickers.indices where stickers[index].color == previous {
+            stickers[index].color = current
         }
     }
 
