@@ -20,6 +20,7 @@ import json
 import os
 import sys
 import re
+import urllib.error
 import urllib.request
 from html import unescape
 from datetime import date, timedelta
@@ -255,6 +256,24 @@ def _richness(event: dict) -> int:
 
 # ---------------------------------------------------------------- 업로드
 
+# PostgREST 는 한 배열 안 객체들의 키가 전부 같아야 받는다(PGRST102 "All object keys must match").
+# 접수 상태·참가비처럼 있는 대회만 있는 항목 때문에 키가 들쭉날쭉하면 배치 전체가 400 으로 튕긴다.
+UPLOAD_COLUMNS = ("name", "event_date", "region", "place", "courses", "type", "tags", "status",
+                  "signup_url", "source", "image_url", "reg_start_date", "reg_end_date", "fee_min")
+
+
+def rows_for_upload(events: list[dict]) -> list[dict]:
+    """모든 행을 같은 키로 맞춘다. 빠진 칸은 None, NOT NULL 인 칸은 기본값으로."""
+    rows = []
+    for event in events:
+        row = {column: event.get(column) for column in UPLOAD_COLUMNS}
+        row["courses"] = row["courses"] or []
+        row["tags"] = row["tags"] or []
+        row["type"] = row["type"] or "대회"
+        rows.append(row)
+    return rows
+
+
 def upload(events: list[dict]) -> None:
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -268,13 +287,20 @@ def upload(events: list[dict]) -> None:
         "Content-Type": "application/json",
         "Prefer": "resolution=merge-duplicates,return=minimal",
     }
+    rows = rows_for_upload(events)
     # 한 번에 다 보내면 실패했을 때 원인을 못 찾는다 → 50건씩
-    for start in range(0, len(events), 50):
-        chunk = events[start:start + 50]
+    for start in range(0, len(rows), 50):
+        chunk = rows[start:start + 50]
         body = json.dumps(chunk, ensure_ascii=False).encode()
         request = urllib.request.Request(endpoint, data=body, headers=headers, method="POST")
-        with urllib.request.urlopen(request, timeout=60) as response:
-            print(f"  {start + 1}~{start + len(chunk)}번 → HTTP {response.status}")
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                print(f"  {start + 1}~{start + len(chunk)}번 → HTTP {response.status}")
+        except urllib.error.HTTPError as error:
+            # PostgREST 는 본문에 원인을 적어 준다 — 이걸 안 찍으면 로그에 400 만 남는다
+            print(f"[오류] {start + 1}~{start + len(chunk)}번: {error.read().decode('utf-8', 'replace')}",
+                  file=sys.stderr)
+            raise
 
 
 def purge_past() -> None:
