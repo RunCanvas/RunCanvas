@@ -310,13 +310,7 @@ private struct StickerContent: View {
         }
     }
 
-    private var fontDesign: Font.Design {
-        switch sticker.fontStyle {
-        case .bold: .default
-        case .rounded: .rounded
-        case .mono: .monospaced
-        }
-    }
+    private var fontDesign: Font.Design { sticker.fontStyle.design }
 
     private func stickerFont(size: CGFloat) -> Font {
         .system(size: size, weight: .bold, design: fontDesign)

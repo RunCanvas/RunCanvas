@@ -21,6 +21,17 @@ struct CanvasSticker: Identifiable {
         case mono = "모노"
 
         var id: String { rawValue }
+
+        var design: Font.Design {
+            switch self {
+            case .bold: .default
+            case .rounded: .rounded
+            case .mono: .monospaced
+            }
+        }
+
+        /// 인스펙터에서 "Aa"를 실제 글꼴로 보여줄 때 쓴다
+        var sampleFont: Font { .system(size: 17, weight: .bold, design: design) }
     }
 
     let id: UUID

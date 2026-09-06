@@ -3,9 +3,11 @@ import PhotosUI
 import UIKit
 import AVFoundation
 
-struct BackgroundPickerView: View {
+/// 배경 고르기 시트 — 프리셋 / 앨범 / 카메라. 고르면 바로 닫힌다.
+struct CanvasBackgroundSheet: View {
     let onSelect: (CanvasBackground) -> Void
 
+    @Environment(\.dismiss) private var dismiss
     @State private var photoItem: PhotosPickerItem?
     @State private var showsCamera = false
     @State private var isLoadingPhoto = false
@@ -14,55 +16,54 @@ struct BackgroundPickerView: View {
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("배경을 골라주세요")
-                        .font(.title2.bold())
-                    Text("나중에 사진과 기록 스티커를 자유롭게 배치할 수 있어요.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(CanvasPreset.allCases) { preset in
-                        Button {
-                            onSelect(.preset(preset))
-                        } label: {
-                            ZStack(alignment: .bottomLeading) {
-                                LinearGradient(colors: preset.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
-                                Text(preset.title)
-                                    .font(.headline)
-                                    .foregroundStyle(preset.foregroundColor)
-                                    .padding(14)
-                            }
-                            .aspectRatio(4 / 5, contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    HStack(spacing: 12) {
+                        PhotosPicker(selection: $photoItem, matching: .images, preferredItemEncoding: .compatible) {
+                            sourceButton(
+                                title: isLoadingPhoto ? "불러오는 중…" : "사진 앨범",
+                                systemImage: "photo.on.rectangle",
+                                isLoading: isLoadingPhoto
+                            )
                         }
-                        .buttonStyle(.plain)
+                        .disabled(isLoadingPhoto)
+
+                        Button { requestCamera() } label: {
+                            sourceButton(title: "카메라", systemImage: "camera")
+                        }
+                        .disabled(isLoadingPhoto)
+                    }
+
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(CanvasPreset.allCases) { preset in
+                            Button {
+                                onSelect(.preset(preset))
+                                dismiss()
+                            } label: {
+                                ZStack(alignment: .bottomLeading) {
+                                    LinearGradient(colors: preset.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    Text(preset.title)
+                                        .font(.headline)
+                                        .foregroundStyle(preset.foregroundColor)
+                                        .padding(14)
+                                }
+                                .aspectRatio(4 / 5, contentMode: .fit)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
-
-                HStack(spacing: 12) {
-                    PhotosPicker(selection: $photoItem, matching: .images, preferredItemEncoding: .compatible) {
-                        sourceButton(
-                            title: isLoadingPhoto ? "불러오는 중…" : "사진 앨범",
-                            systemImage: "photo.on.rectangle",
-                            isLoading: isLoadingPhoto
-                        )
-                    }
-                    .disabled(isLoadingPhoto)
-
-                    Button { requestCamera() } label: {
-                        sourceButton(title: "카메라", systemImage: "camera")
-                    }
-                    .disabled(isLoadingPhoto)
-                }
+                .padding(20)
             }
-            .padding(20)
+            .navigationTitle("배경")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { Button("닫기") { dismiss() } }
+            }
         }
-        .navigationTitle("런꾸 1/4")
-        .navigationBarTitleDisplayMode(.inline)
+        .presentationDetents([.medium, .large])
         .onChange(of: photoItem) { _, item in
             guard let item, !isLoadingPhoto else { return }
             isLoadingPhoto = true
@@ -77,6 +78,7 @@ struct BackgroundPickerView: View {
                         return
                     }
                     onSelect(.photo(await downsampled(image)))
+                    dismiss()
                 } catch {
                     errorMessage = "사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요."
                 }
@@ -86,7 +88,10 @@ struct BackgroundPickerView: View {
             CameraPicker { image in
                 showsCamera = false
                 guard let image else { return }
-                Task { onSelect(.photo(await downsampled(image))) }
+                Task {
+                    onSelect(.photo(await downsampled(image)))
+                    dismiss()
+                }
             }
             .ignoresSafeArea()
         }
@@ -131,16 +136,12 @@ struct BackgroundPickerView: View {
                 if await AVCaptureDevice.requestAccess(for: .video) {
                     showsCamera = true
                 } else {
-                    errorMessage = cameraDeniedMessage
+                    errorMessage = "설정 앱에서 카메라 권한을 허용해주세요."
                 }
             }
         default:
-            errorMessage = cameraDeniedMessage
+            errorMessage = "설정 앱에서 카메라 권한을 허용해주세요."
         }
-    }
-
-    private var cameraDeniedMessage: String {
-        "설정 앱에서 카메라 권한을 허용해주세요."
     }
 
     /// 최종 산출물이 1080×1350이라 원본(수천만 화소)을 편집·렌더까지 들고 다닐 이유가 없다 — 긴 변 2160으로 줄인다
