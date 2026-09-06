@@ -51,7 +51,7 @@ struct RunResultView: View {
         }
         .badgeEarnedToast($newBadges)
         .fullScreenCover(isPresented: $showsCanvas) {
-            CanvasFlowView(run: run)
+            CanvasStudioView(run: run)
         }
         .onAppear {
             let badgeRuns = ownerRuns.map(\.badgeRun)

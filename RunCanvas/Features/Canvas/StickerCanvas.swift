@@ -4,7 +4,8 @@ struct StickerCanvas: View {
     let background: CanvasBackground
     let run: Run
     @Binding var stickers: [CanvasSticker]
-    @Binding var selectedStickerID: UUID?
+    /// 여러 개를 함께 고를 수 있다 (길게 눌러 추가)
+    @Binding var selection: Set<UUID>
     var isEditing = true
 
     @State private var stickerSizes: [UUID: CGSize] = [:]
@@ -24,9 +25,13 @@ struct StickerCanvas: View {
                         sticker: $sticker,
                         run: run,
                         canvasSize: geometry.size,
-                        isSelected: selectedStickerID == sticker.id,
+                        isSelected: selection.contains(sticker.id),
                         isEditing: isEditing,
-                        onSelect: { selectedStickerID = sticker.id },
+                        onSelect: { selection = [sticker.id] },
+                        onToggleSelect: {
+                            if selection.contains(sticker.id) { selection.remove(sticker.id) }
+                            else { selection.insert(sticker.id) }
+                        },
                         snap: { position in
                             snapped(position, movingID: sticker.id, canvasSize: geometry.size)
                         },
@@ -37,7 +42,7 @@ struct StickerCanvas: View {
             .coordinateSpace(.named("stickerCanvas"))
             .contentShape(Rectangle())
             .onTapGesture {
-                if isEditing { selectedStickerID = nil }
+                if isEditing { selection = [] }
             }
             .onPreferenceChange(StickerSizePreferenceKey.self) { stickerSizes = $0 }
         }
@@ -147,12 +152,16 @@ private struct StickerLayer: View {
     let isSelected: Bool
     let isEditing: Bool
     let onSelect: () -> Void
+    /// 길게 누르면 선택에 넣고 뺀다 (여러 개 함께 고르기)
+    let onToggleSelect: () -> Void
     /// 드래그 위치를 정렬 가이드에 스냅해서 돌려준다
     let snap: (CGPoint) -> CGPoint
     let onDragEnded: () -> Void
 
     @State private var dragStartPosition: CGPoint?
     @State private var resizeStartScale: CGFloat?
+    @State private var magnifyStartScale: CGFloat?
+    @State private var rotateStartAngle: Angle?
 
     private var contentScale: CGFloat {
         canvasSize.width / 350
@@ -182,13 +191,16 @@ private struct StickerLayer: View {
                 }
             }
             .opacity(sticker.opacity)
+            .rotationEffect(sticker.rotation)
             .scaleEffect(sticker.scale * contentScale)
             .position(
                 x: sticker.position.x * canvasSize.width,
                 y: sticker.position.y * canvasSize.height
             )
             .onTapGesture { if isEditing { onSelect() } }
-            .gesture(dragGesture)
+            .onLongPressGesture(minimumDuration: 0.35) { if isEditing { onToggleSelect() } }
+            // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
+            .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
     }
 
     private var dragGesture: some Gesture {
@@ -208,6 +220,33 @@ private struct StickerLayer: View {
                 dragStartPosition = nil
                 onDragEnded()
             }
+    }
+
+    /// 두 손가락 확대·축소. 핸들 드래그보다 이쪽이 주 조작이다.
+    private var magnifyGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+                let start = magnifyStartScale ?? sticker.scale
+                if magnifyStartScale == nil { magnifyStartScale = start }
+                sticker.scale = min(max(start * value.magnification, 0.3), 4)
+            }
+            .onEnded { _ in magnifyStartScale = nil }
+    }
+
+    /// 두 손가락 회전. 똑바로 세운 각도(0°) 근처에서는 살짝 붙여 준다.
+    private var rotateGesture: some Gesture {
+        RotateGesture()
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+                let start = rotateStartAngle ?? sticker.rotation
+                if rotateStartAngle == nil { rotateStartAngle = start }
+                let next = start + value.rotation
+                sticker.rotation = abs(next.degrees.truncatingRemainder(dividingBy: 360)) < 4 ? .zero : next
+            }
+            .onEnded { _ in rotateStartAngle = nil }
     }
 
     private var resizeOverlay: some View {
@@ -256,7 +295,8 @@ private struct StickerContent: View {
             case .distance:
                 VStack(spacing: -2) {
                     Text(RunMath.formatKm(run.distanceMeters))
-                        .font(.system(size: 46, weight: .black, design: fontDesign))
+                        .font(.system(size: 46, weight: sticker.fontStyle.weight, design: fontDesign))
+                        .tracking(sticker.fontStyle.tracking)
                     Text("KILOMETERS")
                         .font(.system(size: 11, weight: .bold, design: fontDesign))
                         .tracking(2)
@@ -310,16 +350,10 @@ private struct StickerContent: View {
         }
     }
 
-    private var fontDesign: Font.Design {
-        switch sticker.fontStyle {
-        case .bold: .default
-        case .rounded: .rounded
-        case .mono: .monospaced
-        }
-    }
+    private var fontDesign: Font.Design { sticker.fontStyle.design }
 
     private func stickerFont(size: CGFloat) -> Font {
-        .system(size: size, weight: .bold, design: fontDesign)
+        .system(size: size, weight: sticker.fontStyle.weight, design: fontDesign)
     }
 }
 

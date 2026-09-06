@@ -6,6 +6,8 @@ struct RunDetailView: View {
 
     /// body에서 바로 디코드하면 화면이 다시 그려질 때마다 1080×1350 JPEG를 메인 스레드에서 푼다
     @State private var decoratedImage: UIImage?
+    @State private var isSavingCard = false
+    @State private var saveMessage: String?
 
     var body: some View {
         ScrollView {
@@ -40,16 +42,54 @@ struct RunDetailView: View {
                 Text(run.startedAt.formatted(date: .long, time: .shortened))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+
+                // 꾸미기를 거치지 않고 기본 배치 그대로 한 장
+                Button {
+                    Task { await saveCard() }
+                } label: {
+                    Label(isSavingCard ? "저장하는 중…" : "이미지로 저장", systemImage: "square.and.arrow.down")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+                .disabled(isSavingCard)
             }
             .padding(24)
         }
         .navigationTitle("러닝 상세")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("이미지 저장", isPresented: Binding(
+            get: { saveMessage != nil },
+            set: { if !$0 { saveMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(saveMessage ?? "")
+        }
         .task(id: run.decoratedImageFilename) {
             let filename = run.decoratedImageFilename
             decoratedImage = await Task.detached(priority: .userInitiated) {
                 CanvasStorage.image(filename: filename)
             }.value
+        }
+    }
+
+    @MainActor
+    private func saveCard() async {
+        isSavingCard = true
+        defer { isSavingCard = false }
+        guard let card = CanvasExporter.quickCard(for: run) else {
+            saveMessage = CanvasExporter.ExportError.renderFailed.localizedDescription
+            return
+        }
+        do {
+            try await CanvasExporter.savePNGToPhotos(card)
+            saveMessage = "사진 앱에 PNG로 저장했어요."
+        } catch {
+            saveMessage = error.localizedDescription
         }
     }
 }
