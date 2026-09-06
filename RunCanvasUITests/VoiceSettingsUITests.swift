@@ -7,9 +7,7 @@ final class VoiceSettingsUITests: XCTestCase {
         app.launchArguments = ["-uiTestSkipLogin"]
         app.launch()
 
-        let settingsTab = app.tabBars.buttons["설정"].exists ? app.tabBars.buttons["설정"] : app.buttons["설정"]
-        XCTAssertTrue(settingsTab.waitForExistence(timeout: 10))
-        settingsTab.tap()
+        openTab("설정", in: app)
         XCTAssertTrue(app.navigationBars["설정"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.8)
         let settingsShot = XCTAttachment(screenshot: app.screenshot())

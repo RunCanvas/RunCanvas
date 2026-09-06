@@ -92,6 +92,13 @@ struct MarathonScheduleView: View {
         .padding(.top, 40)
     }
 
+    private var regionCounts: [String: Int] {
+        let pool = service.events.filter { category.includes($0) && course.includes($0) }
+        var counts = Dictionary(grouping: pool.compactMap(\.region), by: { $0 }).mapValues(\.count)
+        counts[KoreaRegion.all] = pool.count
+        return counts
+    }
+
     // MARK: 카테고리 칩
 
     private var filters: some View {
@@ -102,7 +109,8 @@ struct MarathonScheduleView: View {
             ChipRow(titles: MarathonCourse.allCases.map(\.rawValue), selected: course.rawValue) {
                 course = MarathonCourse(rawValue: $0) ?? .any
             }
-            ChipRow(titles: KoreaRegion.chips(regions: service.events.map(\.region)), selected: region) { region = $0 }
+            ChipRow(titles: KoreaRegion.chips(regions: service.events.map(\.region)),
+                    selected: region, counts: regionCounts) { region = $0 }
         }
         .padding(.vertical, 10)
     }

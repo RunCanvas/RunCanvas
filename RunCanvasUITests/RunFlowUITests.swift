@@ -52,9 +52,6 @@ final class RunFlowUITests: XCTestCase {
         finish.tap()
         XCTAssertTrue(app.staticTexts["러닝 완료"].waitForExistence(timeout: 5), "결과 화면이 안 뜸")
 
-        // 첫 러닝 뱃지 토스트 (3초 뒤 사라지므로 결과 화면 직후에 확인)
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS '새 뱃지'")).firstMatch.waitForExistence(timeout: 3), "새 뱃지 토스트가 안 뜸")
-
         XCTAssertTrue(app.staticTexts["km"].exists)
         attachScreenshot(app, name: "run_result")
 
@@ -75,6 +72,20 @@ final class RunFlowUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["러닝 상세"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 2)   // 지도 타일 로딩
         attachScreenshot(app, name: "run_detail")
+
+        // 첫 러닝으로 뱃지를 땄는지.
+        // 결과 화면의 토스트로 확인하던 걸 옮겼다 — 3초 뒤 사라지는 애니메이션이라
+        // 시뮬레이터가 바쁠 때 이미 사라진 뒤에 찾게 되어 간헐적으로 깨졌다.
+        // 뱃지 화면의 획득 표시는 사라지지 않으니 같은 사실을 안정적으로 확인한다.
+        app.navigationBars["러닝 상세"].buttons.firstMatch.tap()
+        openTab("설정", in: app)
+        let badgesRow = app.staticTexts["레벨과 뱃지"]
+        XCTAssertTrue(badgesRow.waitForExistence(timeout: 5))
+        badgesRow.tap()
+        XCTAssertTrue(app.navigationBars["레벨과 뱃지"].waitForExistence(timeout: 5))
+        let earned = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '획득'")).firstMatch
+        XCTAssertTrue(earned.waitForExistence(timeout: 5), "첫 러닝을 했는데 획득한 뱃지가 없음")
+        attachScreenshot(app, name: "badges_after_first_run")
     }
 
     private func attachScreenshot(_ app: XCUIApplication, name: String) {
