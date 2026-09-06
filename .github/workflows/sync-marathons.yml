@@ -23,6 +23,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 파서·업로드 형식이 깨졌으면 남의 사이트를 200번 긁기 전에 여기서 걸린다
+      - name: 스크립트 자체 점검
+        run: python3 scripts/test_sync_marathons.py
+
       # 출처가 바뀌어 0건이 되면 스크립트가 실패로 끝난다 → 조용히 비는 것을 막는다
       - name: 일정 수집 후 Supabase 갱신
         env:
