@@ -17,7 +17,7 @@ struct CanvasStudioView: View {
     @State private var background: CanvasBackground = .preset(.midnight)
     @State private var selectedRun: Run?
     @State private var stickers: [CanvasSticker] = []
-    @State private var selectedStickerID: UUID?
+    @State private var selection: Set<UUID> = []
     @State private var sheet: StudioSheet?
     @State private var showsTextPrompt = false
     @State private var customText = ""
@@ -38,9 +38,18 @@ struct CanvasStudioView: View {
         var id: Int { hashValue }
     }
 
-    private var selectedIndex: Int? {
-        guard let selectedStickerID else { return nil }
-        return stickers.firstIndex { $0.id == selectedStickerID }
+    private var selectedIndices: [Int] {
+        stickers.indices.filter { selection.contains(stickers[$0].id) }
+    }
+
+    /// 여러 개를 골랐을 때 인스펙터가 보여줄 대표값 (가장 앞의 것)
+    private var leadSticker: CanvasSticker? {
+        selectedIndices.first.map { stickers[$0] }
+    }
+
+    /// 고른 스티커 전부에 같은 변경을 적용한다 — "선택한 것들 한 번에 색 바꾸기"
+    private func applyToSelection(_ change: (inout CanvasSticker) -> Void) {
+        for index in selectedIndices { change(&stickers[index]) }
     }
 
     var body: some View {
@@ -136,7 +145,7 @@ struct CanvasStudioView: View {
                 background: background,
                 run: selectedRun,
                 stickers: $stickers,
-                selectedStickerID: $selectedStickerID
+                selection: $selection
             )
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .shadow(color: .black.opacity(0.6), radius: 24, y: 8)
@@ -165,31 +174,37 @@ struct CanvasStudioView: View {
 
     private var bottomControls: some View {
         VStack(spacing: 14) {
-            if let index = selectedIndex {
-                inspector(for: index)
+            if let lead = leadSticker {
+                inspector(lead: lead)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             toolRow
         }
-        .animation(.snappy(duration: 0.22), value: selectedStickerID)
+        .animation(.snappy(duration: 0.22), value: selection)
         .padding(.top, 14)
         .padding(.bottom, 6)
     }
 
-    /// 스티커를 고르면 뜨는 줄 — 색 · 글꼴 · 투명도 · 삭제
-    private func inspector(for index: Int) -> some View {
+    /// 스티커를 고르면 뜨는 줄 — 색 · 글꼴 · 투명도 · 삭제. 여러 개를 골랐으면 전부에 적용된다.
+    private func inspector(lead: CanvasSticker) -> some View {
         VStack(spacing: 12) {
+            if selection.count > 1 {
+                Text("\(selection.count)개 선택 — 함께 바뀌어요")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Studio.dim)
+            }
+
             // 색은 팔레트에서 고르는 게 스토리 편집기의 어휘다. 맨 끝만 커스텀 피커.
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(Studio.swatches, id: \.self) { color in
-                        Button { stickers[index].color = color } label: {
+                        Button { applyToSelection { $0.color = color } } label: {
                             Circle()
                                 .fill(color)
                                 .frame(width: 26, height: 26)
                                 .overlay(Circle().stroke(.white.opacity(0.35), lineWidth: 1))
                                 .overlay {
-                                    if stickers[index].color == color {
+                                    if lead.color == color {
                                         Circle().stroke(.white, lineWidth: 2).frame(width: 34, height: 34)
                                     }
                                 }
@@ -197,7 +212,10 @@ struct CanvasStudioView: View {
                         .frame(width: 34, height: 34)
                         .accessibilityLabel(Studio.swatchName(color))
                     }
-                    ColorPicker("", selection: $stickers[index].color, supportsOpacity: false)
+                    ColorPicker("", selection: Binding(
+                        get: { lead.color },
+                        set: { color in applyToSelection { $0.color = color } }
+                    ), supportsOpacity: false)
                         .labelsHidden()
                         .frame(width: 34, height: 34)
                         .accessibilityLabel("직접 고르기")
@@ -208,24 +226,28 @@ struct CanvasStudioView: View {
             HStack(spacing: 12) {
                 // 글꼴은 이름표보다 실제 모양을 보여주는 게 빠르다
                 ForEach(CanvasSticker.FontStyle.allCases) { style in
-                    Button { stickers[index].fontStyle = style } label: {
+                    Button { applyToSelection { $0.fontStyle = style } } label: {
                         Text("Aa")
                             .font(style.sampleFont)
                             .frame(width: 42, height: 32)
                             .background(
-                                stickers[index].fontStyle == style ? Color.white : Studio.surface,
+                                lead.fontStyle == style ? Color.white : Studio.surface,
                                 in: RoundedRectangle(cornerRadius: 9)
                             )
-                            .foregroundStyle(stickers[index].fontStyle == style ? .black : .white)
+                            .foregroundStyle(lead.fontStyle == style ? .black : .white)
                     }
                     .accessibilityLabel("\(style.rawValue) 글꼴")
                 }
 
-                Slider(value: $stickers[index].opacity, in: 0.2...1)
+                Slider(value: Binding(
+                    get: { lead.opacity },
+                    set: { value in applyToSelection { $0.opacity = value } }
+                ), in: 0.2...1)
                     .tint(.white)
                     .accessibilityLabel("불투명도")
 
-                if case .text = stickers[index].kind {
+                if selection.count == 1, case .text = lead.kind,
+                   let index = selectedIndices.first {
                     iconButton("pencil", label: "텍스트 수정") { beginEditingText(at: index) }
                 }
                 iconButton("trash", label: "스티커 삭제") { deleteSelected() }
@@ -321,7 +343,7 @@ struct CanvasStudioView: View {
             color: background.foregroundColor
         )
         stickers.append(sticker)
-        selectedStickerID = sticker.id
+        selection = [sticker.id]
     }
 
     /// 배경을 바꾸면, 색을 따로 만진 적 없는 스티커만 새 배경 대비색을 따라가게 한다
@@ -333,9 +355,8 @@ struct CanvasStudioView: View {
     }
 
     private func deleteSelected() {
-        guard let selectedStickerID else { return }
-        stickers.removeAll { $0.id == selectedStickerID }
-        self.selectedStickerID = nil
+        stickers.removeAll { selection.contains($0.id) }
+        selection = []
     }
 
     /// 획득한 뱃지만 스티커로 붙일 수 있다. UserDefaults를 매 렌더에 읽지 않도록 한 번만.

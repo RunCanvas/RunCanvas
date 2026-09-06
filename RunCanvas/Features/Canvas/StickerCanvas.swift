@@ -4,7 +4,8 @@ struct StickerCanvas: View {
     let background: CanvasBackground
     let run: Run
     @Binding var stickers: [CanvasSticker]
-    @Binding var selectedStickerID: UUID?
+    /// 여러 개를 함께 고를 수 있다 (길게 눌러 추가)
+    @Binding var selection: Set<UUID>
     var isEditing = true
 
     @State private var stickerSizes: [UUID: CGSize] = [:]
@@ -24,9 +25,13 @@ struct StickerCanvas: View {
                         sticker: $sticker,
                         run: run,
                         canvasSize: geometry.size,
-                        isSelected: selectedStickerID == sticker.id,
+                        isSelected: selection.contains(sticker.id),
                         isEditing: isEditing,
-                        onSelect: { selectedStickerID = sticker.id },
+                        onSelect: { selection = [sticker.id] },
+                        onToggleSelect: {
+                            if selection.contains(sticker.id) { selection.remove(sticker.id) }
+                            else { selection.insert(sticker.id) }
+                        },
                         snap: { position in
                             snapped(position, movingID: sticker.id, canvasSize: geometry.size)
                         },
@@ -37,7 +42,7 @@ struct StickerCanvas: View {
             .coordinateSpace(.named("stickerCanvas"))
             .contentShape(Rectangle())
             .onTapGesture {
-                if isEditing { selectedStickerID = nil }
+                if isEditing { selection = [] }
             }
             .onPreferenceChange(StickerSizePreferenceKey.self) { stickerSizes = $0 }
         }
@@ -147,6 +152,8 @@ private struct StickerLayer: View {
     let isSelected: Bool
     let isEditing: Bool
     let onSelect: () -> Void
+    /// 길게 누르면 선택에 넣고 뺀다 (여러 개 함께 고르기)
+    let onToggleSelect: () -> Void
     /// 드래그 위치를 정렬 가이드에 스냅해서 돌려준다
     let snap: (CGPoint) -> CGPoint
     let onDragEnded: () -> Void
@@ -191,6 +198,7 @@ private struct StickerLayer: View {
                 y: sticker.position.y * canvasSize.height
             )
             .onTapGesture { if isEditing { onSelect() } }
+            .onLongPressGesture(minimumDuration: 0.35) { if isEditing { onToggleSelect() } }
             // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
             .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
     }

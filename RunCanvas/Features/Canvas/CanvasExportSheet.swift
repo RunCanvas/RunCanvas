@@ -114,7 +114,7 @@ struct CanvasExportSheet: View {
             background: background,
             run: run,
             stickers: .constant(stickers),
-            selectedStickerID: .constant(nil),
+            selection: .constant([]),
             isEditing: false
         )
         .frame(width: 1080, height: 1350)
