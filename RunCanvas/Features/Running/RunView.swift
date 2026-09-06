@@ -13,6 +13,8 @@ import UIKit
 /// 세션과 워치 콜백은 RunCoordinator(앱 수명)가 들고 있고 이 화면은 상태만 그린다.
 struct RunView: View {
     let startImmediately: Bool
+    /// 따라뛰기로 들어왔으면 그 코스. 평소 러닝은 nil
+    var course: Course? = nil
 
     @Environment(AuthService.self) private var auth
     @Environment(RunCoordinator.self) private var runs
@@ -23,8 +25,50 @@ struct RunView: View {
     @State private var showsLocationDenied = false
     @State private var showsNoOwner = false
     @State private var recovered: RecoveredRun?
+    @State private var courseProgress: Double = 0
+    @State private var offCourseMeters: Double = 0
+    @State private var warnedOffCourse = false
 
     private var session: RunSession { runs.session }
+
+    /// 따라뛰기 상태 표시 — 얼마나 왔는지, 코스에서 벗어났는지
+    private func courseStrip(_ course: Course) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label(course.name, systemImage: "map")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Spacer()
+                Text("\(Int(courseProgress * 100))%")
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+            }
+            ProgressView(value: courseProgress)
+                .tint(.primary)
+            Text(offCourseMeters > 50
+                 ? "코스에서 \(Int(offCourseMeters))m 벗어났어요"
+                 : String(format: "코스 %.2f km 중 %.2f km", course.distanceKm, course.distanceKm * courseProgress))
+                .font(.caption)
+                .foregroundStyle(offCourseMeters > 50 ? .red : .secondary)
+                .monospacedDigit()
+        }
+        .padding(14)
+        .background(Color.card, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// 위치가 갱신될 때만 다시 계산한다 — body가 그려질 때마다 하면 경로 전체를 초당 몇 번씩 훑는다
+    private func updateCourseFollow() {
+        guard let course, let last = session.route.last else { return }
+        let point = CoursePoint(last)
+        courseProgress = CourseGeometry.progress(at: point, in: course.path)
+        offCourseMeters = CourseGeometry.offCourseMeters(point, path: course.path)
+        if offCourseMeters > 50, !warnedOffCourse {
+            warnedOffCourse = true            // 벗어난 동안 계속 떠들지 않게 한 번만
+            session.announce("코스에서 벗어났어요")
+        } else if offCourseMeters < 25 {
+            warnedOffCourse = false
+        }
+    }
     private var isActive: Bool { session.state == .running || session.state == .paused }
 
     /// 실제로 누가 기록 중인지 — 러닝 중엔 연결 여부가 아니라 세션 상태를 따른다
@@ -47,6 +91,12 @@ struct RunView: View {
                 .foregroundStyle(recordsOnWatch ? .green : .secondary)
             }
                 .padding(.horizontal, 24).padding(.top, 20)
+
+            if let course {
+                courseStrip(course)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 12)
+            }
 
             Spacer()
 
@@ -89,6 +139,7 @@ struct RunView: View {
             Spacer().frame(height: 30)
         }
         .navigationBarBackButtonHidden(isActive)
+        .onChange(of: session.route.count) { _, _ in updateCourseFollow() }
         .task {
             guard !didRequestHealthAuthorization else { return }
             didRequestHealthAuthorization = true

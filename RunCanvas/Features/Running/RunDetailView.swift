@@ -4,8 +4,12 @@ import SwiftUI
 struct RunDetailView: View {
     let run: Run
 
+    /// 닉네임은 서버 프로필의 로컬 캐시 — 코스에 "누가 올렸는지"로 같이 올린다
+    @AppStorage("userNickname") private var nickname = ""
+
     /// body에서 바로 디코드하면 화면이 다시 그려질 때마다 1080×1350 JPEG를 메인 스레드에서 푼다
     @State private var decoratedImage: UIImage?
+    @State private var showsCourseRegister = false
     @State private var isSavingCard = false
     @State private var saveMessage: String?
 
@@ -60,6 +64,15 @@ struct RunDetailView: View {
             .padding(24)
         }
         .navigationTitle("러닝 상세")
+        .toolbar {
+            // 경로가 없는 기록(워치 인계 실패 등)은 코스로 만들 게 없다
+            if run.route.count > 1 {
+                Button("코스로 등록") { showsCourseRegister = true }
+            }
+        }
+        .sheet(isPresented: $showsCourseRegister) {
+            CourseRegisterView(run: run, nickname: nickname)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .alert("이미지 저장", isPresented: Binding(
             get: { saveMessage != nil },

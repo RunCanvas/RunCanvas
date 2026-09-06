@@ -6,7 +6,7 @@ struct MarathonScheduleView: View {
     @State private var service = MarathonService()
     @State private var category: MarathonCategory = .all
     @State private var course: MarathonCourse = .any
-    @State private var region = MarathonRegion.all
+    @State private var region = KoreaRegion.all
 
     private var sections: [MarathonSchedule.MonthSection] {
         MarathonSchedule(events: service.events)
@@ -96,37 +96,17 @@ struct MarathonScheduleView: View {
 
     private var filters: some View {
         VStack(spacing: 6) {
-            chipRow(MarathonCategory.allCases.map(\.rawValue), selected: category.rawValue) {
+            ChipRow(titles: MarathonCategory.allCases.map(\.rawValue), selected: category.rawValue) {
                 category = MarathonCategory(rawValue: $0) ?? .all
             }
-            chipRow(MarathonCourse.allCases.map(\.rawValue), selected: course.rawValue) {
+            ChipRow(titles: MarathonCourse.allCases.map(\.rawValue), selected: course.rawValue) {
                 course = MarathonCourse(rawValue: $0) ?? .any
             }
-            chipRow(MarathonRegion.chips(for: service.events), selected: region) { region = $0 }
+            ChipRow(titles: KoreaRegion.chips(regions: service.events.map(\.region)), selected: region) { region = $0 }
         }
         .padding(.vertical, 10)
     }
 
-    private func chipRow(_ titles: [String], selected: String, onSelect: @escaping (String) -> Void) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 7) {
-                ForEach(titles, id: \.self) { title in
-                    let isOn = title == selected
-                    Button { onSelect(title) } label: {
-                        Text(title)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 6)
-                            .background(isOn ? Color.primary : Color.card, in: Capsule())
-                            .foregroundStyle(isOn ? Color(.systemBackground) : .primary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(isOn ? [.isSelected] : [])
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
 }
 
 // MARK: - 대회 카드

@@ -11,8 +11,13 @@ final class MarathonScreenUITests: XCTestCase {
         XCTAssertTrue(recordsTab.waitForExistence(timeout: 10))
         recordsTab.tap()
 
+        // 진입점은 기록 탭 툴바의 "더보기" 메뉴 안에 있다(마라톤·코스·트레이닝 세 개라 메뉴로 묶었다)
+        let menu = app.buttons["더보기"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5), "기록 탭 더보기 메뉴가 없음")
+        menu.tap()
+
         let entry = app.buttons["마라톤 일정"]
-        XCTAssertTrue(entry.waitForExistence(timeout: 5), "기록 탭에 마라톤 일정 진입점이 없음")
+        XCTAssertTrue(entry.waitForExistence(timeout: 5), "더보기 메뉴에 마라톤 일정이 없음")
         entry.tap()
 
         XCTAssertTrue(app.navigationBars["마라톤 일정"].waitForExistence(timeout: 5))

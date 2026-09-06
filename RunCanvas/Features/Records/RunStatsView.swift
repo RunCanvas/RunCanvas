@@ -15,7 +15,14 @@ struct RunStatsView: View {
     var body: some View {
         NavigationStack {
             StatsContent(ownerID: auth.userID)
-                .toolbar { NavigationLink("마라톤 일정") { MarathonScheduleView() } }
+                .toolbar {
+                    // 툴바에 링크 두 개를 나란히 두면 제목이 밀린다 → 메뉴 하나로
+                    Menu("더보기", systemImage: "ellipsis.circle") {
+                        NavigationLink("마라톤 일정") { MarathonScheduleView() }
+                        NavigationLink("러닝 코스") { CourseListView() }
+                        NavigationLink("트레이닝") { TrainingProgramListView() }
+                    }
+                }
         }
     }
 }

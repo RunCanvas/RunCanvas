@@ -215,6 +215,9 @@ final class RunSession {
         nextCueMeters += coach.intervalMeters
     }
 
+    /// 화면(따라뛰기 등)이 한 문장 안내를 부탁할 때. 음성 안내가 꺼져 있으면 조용히 무시한다.
+    func announce(_ text: String) { say(text) }
+
     func recordHeartRate(_ bpm: Double) {   // Phase 3에서 호출
         heartRate = bpm
         heartRateSamples.append(bpm)
