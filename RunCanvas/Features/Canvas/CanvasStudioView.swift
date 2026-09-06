@@ -25,12 +25,12 @@ struct CanvasStudioView: View {
     @State private var earnedBadges: [Badge] = []
     @State private var didPromptForRun = false
 
-    /// 러닝 결과 화면에서 들어오면 그 기록으로 고정된다
-    private let isPresentedModally: Bool
+    /// 러닝 결과 화면에서 들어오면 그 기록으로 고정된다 (런꾸 탭에서 열면 기록을 고를 수 있다)
+    private let hasFixedRun: Bool
 
     init(run: Run? = nil) {
         _selectedRun = State(initialValue: run)
-        isPresentedModally = run != nil
+        hasFixedRun = run != nil
     }
 
     private enum StudioSheet: Identifiable {
@@ -97,8 +97,6 @@ struct CanvasStudioView: View {
                     .background(Studio.surface, in: Circle())
             }
             .accessibilityLabel("닫기")
-            .opacity(isPresentedModally ? 1 : 0)      // 탭에서 열면 닫을 곳이 없다
-            .disabled(!isPresentedModally)
 
             Spacer()
 
@@ -107,7 +105,7 @@ struct CanvasStudioView: View {
                     HStack(spacing: 5) {
                         Text("\(RunMath.formatKm(selectedRun.distanceMeters)) km")
                             .font(.system(size: 14, weight: .semibold))
-                        if !isPresentedModally {
+                        if !hasFixedRun {
                             Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
                         }
                     }
@@ -115,7 +113,7 @@ struct CanvasStudioView: View {
                     .padding(.vertical, 7)
                     .background(Studio.surface, in: Capsule())
                 }
-                .disabled(isPresentedModally)
+                .disabled(hasFixedRun)
                 .accessibilityLabel("꾸미는 기록 \(RunMath.formatKm(selectedRun.distanceMeters))킬로미터")
             }
 
