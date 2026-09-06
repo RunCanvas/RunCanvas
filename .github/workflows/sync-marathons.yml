@@ -14,6 +14,8 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write          # 씨앗 JSON 갱신분을 push 한다 (기본 토큰은 읽기 전용일 수 있다)
     steps:
       - uses: actions/checkout@v4
 
