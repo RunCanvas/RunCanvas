@@ -151,9 +151,19 @@ private struct MarathonCard: View {
             .frame(height: 150)
             .clipped()
 
-            HStack(spacing: 6) {
-                if let countdown { chip(countdown, filled: false) }
-                if event.isAcceptingSignups { chip("접수 중", filled: true) }
+            HStack(alignment: .top) {
+                HStack(spacing: 6) {
+                    if let countdown { chip(countdown, filled: false) }
+                    if event.isAcceptingSignups { chip("접수 중", filled: true) }
+                }
+                Spacer(minLength: 0)
+                // 야간·기부·펫·풀코스는 고르는 이유가 되는 정보라 카드에서 바로 보이게 한다.
+                // 칩 줄을 하나 더 만들면 필터가 네 줄이 되므로 포스터 위에 얹는다
+                HStack(spacing: 6) {
+                    ForEach(event.tags.prefix(2), id: \.self) { tag in
+                        chip(tag, filled: false)
+                    }
+                }
             }
             .padding(12)
         }

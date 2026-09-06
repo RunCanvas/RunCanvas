@@ -69,9 +69,8 @@ struct CourseCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            CourseMapView(path: course.path, isInteractive: false)
+            CoursePathThumbnail(path: course.path)
                 .frame(height: 130)
-                .clipped()
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(course.name)

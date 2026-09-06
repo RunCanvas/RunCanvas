@@ -140,6 +140,19 @@ enum KoreaRegion {
         return [all] + order.filter(found.contains) + found.subtracting(order).sorted()
     }
 
+    /// 행정구역 이름("서울특별시", "충청북도")을 앱이 쓰는 짧은 이름으로. 못 알아보면 nil.
+    /// 코스를 올릴 때 지역을 손으로 고르게 하면 잘못 고른 코스가 섞인다 — 위치에서 먼저 추측한다.
+    static func short(administrativeArea area: String) -> String? {
+        let prefixes: [(String, String)] = [
+            ("서울", "서울"), ("부산", "부산"), ("대구", "대구"), ("인천", "인천"), ("광주", "광주"),
+            ("대전", "대전"), ("울산", "울산"), ("세종", "세종"), ("경기", "경기"), ("강원", "강원"),
+            ("제주", "제주"), ("충청북", "충북"), ("충청남", "충남"), ("충북", "충북"), ("충남", "충남"),
+            ("전라북", "전북"), ("전라남", "전남"), ("전북", "전북"), ("전남", "전남"),
+            ("경상북", "경북"), ("경상남", "경남"), ("경북", "경북"), ("경남", "경남")
+        ]
+        return prefixes.first { area.hasPrefix($0.0) }?.1
+    }
+
     static func includes(_ region: String, _ event: MarathonEvent) -> Bool {
         region == all || event.region == region
     }
