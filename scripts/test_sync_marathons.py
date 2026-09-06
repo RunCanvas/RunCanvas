@@ -21,6 +21,15 @@ def test_upload_rows_have_identical_keys():
     assert rows[1]["status"] is None and rows[1]["fee_min"] is None
 
 
+def test_updated_at_is_stamped():
+    """업서트는 컬럼 기본값 now() 를 다시 적용하지 않는다 — 직접 넣어야 '마지막 동기화'가 된다."""
+    rows = sync.rows_for_upload([{"name": "가", "event_date": "2026-10-03"},
+                                 {"name": "나", "event_date": "2026-10-04"}])
+    stamps = {row["updated_at"] for row in rows}
+    assert len(stamps) == 1, "한 번의 동기화는 같은 시각으로 찍혀야 한다"
+    assert stamps.pop().startswith(str(sync.date.today().year))
+
+
 def test_not_null_columns_get_defaults():
     """courses·tags·type 은 NOT NULL — None 으로 보내면 DB 가 거부한다."""
     row = sync.rows_for_upload([{"name": "빈 대회", "event_date": "2026-10-03"}])[0]

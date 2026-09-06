@@ -51,7 +51,7 @@ struct MarathonScheduleView: View {
                     }
                 }
 
-                Text("출처: 공공데이터포털(문화체육관광부) · kormarathon.com\n일정은 주최 측 사정으로 바뀔 수 있어요. 신청 전 공식 공지를 확인해 주세요.")
+                Text("출처: kormarathon.com\n일정은 주최 측 사정으로 바뀔 수 있어요. 신청 전 공식 공지를 확인해 주세요.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .padding(.top, 8)

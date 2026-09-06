@@ -5,8 +5,8 @@
 데이터는 서버에 두고 이 스크립트가 주기적으로 갱신한다(GitHub Actions).
 
 출처
-  1) 공공데이터포털 · 문화체육관광부_국내마라톤대회 정보 (CSV, 인증 불필요)
-  2) kormarathon.com 월별 페이지에 서버 렌더링된 이벤트 JSON
+  kormarathon.com 월별 목록(서버 렌더링 카드) + 대회 상세 페이지(포스터·접수기간·참가비)
+  공공데이터포털 CSV 는 2024년 자료에서 갱신이 멈췄고 GitHub 러너에서 매번 타임아웃이라 뺐다.
 
 환경변수 (GitHub Actions secrets)
   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   ← 업로드에 필요. 없으면 --dry-run 만 가능
@@ -14,8 +14,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
-import io
 import json
 import os
 import sys
@@ -23,11 +21,9 @@ import re
 import urllib.error
 import urllib.request
 from html import unescape
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) RunCanvas-schedule-sync"
-OFFICIAL_CSV = ("https://www.data.go.kr/cmm/cmm/fileDownload.do"
-                "?atchFileId=FILE_000000003607547&fileDetailSn=1&insertDataPrcus=N")
 KORMARATHON_MONTH = "https://www.kormarathon.com/ko/marathons/{year}/{month:02d}"
 
 
@@ -37,31 +33,7 @@ def fetch(url: str, timeout: int = 30) -> bytes:
         return response.read()
 
 
-# ---------------------------------------------------------------- 출처 1: 공공데이터포털
-
-def from_official() -> list[dict]:
-    try:
-        text = fetch(OFFICIAL_CSV).decode("utf-8-sig")
-    except Exception as error:                      # 원본이 내려가도 전체 동기화는 계속한다
-        print(f"[경고] 공공데이터 CSV 실패: {error}", file=sys.stderr)
-        return []
-    events = []
-    for row in csv.DictReader(io.StringIO(text)):
-        name = (row.get("대회명") or "").strip()
-        if not name:
-            continue
-        events.append({
-            "name": name,
-            "event_date": (row.get("대회일시") or "").strip() or None,
-            "region": None,
-            "place": (row.get("대회장소") or "").strip() or None,
-            "courses": [c.strip() for c in (row.get("종목") or "").split(",") if c.strip()],
-            "source": "공공데이터포털(문화체육관광부)",
-        })
-    return events
-
-
-# ---------------------------------------------------------------- 출처 2: kormarathon
+# ---------------------------------------------------------------- 수집: kormarathon 월별 목록
 
 def from_kormarathon(months: int) -> list[dict]:
     """월별 페이지에 서버 렌더링된 `"events":[...]` 배열을 그대로 읽는다.
@@ -135,7 +107,7 @@ def parse_kormarathon(html: str) -> list[dict]:
     return events
 
 
-# ---------------------------------------------------------------- 출처 2-b: 대회 상세 페이지
+# ---------------------------------------------------------------- 수집: 대회 상세 페이지
 
 # 월별 목록에는 포스터·접수기간·참가비가 없다. 상세 페이지에서만 가져올 수 있다.
 POSTER_RE = re.compile(r'<meta property="og:image" content="([^"]+)"')
@@ -259,17 +231,24 @@ def _richness(event: dict) -> int:
 # PostgREST 는 한 배열 안 객체들의 키가 전부 같아야 받는다(PGRST102 "All object keys must match").
 # 접수 상태·참가비처럼 있는 대회만 있는 항목 때문에 키가 들쭉날쭉하면 배치 전체가 400 으로 튕긴다.
 UPLOAD_COLUMNS = ("name", "event_date", "region", "place", "courses", "type", "tags", "status",
-                  "signup_url", "source", "image_url", "reg_start_date", "reg_end_date", "fee_min")
+                  "signup_url", "source", "image_url", "reg_start_date", "reg_end_date", "fee_min",
+                  "updated_at")
 
 
 def rows_for_upload(events: list[dict]) -> list[dict]:
-    """모든 행을 같은 키로 맞춘다. 빠진 칸은 None, NOT NULL 인 칸은 기본값으로."""
+    """모든 행을 같은 키로 맞춘다. 빠진 칸은 None, NOT NULL 인 칸은 기본값으로.
+
+    `updated_at` 은 직접 넣는다 — 업서트로 갱신될 때는 컬럼 기본값 now() 가 다시 적용되지 않아서,
+    안 넣으면 이 값이 "마지막 동기화"가 아니라 "처음 들어온 시각"으로 남는다.
+    """
+    synced_at = datetime.now(timezone.utc).isoformat()
     rows = []
     for event in events:
         row = {column: event.get(column) for column in UPLOAD_COLUMNS}
         row["courses"] = row["courses"] or []
         row["tags"] = row["tags"] or []
         row["type"] = row["type"] or "대회"
+        row["updated_at"] = synced_at
         rows.append(row)
     return rows
 
@@ -325,13 +304,12 @@ def main() -> None:
     parser.add_argument("--out", help="정규화 결과를 JSON 파일로도 저장(앱 번들 씨앗 갱신용)")
     args = parser.parse_args()
 
-    official = from_official()
     community = from_kormarathon(args.months)
-    print(f"공공데이터 {len(official)}건 / kormarathon {len(community)}건")
-    if not community and not official:
-        raise SystemExit("두 출처 모두 0건 — 원본이 바뀌었을 수 있습니다. 파서를 확인하세요.")
+    print(f"kormarathon {len(community)}건")
+    if not community:
+        raise SystemExit("수집 0건 — 원본이 바뀌었을 수 있습니다. 파서를 확인하세요.")
 
-    events = normalize(official + community)
+    events = normalize(community)
     # 끝난 일정은 담지 않는다 — 목록에서도 DB에서도 지운다. 날짜 미정(None)은 남긴다.
     today = date.today().isoformat()
     dropped = [e for e in events if (e.get("event_date") or today) < today]
