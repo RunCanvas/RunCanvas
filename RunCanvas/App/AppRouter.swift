@@ -46,6 +46,9 @@ struct AppRouter: View {
                 try? context.delete(model: Run.self, where: #Predicate { $0.ownerID == testUser })
                 try? context.save()
                 BadgeStore.reset(for: testUser)
+                // 중단된 러닝 체크포인트도 지운다 — 안 지우면 실패한 실행이 남긴 파일 때문에
+                // 다음 실행부터 "이전 러닝이 중단됐어요" 알럿이 떠서 러닝이 시작되지 않는다
+                RunSession.discardRecoverable()
             }
             if ProcessInfo.processInfo.arguments.contains("-uiTestSeedRun") {
                 let existing = (try? context.fetch(FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == testUser }))) ?? []
