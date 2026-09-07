@@ -28,18 +28,9 @@ final class CourseFollowTests: XCTestCase {
         XCTAssertLessThan(back, forward)
     }
 
-    func testOffCourseDistance() {
-        let onCourse = CoursePoint(lat: 37.5665, lon: 126.9780 + step * 4)
-        XCTAssertEqual(CourseGeometry.offCourseMeters(onCourse, path: path), 0, accuracy: 1)
-
-        // 북쪽으로 약 111m (위도 0.001°)
-        let away = CoursePoint(lat: 37.5675, lon: 126.9780 + step * 4)
-        XCTAssertEqual(CourseGeometry.offCourseMeters(away, path: path), 111, accuracy: 10)
-    }
-
     func testEmptyCourseIsSafe() {
         XCTAssertEqual(CourseGeometry.progress(at: path[0], in: []), 0)
-        XCTAssertEqual(CourseGeometry.offCourseMeters(path[0], path: []), 0)
+        XCTAssertNil(CourseGeometry.nearestIndex(to: path[0], in: []))
     }
 
     func testRoundTripProgressDoesNotJumpBackAtOverlappingPoints() throws {

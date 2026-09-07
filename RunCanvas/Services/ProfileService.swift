@@ -14,7 +14,7 @@ enum ProfileService {
     }
 
     static func upsert(_ profile: Profile) async throws {
-        try await supabase.from("profiles").upsert(ProfileUpsertPayload(profile)).execute()
+        try await supabase.from("profiles").upsert(profile).execute()
     }
 
     /// avatars 버킷의 `<uid>/avatar.jpg`에 덮어쓰고 공개 URL을 돌려준다.
@@ -31,43 +31,6 @@ enum ProfileService {
     static func removeAvatar(userID: UUID) async throws {
         let path = "\(userID.uuidString.lowercased())/avatar.jpg"
         _ = try await supabase.storage.from("avatars").remove(paths: [path])
-    }
-}
-
-/// `Profile`의 합성 Encodable은 nil을 생략한다. 아바타 삭제는 서버 값을 실제 NULL로 덮어써야 한다.
-struct ProfileUpsertPayload: Encodable {
-    let id: UUID
-    let nickname: String
-    let weightKg: Double?
-    let heightCm: Double?
-    let avatarURL: String?
-
-    init(_ profile: Profile) {
-        id = profile.id
-        nickname = profile.nickname
-        weightKg = profile.weightKg
-        heightCm = profile.heightCm
-        avatarURL = profile.avatarURL
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id, nickname
-        case weightKg = "weight_kg"
-        case heightCm = "height_cm"
-        case avatarURL = "avatar_url"
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(nickname, forKey: .nickname)
-        try container.encodeIfPresent(weightKg, forKey: .weightKg)
-        try container.encodeIfPresent(heightCm, forKey: .heightCm)
-        if let avatarURL {
-            try container.encode(avatarURL, forKey: .avatarURL)
-        } else {
-            try container.encodeNil(forKey: .avatarURL)
-        }
     }
 }
 

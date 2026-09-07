@@ -42,6 +42,21 @@ final class CourseService {
 
     var hasMore: Bool { courses.count < totalCount }
 
+    /// 지역·내 코스 필터는 목록·다음 페이지가 똑같이 걸어야 한다 — 한 곳에서 만든다.
+    private func query(for filter: Filter) -> PostgrestFilterBuilder {
+        var query = supabase.from("courses").select(count: .exact)
+        if filter.region != KoreaRegion.all { query = query.eq("region", value: filter.region) }
+        if filter.mineOnly, let ownerID = filter.ownerID {
+            query = query.eq("owner_id", value: ownerID.uuidString)
+        }
+        return query
+    }
+
+    /// 늦게 도착한 응답인지. 세대가 밀렸으면 새 요청이 상태를 쥐고 있으므로 아무것도 건드리지 않는다.
+    private func isStale(_ generation: Int, filter: Filter? = nil) -> Bool {
+        generation != loadGeneration || (filter.map { activeFilter != $0 } ?? false)
+    }
+
     @MainActor
     func load(region: String = KoreaRegion.all, sort: CourseSort = .newest,
               mineOnly: Bool = false, ownerID: UUID? = nil) async {
@@ -53,30 +68,21 @@ final class CourseService {
         isLoadingMore = false
         failureNotice = nil
         do {
-            var query = supabase.from("courses").select(count: .exact)
-            if region != KoreaRegion.all { query = query.eq("region", value: region) }
-            if mineOnly, let ownerID { query = query.eq("owner_id", value: ownerID.uuidString) }
-            let response: PostgrestResponse<[Course]> = try await query
+            let response: PostgrestResponse<[Course]> = try await query(for: filter)
                 .order(sort.column, ascending: sort.ascending)
                 // 같은 거리·시각인 행도 순서가 고정돼야 offset 페이지에서 빠지거나 겹치지 않는다.
                 .order("id", ascending: true)
                 // 한 코스가 경로 점 수백 개를 들고 온다 — 200개를 받으면 목록 한 번에 메가바이트 단위가 된다
                 .range(from: 0, to: Self.pageSize - 1)
                 .execute()
-            guard requestGeneration == loadGeneration else { return }
-            guard !Task.isCancelled else {
-                isLoading = false
-                return
-            }
+            if isStale(requestGeneration) { return }
+            if Task.isCancelled { isLoading = false; return }
             courses = response.value
             totalCount = response.count ?? response.value.count
             failureNotice = nil
         } catch {
-            guard requestGeneration == loadGeneration else { return }
-            guard !Task.isCancelled else {
-                isLoading = false
-                return
-            }
+            if isStale(requestGeneration) { return }
+            if Task.isCancelled { isLoading = false; return }
             Self.log.error("코스 목록 실패: \(error.localizedDescription, privacy: .public)")
             courses = []
             totalCount = 0
@@ -94,30 +100,19 @@ final class CourseService {
         isLoadingMore = true
         failureNotice = nil
         do {
-            var query = supabase.from("courses").select(count: .exact)
-            if filter.region != KoreaRegion.all { query = query.eq("region", value: filter.region) }
-            if filter.mineOnly, let ownerID = filter.ownerID {
-                query = query.eq("owner_id", value: ownerID.uuidString)
-            }
-            let response: PostgrestResponse<[Course]> = try await query
+            let response: PostgrestResponse<[Course]> = try await query(for: filter)
                 .order(filter.sort.column, ascending: filter.sort.ascending)
                 .order("id", ascending: true)
                 .range(from: start, to: start + Self.pageSize - 1)
                 .execute()
-            guard requestGeneration == loadGeneration, activeFilter == filter else { return }
-            guard !Task.isCancelled else {
-                isLoadingMore = false
-                return
-            }
+            if isStale(requestGeneration, filter: filter) { return }
+            if Task.isCancelled { isLoadingMore = false; return }
             let existing = Set(courses.map(\.id))
             courses.append(contentsOf: response.value.filter { !existing.contains($0.id) })
             totalCount = response.count ?? max(totalCount, courses.count)
         } catch {
-            guard requestGeneration == loadGeneration, activeFilter == filter else { return }
-            guard !Task.isCancelled else {
-                isLoadingMore = false
-                return
-            }
+            if isStale(requestGeneration, filter: filter) { return }
+            if Task.isCancelled { isLoadingMore = false; return }
             Self.log.error("코스 다음 페이지 실패: \(error.localizedDescription, privacy: .public)")
             failureNotice = "코스를 더 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
         }

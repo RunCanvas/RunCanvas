@@ -120,10 +120,4 @@ enum CourseGeometry {
         guard let index = nearestIndex(to: point, in: path), path.count > 1 else { return 0 }
         return progress(through: index, in: path)
     }
-
-    /// 코스에서 얼마나 벗어났는지(m). 가장 가까운 점까지의 직선 거리.
-    static func offCourseMeters(_ point: CoursePoint, path: [CoursePoint]) -> Double {
-        guard let index = nearestIndex(to: point, in: path) else { return 0 }
-        return distance(point, path[index])
-    }
 }

@@ -17,8 +17,9 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(object["weight_kg"] as? Double, 70)
         XCTAssertEqual(object["height_cm"] as? Double, 175)
         XCTAssertEqual(object["id"] as? String, "11111111-1111-1111-1111-111111111111")
-        // nil은 키 자체가 빠진다 → PostgREST upsert가 기존 avatar_url을 덮어쓰지 않음 (의도된 동작)
-        XCTAssertFalse(object.keys.contains("avatar_url"))
+        // nil 도 실어 보낸다 → 아바타를 지우면 서버 값이 NULL 로 덮어써진다
+        XCTAssertTrue(object.keys.contains("avatar_url"))
+        XCTAssertTrue(object["avatar_url"] is NSNull)
     }
 
     func testCacheLocallyWritesAppStorageKeys() {
@@ -31,9 +32,9 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(d.string(forKey: "avatarURL"), "https://x/a.jpg")
     }
 
-    func testProfileUpsertPayloadEncodesNilAvatarForRemoval() throws {
+    func testProfileEncodesNilAvatarForRemoval() throws {
         let profile = Profile(id: UUID(), nickname: "테스트", weightKg: 60, heightCm: 170, avatarURL: nil)
-        let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(ProfileUpsertPayload(profile))) as! [String: Any]
+        let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(profile)) as! [String: Any]
         XCTAssertTrue(object.keys.contains("avatar_url"))
         XCTAssertTrue(object["avatar_url"] is NSNull)
     }

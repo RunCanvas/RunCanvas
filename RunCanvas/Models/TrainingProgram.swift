@@ -20,23 +20,6 @@ struct TrainingStep: Codable, Equatable, Hashable, Identifiable {
             }
         }
         var isRunning: Bool { self == .run }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.singleValueContainer()
-            let value = try container.decode(String.self)
-            // 예전 버전은 화면 문구를 그대로 저장했으므로, 안정적인 키로 옮긴 뒤에도 기존 프로그램을 읽는다.
-            switch value {
-            case "warmup", "준비 걷기": self = .warmup
-            case "run", "달리기": self = .run
-            case "walk", "걷기": self = .walk
-            case "cooldown", "마무리 걷기": self = .cooldown
-            default:
-                throw DecodingError.dataCorruptedError(
-                    in: container,
-                    debugDescription: "알 수 없는 트레이닝 구간 종류: \(value)"
-                )
-            }
-        }
     }
 
     var id = UUID()

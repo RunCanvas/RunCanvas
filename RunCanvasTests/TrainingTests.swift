@@ -40,14 +40,6 @@ final class TrainingTests: XCTestCase {
         XCTAssertNil(TrainingEngine.progress(elapsed: 0, in: TrainingSession(title: "빈 세션", steps: [])))
     }
 
-    func testStepBoundariesAreAnnouncedOnce() {
-        XCTAssertTrue(TrainingEngine.startsNewStep(elapsed: 0, in: session))
-        XCTAssertTrue(TrainingEngine.startsNewStep(elapsed: 300, in: session))
-        XCTAssertTrue(TrainingEngine.startsNewStep(elapsed: 360, in: session))
-        XCTAssertFalse(TrainingEngine.startsNewStep(elapsed: 301, in: session))
-        XCTAssertFalse(TrainingEngine.startsNewStep(elapsed: 123, in: session))
-    }
-
     func testCueMentionsKindAndLength() throws {
         let progress = try XCTUnwrap(TrainingEngine.progress(elapsed: 300, in: session))
         let cue = TrainingEngine.cue(for: progress)
@@ -138,11 +130,11 @@ final class TrainingTests: XCTestCase {
         XCTAssertEqual(TrainingStore.completedCount(in: rebuilt, ownerID: owner, defaults: defaults), 1)
     }
 
-    func testLegacyKoreanStepKindDecodesAndNewEncodingUsesStableKey() throws {
-        let legacy = try JSONDecoder().decode(TrainingStep.Kind.self, from: Data("\"달리기\"".utf8))
-        XCTAssertEqual(legacy, .run)
-        XCTAssertEqual(String(data: try JSONEncoder().encode(legacy), encoding: .utf8), "\"run\"")
-        XCTAssertEqual(legacy.title, "달리기")
+    /// 저장 키는 화면 문구와 분리돼 있어야 한다 — 문구를 다듬어도 저장된 프로그램이 안 깨지게
+    func testStepKindStoresStableKeyNotDisplayText() throws {
+        let encoded = String(data: try JSONEncoder().encode(TrainingStep.Kind.run), encoding: .utf8)
+        XCTAssertEqual(encoded, "\"run\"")
+        XCTAssertEqual(TrainingStep.Kind.run.title, "달리기")
     }
 
     func testSaveDoesNotOverwriteUndecodablePrograms() throws {

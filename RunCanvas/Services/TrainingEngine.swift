@@ -35,17 +35,6 @@ enum TrainingEngine {
         return nil
     }
 
-    /// 구간이 바뀌는 순간인지 — 화면이 매초 물어보고, 맞으면 그때만 음성으로 알린다.
-    static func startsNewStep(elapsed: Int, in session: TrainingSession) -> Bool {
-        guard elapsed > 0 else { return true }
-        var boundary = 0
-        for step in session.steps {
-            boundary += step.seconds
-            if boundary == elapsed { return true }
-        }
-        return false
-    }
-
     /// 구간 전환 안내 문구
     static func cue(for progress: Progress) -> String {
         let step = progress.step
