@@ -161,7 +161,7 @@ enum SyncService {
 
     private static let pendingDeletesKey = "pendingRemoteDeletesV2"
 
-    private struct PendingDelete: Codable, Hashable {
+    struct PendingDelete: Codable, Hashable {   // internal: 테스트가 대기 목록을 직접 확인한다
         let ownerID: UUID
         let runID: UUID
     }
@@ -169,7 +169,7 @@ enum SyncService {
     /// 로컬은 지웠지만 서버 삭제가 아직 안 끝난 기록. 앱을 껐다 켜도 이어 가고,
     /// 다른 계정의 RLS 아래에서 0건 삭제 응답을 성공으로 오인하지 않도록 ownerID와 함께 저장한다.
     @MainActor
-    private static var pendingDeletes: [PendingDelete] {
+    static var pendingDeletes: [PendingDelete] {
         get {
             guard let data = UserDefaults.standard.data(forKey: pendingDeletesKey) else { return [] }
             return (try? JSONDecoder().decode([PendingDelete].self, from: data)) ?? []
@@ -180,7 +180,7 @@ enum SyncService {
     }
 
     @MainActor
-    private static func pendingDeletes(for ownerID: UUID) -> [UUID] {
+    static func pendingDeletes(for ownerID: UUID) -> [UUID] {
         pendingDeletes.filter { $0.ownerID == ownerID }.map(\.runID)
     }
 

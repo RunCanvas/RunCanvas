@@ -42,9 +42,6 @@ struct FilterMenuPill: View {
             }
             .padding(.horizontal, 13)
             .padding(.vertical, 6)
-            // 왜: 알약은 32pt 높이라 손가락 기준(44pt)에 못 미친다 — 모양은 두고 히트 영역만 넓힌다
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
             .background(isNarrowed ? Color.primary : Color.card, in: Capsule())
             .foregroundStyle(isNarrowed ? Color(.systemBackground) : .primary)
             // 보이는 알약은 작게 유지하되 메뉴를 여는 터치 영역은 44pt를 보장한다.

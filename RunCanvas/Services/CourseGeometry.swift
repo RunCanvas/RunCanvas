@@ -47,15 +47,23 @@ enum CourseGeometry {
         return length(kept) >= minimumLength ? kept : []
     }
 
+    /// 서버 courses_path_size 제약과 같은 값. 넘으면 간격을 늘려 다시 솎는다.
+    static let maxPathPoints = 5_000
+
     /// 기록의 경로를 코스 경로로. 좌표가 거의 안 변한 점은 버려서 크기를 줄인다(1Hz 기록은 대부분 중복).
     static func path(from route: [RoutePoint], minimumSpacing: Double = 5) -> [CoursePoint] {
-        var result: [CoursePoint] = []
-        for point in route {
-            let candidate = CoursePoint(point)
-            if let last = result.last, distance(last, candidate) < minimumSpacing { continue }
-            result.append(candidate)
+        var spacing = minimumSpacing
+        // 장거리 기록은 5m 간격으로도 5000점을 넘는다(25km 이상) — 넘으면 간격을 넓혀 다시 솎는다
+        while true {
+            var result: [CoursePoint] = []
+            for point in route {
+                let candidate = CoursePoint(point)
+                if let last = result.last, distance(last, candidate) < spacing { continue }
+                result.append(candidate)
+            }
+            if result.count <= maxPathPoints || spacing > 200 { return result }
+            spacing *= 2
         }
-        return result
     }
 
     // MARK: - 따라뛰기

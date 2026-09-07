@@ -61,6 +61,7 @@ final class RunCoordinator {
                 || session.locationAuthorization == .authorizedAlways else { return false }
         let usesWatchWorkout = sendToWatch ? watch.isReachable : true
         finishedRun = nil
+        takeoverMessage = nil   // 지난 러닝의 인계 안내가 새 러닝에서 뒤늦게 뜨지 않게
         session.start(sessionID: sessionID, healthManagedExternally: usesWatchWorkout)
         guard session.state == .running else { return false }
         lastWatchSnapshotAt = nil

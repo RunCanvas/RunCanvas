@@ -26,7 +26,7 @@ struct RecapView: View {
         let recap = selected.map { RecapEngine.recap(runs: badgeRuns, scope: scope, anchor: $0) }
 
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(spacing: 24) {
                 if let recap, let selected {
                     pickers(selected)
                     preview

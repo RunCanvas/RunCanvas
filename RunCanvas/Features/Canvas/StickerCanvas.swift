@@ -163,6 +163,9 @@ private struct StickerLayer: View {
     @State private var magnifyStartScale: CGFloat?
     @State private var rotateStartAngle: Angle?
 
+    /// 핀치와 모서리 손잡이가 같은 한계를 쓴다 — 따로 두면 핀치로 3.5배 키운 뒤 손잡이를 잡는 순간 3배로 튄다
+    private static let scaleRange: ClosedRange<CGFloat> = 0.3...4
+
     private var contentScale: CGFloat {
         canvasSize.width / 350
     }
@@ -230,7 +233,7 @@ private struct StickerLayer: View {
                 onSelect()
                 let start = magnifyStartScale ?? sticker.scale
                 if magnifyStartScale == nil { magnifyStartScale = start }
-                sticker.scale = min(max(start * value.magnification, 0.3), 4)
+                sticker.scale = (start * value.magnification).clamped(to: Self.scaleRange)
             }
             .onEnded { _ in magnifyStartScale = nil }
     }
@@ -279,7 +282,7 @@ private struct StickerLayer: View {
                 if resizeStartScale == nil { resizeStartScale = start }
                 let diagonalDelta = (value.translation.width + value.translation.height) / 2
                 // 기준 350pt 캔버스에서 100pt = 스케일 1 — 기기 폭이 달라도 손맛이 같게
-                sticker.scale = min(max(start + diagonalDelta / (canvasSize.width / 3.5), 0.45), 3)
+                sticker.scale = (start + diagonalDelta / (canvasSize.width / 3.5)).clamped(to: Self.scaleRange)
             }
             .onEnded { _ in
                 resizeStartScale = nil
@@ -389,4 +392,8 @@ private struct RouteStickerShape: Shape {
         }
         return path
     }
+}
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self { min(max(self, range.lowerBound), range.upperBound) }
 }

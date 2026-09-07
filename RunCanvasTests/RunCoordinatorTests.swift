@@ -36,4 +36,63 @@ final class RunCoordinatorTests: XCTestCase {
         ))
         XCTAssertEqual(session.heartRateSamples, [])    // 심박은 폰 스트림만 담는다
     }
+
+    /// 반대쪽 — 워치가 워크아웃을 들고 있는 정상 경로에서는 스냅샷이 실제로 반영돼야 한다.
+    /// 위 테스트의 guard 를 너무 넓게 잡으면 워치 심박·종료가 통째로 죽는데, 그때 아무도 안 깨진다.
+    @MainActor
+    func testWatchSnapshotsRecordHeartRateAndFinishWhileWatchOwnsWorkout() throws {
+        let (coordinator, session, watch) = try makeCoordinator()
+        let previousOwner = coordinator.ownerID
+        defer { coordinator.ownerID = previousOwner }
+        coordinator.ownerID = UUID()
+
+        let id = UUID()
+        session.start(sessionID: id, healthManagedExternally: true)
+
+        watch.onSnapshot?(WatchWorkoutSnapshot(
+            sessionID: id, state: "running", elapsedSeconds: 10, distanceMeters: 40, heartRate: 148
+        ))
+        XCTAssertEqual(session.heartRateSamples, [148])
+
+        watch.onSnapshot?(WatchWorkoutSnapshot(
+            sessionID: id, state: "finished", elapsedSeconds: 20, distanceMeters: 80, heartRate: 150
+        ))
+        XCTAssertEqual(session.state, .finished, "워치가 끝냈으면 폰도 끝나야 한다")
+        XCTAssertNotNil(coordinator.finishedRun, "결과 화면에 띄울 기록이 남아야 한다")
+    }
+
+    /// 다른 세션의 명령·스냅샷은 무시한다 — 지난 러닝의 큐가 늦게 배달돼도 지금 러닝을 건드리지 않게
+    @MainActor
+    func testCommandsAndSnapshotsForAnotherSessionAreIgnored() throws {
+        let (coordinator, session, watch) = try makeCoordinator()
+        let previousOwner = coordinator.ownerID
+        defer { coordinator.ownerID = previousOwner }
+        coordinator.ownerID = UUID()
+
+        let id = UUID()
+        session.start(sessionID: id, healthManagedExternally: true)
+
+        watch.onCommand?(.pause, UUID())
+        XCTAssertEqual(session.state, .running)
+
+        watch.onSnapshot?(WatchWorkoutSnapshot(
+            sessionID: UUID(), state: "finished", elapsedSeconds: 9, distanceMeters: 9, heartRate: 160
+        ))
+        XCTAssertEqual(session.state, .running)
+        XCTAssertEqual(session.heartRateSamples, [])
+
+        watch.onCommand?(.end, id)
+        XCTAssertEqual(session.state, .finished, "같은 세션의 종료는 받아야 한다")
+    }
+
+    @MainActor
+    private func makeCoordinator() throws -> (RunCoordinator, RunSession, WatchConnectivityService) {
+        let container = try ModelContainer(
+            for: Run.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let watch = WatchConnectivityService()
+        let session = RunSession(location: LocationService())
+        return (RunCoordinator(watch: watch, context: ModelContext(container), session: session), session, watch)
+    }
 }

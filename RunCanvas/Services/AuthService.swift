@@ -68,7 +68,6 @@ final class AuthService {
 
     // MARK: - 계정 연결 (Supabase "Allow manual linking" 필요)
 
-    func isLinked(_ provider: String) -> Bool { identities.contains { $0.provider == provider } }
     func identity(for provider: String) -> UserIdentity? { identities.first { $0.provider == provider } }
 
     func linkGoogle() async throws { try await link(.google) }

@@ -270,11 +270,14 @@ final class RunSession {
 
     private func startTicker() {
         ticker?.invalidate()
-        ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        // 기본 런루프 모드 타이머는 화면을 스크롤하는 동안 안 돈다 — 시간 표시가 멈추고 음성 안내가 밀린다
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.tick += 1
             self.checkVoiceCue()
             if self.tick % 30 == 0 { self.saveCheckpoint() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        ticker = timer
     }
 }

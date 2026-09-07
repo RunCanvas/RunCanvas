@@ -27,8 +27,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// 폰 스냅샷이 5초 넘게 안 오면 얼어붙은 값 대신 워치 자체 값을 보여준다
     private static let snapshotStaleAfter: TimeInterval = 5
     private var syncedAt: Date?
-    /// 시작 중(await)에 .end가 오면 세션이 아직 없어 버려지므로 기억해 뒀다가 start() 끝에서 처리한다
-    private var pendingEnd = false
+    /// 시작 중(await)에 온 원격 명령. 세션이 아직 없어 그냥 버려지므로 기억해 뒀다가 start() 끝에서 처리한다
+    /// (폰에서 시작하자마자 일시정지하면 워치만 계속 달리던 문제)
+    private var pendingCommand: WorkoutSyncAction?
 
     private var phoneSyncIsFresh: Bool {
         guard isPhoneReachable, let syncedAt else { return false }
@@ -104,7 +105,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             WKInterfaceDevice.current().play(.start)   // 화면을 안 보는 손목에 탭이 먹었음을 알린다
             startTimer()
             if sendToPhone {
-                connectivity.sendCommand(.start, sessionID: sessionID)
+                connectivity.sendCommand(.start, sessionID: self.sessionID)
             }
             sendSnapshot()
         } catch {
@@ -112,14 +113,18 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             connectivity.sendCommand(.unavailable, sessionID: sessionID)
             resetSession()
         }
-        isStarting = false   // defer로 두면 아래 end()가 다시 pendingEnd로 빠져 영영 안 끝난다
-        if pendingEnd {
-            pendingEnd = false
-            await end(sendToPhone: false)   // 시작이 실패했으면 세션이 없어 guard에서 조용히 빠진다
+        isStarting = false   // defer로 두면 아래 end()가 다시 대기 명령으로 빠져 영영 안 끝난다
+        let queued = pendingCommand
+        pendingCommand = nil
+        switch queued {
+        case .end: await end(sendToPhone: false)   // 시작이 실패했으면 세션이 없어 guard에서 조용히 빠진다
+        case .pause: pause(sendToPhone: false)
+        default: break
         }
     }
 
     func pause(sendToPhone: Bool = true) {
+        if isStarting { pendingCommand = .pause; return }
         guard state == .running else { return }
         workoutSession?.pause()
         state = .paused
@@ -139,7 +144,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
     func end(sendToPhone: Bool = true) async {
         if isStarting {
-            pendingEnd = true
+            pendingCommand = .end
             return
         }
         guard let session = workoutSession, let builder = workoutBuilder else { return }
@@ -292,6 +297,8 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate {
                 // 방금 만든 현재 세션의 상태·타이머를 지우면 안 된다 (HKWorkoutSession은 Sendable)
                 guard let self, self.workoutSession === workoutSession else { return }
                 self.errorMessage = message
+                // 안 알리면 폰은 스냅샷이 30초 끊길 때까지 워치가 기록 중인 줄 안다
+                self.connectivity.sendCommand(.unavailable, sessionID: self.sessionID)
                 self.resetSession()
             }
         }

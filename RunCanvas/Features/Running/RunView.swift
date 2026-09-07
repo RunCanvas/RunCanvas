@@ -32,6 +32,8 @@ struct RunView: View {
     @State private var warnedOffCourse = false
     /// 왕복 코스에서 진행도가 반대편으로 튀지 않게, 직전에 맞춘 지점 주변부터 찾는다
     @State private var lastCourseIndex: Int?
+    /// 결과 화면을 닫으면 이 화면이 다시 나타난다 — 그때 자동 시작이 또 돌지 않게 한 번만 표시해 둔다
+    @State private var didAutoStart = false
 
     private var session: RunSession { runs.session }
 
@@ -111,11 +113,12 @@ struct RunView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                if isActive,
-                   !session.healthManagedExternally,
+                // 왜: 러닝이 시작된 뒤엔 폰이 세션 주인이라, 그때 워치 앱을 열어도 심박이 붙지 않는다
+                // (늦게 시작한 워치 워크아웃은 폰이 .end 로 끝낸다). 그래서 시작 전에만 안내한다
+                if !isActive,
                    watchConnectivity.isWatchAppInstalled,
                    !watchConnectivity.isReachable {
-                    Text("Watch로 심박을 기록하려면 워치 앱을 먼저 열어 주세요")
+                    Text("워치 앱을 먼저 열면 심박까지 함께 기록돼요")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -188,9 +191,12 @@ struct RunView: View {
             if let id = auth.userID { runs.ownerID = id }
             if session.state == .idle || session.state == .finished { recovered = RunSession.recoverable() }
             // 중단 러닝 알럿이 뜰 상황이면 저장/버리기를 고른 뒤에 시작한다
-            if startImmediately,
+            if startImmediately, !didAutoStart,
                session.state == .idle || session.state == .finished,
-               recovered == nil { startRun() }
+               recovered == nil {
+                didAutoStart = true
+                startRun()
+            }
         }
         .confirmationDialog("러닝을 종료할까요?", isPresented: $confirmsFinish, titleVisibility: .visible) {
             Button("종료", role: .destructive) { finish() }
@@ -249,12 +255,16 @@ struct RunView: View {
             Button("버리기", role: .destructive) {
                 RunSession.discardRecoverable()
                 recovered = nil
-                if startImmediately { startRun() }
+                if startImmediately, !didAutoStart {
+                    didAutoStart = true
+                    startRun()
+                }
             }
         } message: {
             Text(recoveredMessage)
         }
-        .fullScreenCover(item: $runs.finishedRun, onDismiss: { dismiss() }) { run in
+        // 왜: finishedRun 이 코드로 비워질 때도 onDismiss 가 불린다. 그때 달리는 중이면 화면을 닫으면 안 된다
+        .fullScreenCover(item: $runs.finishedRun, onDismiss: { if !isActive { dismiss() } }) { run in
             RunResultView(run: run)
         }
     }

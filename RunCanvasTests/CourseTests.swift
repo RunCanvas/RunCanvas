@@ -45,6 +45,21 @@ final class CourseTests: XCTestCase {
         XCTAssertGreaterThan(path.count, 0)
     }
 
+    /// 25km 넘는 기록은 5m 간격으로도 서버 제약(courses_path_size, 5000점)을 넘는다 —
+    /// 안 솎으면 업로드가 400으로 튕기고 등록 화면엔 "연결을 확인해 주세요"만 뜬다
+    func testLongRouteIsThinnedUnderServerPointLimit() {
+        let now = Date()
+        let step = 10.0 / 111_000                      // 위도 10m
+        let route = (0..<6_000).map { index in
+            RoutePoint(latitude: 37.5665 + Double(index) * step,
+                       longitude: 126.9780, timestamp: now.addingTimeInterval(Double(index)))
+        }
+        let path = CourseGeometry.path(from: route)
+        XCTAssertLessThanOrEqual(path.count, CourseGeometry.maxPathPoints)
+        XCTAssertGreaterThan(path.count, 1_000, "간격만 넓히지 경로를 뭉개면 안 된다")
+        XCTAssertEqual(CourseGeometry.length(path), 60_000, accuracy: 2_000, "솎아도 거리는 그대로")
+    }
+
     /// 코스 등록 때 지역을 손으로 고르면 잘못 고른 코스가 섞인다 — 위치에서 추측한 값을 쓴다
     func testAdministrativeAreaBecomesShortRegion() {
         XCTAssertEqual(KoreaRegion.short(administrativeArea: "서울특별시"), "서울")

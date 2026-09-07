@@ -141,21 +141,15 @@ final class CourseService {
         }
     }
 
-    /// 기록 하나를 코스로 올린다. 경로 앞뒤는 잘라서 보낸다(집·직장 노출 방지).
-    /// 자르고 남은 게 너무 짧으면 등록하지 않고 이유를 알려 준다.
-    @MainActor
-    func register(route: [RoutePoint], name: String, region: String,
-                  ownerID: UUID, ownerNickname: String) async throws -> Course {
-        let trimmed = CourseGeometry.trimmed(CourseGeometry.path(from: route))
-        return try await register(path: trimmed, name: name, region: region,
-                                  ownerID: ownerID, ownerNickname: ownerNickname)
-    }
-
-    /// 등록 화면에서 이미 계산한 공유 경로를 받아 검증과 업로드가 같은 결과를 쓰게 한다.
+    /// 기록 하나를 코스로 올린다. 경로 앞뒤는 등록 화면에서 이미 잘라 넘긴다(집·직장 노출 방지).
     @MainActor
     func register(path: [CoursePoint], name: String, region: String,
                   ownerID: UUID, ownerNickname: String) async throws -> Course {
         guard !path.isEmpty else { throw CourseError.tooShort }
+        // 서버 제약과 같은 기준(점 5000개·100km). 여기서 막지 않으면 업로드가 400 으로 튕겨
+        // 사용자에게는 "연결을 확인해 주세요"로 보인다
+        let distance = CourseGeometry.length(path)
+        guard path.count <= CourseGeometry.maxPathPoints, distance <= 100_000 else { throw CourseError.tooLong }
 
         let course = Course(ownerID: ownerID, ownerNickname: ownerNickname,
                             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -182,12 +176,16 @@ final class CourseService {
 
     enum CourseError: LocalizedError {
         case tooShort
+        case tooLong
 
         var errorDescription: String? {
             switch self {
             case .tooShort:
                 // 앞뒤 150m를 자르므로, 짧은 기록은 자르고 나면 코스라 할 게 안 남는다
                 "코스로 올리기엔 기록이 짧아요. 600m 이상 달린 기록을 골라 주세요."
+            case .tooLong:
+                // 서버가 courses_distance·courses_path_size 로 막는다 — 그 전에 이유를 알려 준다
+                "코스로 올리기엔 기록이 길어요. 100km 이하 기록을 골라 주세요."
             }
         }
     }

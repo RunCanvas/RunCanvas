@@ -16,7 +16,7 @@
 
 - iOS 18.5+, Xcode 26, `SWIFT_VERSION = 5.0`, SwiftUI만 (UIKit은 `ImageRenderer`·`UIImageWriteToSavedPhotosAlbum` 같은 브릿지에만).
 - 외부 의존성은 `supabase-swift` 하나. 구글/카카오 네이티브 SDK 추가 금지 — Supabase OAuth(웹) 플로우 사용.
-- 서명: `DEVELOPMENT_TEAM`·`PRODUCT_BUNDLE_IDENTIFIER`는 gitignore된 `Config/Base.xcconfig`에만. `Base.example.xcconfig`를 복사해 팀원별 값을 설정한다. entitlements·capability에 팀 종속 식별자 하드코딩 금지 → `$(PRODUCT_BUNDLE_IDENTIFIER)` 기반. Xcode Signing 탭에서 Team 변경 금지.
+- 서명: 기본값(`DEVELOPMENT_TEAM`·`APP_BUNDLE_ID`)은 커밋된 `Config/Base.xcconfig`에 있고, 팀원은 gitignore된 `Config/Local.xcconfig`에 두 줄로 덮어쓴다. 앱·워치·테스트 번들 ID는 전부 `APP_BUNDLE_ID` 하나에서 파생. entitlements·capability에 팀 종속 식별자 하드코딩 금지 → `$(PRODUCT_BUNDLE_IDENTIFIER)` 기반. Xcode Signing 탭에서 Team 변경 금지(pbxproj에 개인 값이 박힌다).
 - Supabase Apple 프로바이더 Client IDs에 팀원 번들 ID가 있어야 그 폰에서 Apple 로그인이 됨 (현재 `name.dongharyu.RunCanvas, name.daun.RunCanvas, com.daun1997.RunCanvas`).
 - git-flow: `feature/<기능>` → PR → `develop`. 커밋 메시지에 AI 작성 문구 없음. `main`/`develop` 직접 푸시 금지. Xcode가 pbxproj를 재정렬한 내용 없는 변경은 커밋하지 말고 되돌린다.
 - 빈 폴더에 `.gitkeep` 금지 (Xcode 동기화 폴더가 리소스로 복사해 빌드 깨짐). 폴더는 첫 파일과 함께 생성.

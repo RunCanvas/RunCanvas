@@ -22,24 +22,31 @@ iOS app (SwiftUI, Xcode 26, iOS 18.5+).
 ```
 RunCanvas/
 ├── App/          RunCanvasApp, AppRouter(스플래시→로그인/프로필설정/탭), RootTabView(홈·기록·런꾸·설정)
-├── Models/       Run(SwiftData, ownerID로 계정별), RoutePoint, RunDTO(서버 사본), Profile, Badge, Level, Challenge
-├── Services/     Supabase, AuthService, ProfileService, SyncService, LocationService, VoiceCoach,
-│                 RunMath, BadgeEngine, BadgeStore, ChallengeEngine
+├── Models/       Run(SwiftData, ownerID로 계정별), RoutePoint, RunDTO(서버 사본), Profile, Badge, Level, Challenge,
+│                 Course(공유 코스), TrainingProgram(내장 + 사용자 제작)
+├── Services/     Supabase, AuthService, ProfileService, SyncService, LocationService, HealthService, VoiceCoach,
+│                 RunMath, BadgeEngine, BadgeStore, ChallengeEngine, CourseService, CourseGeometry, TrainingStore
 ├── Features/     화면 묶음별 폴더
 │   ├── Onboarding/ SplashView
 │   ├── Auth/       LoginView, ProfileSetupView
 │   ├── Home/       RunnerHomeView (오늘 거리 + 현재 위치 지도, 최근 러닝)
-│   ├── Running/    RunView, RunSession, RunResultView, RunDetailView, RouteMapView
+│   ├── Running/    RunCoordinator(앱 수명 세션·워치 연동), RunView, RunSession, RunResultView, RunDetailView, RouteMapView
 │   ├── Records/    RunStatsView(주·월·년 차트), RunListView, StatsEngine
 │   ├── Badges/     BadgesView(레벨·챌린지·최고 기록·뱃지), BadgeEarnedToast
+│   ├── Courses/    러닝 코스 공유 (목록·지도 탐색, 등록, 따라뛰기)
+│   ├── Marathon/   마라톤 일정 (6시간마다 GitHub Actions 로 동기화한 Supabase 표를 읽는다)
+│   ├── Training/   트레이닝 프로그램 (내장 3종 + 직접 만들기, 세션 진행)
+│   ├── Recap/      이달의 러닝 정산
 │   ├── Canvas/     런꾸 (배경·기록 선택, 스티커 편집, 이미지 저장·공유)
 │   └── Settings/   SettingsView, ProfileEditView, VoiceSettingsView
-├── Components/   PrimaryButton, StatLabel, AppleSignInButton, Keyboard, ProfileRows
+├── Components/   PrimaryButton, SecondaryButton, StatLabel, ChipRow, FilterMenuPill, AppleSignInButton,
+│                 Keyboard, ProfileRows
 ├── Assets.xcassets/Badges/  뱃지 일러스트 19개
 └── Info.plist    배열 키(백그라운드 위치·오디오, URL 스킴)
 RunCanvasTests/    유닛 테스트 (순수 함수·DTO·세션)
 RunCanvasUITests/  시뮬레이터 화면 흐름 + 스크린샷 (런치 인자 -uiTestSkipLogin / -uiTestReset / -uiTestSkipHealth)
 scripts/uitest.sh  UI 테스트 실행기 — 시뮬레이터 위치 권한을 허용한 뒤 xcodebuild 를 돌린다
+scripts/sync_marathons.py  마라톤 일정 수집 → Supabase (`.github/workflows/sync-marathons.yml` 이 6시간마다 실행)
 docs/              supabase/schema.sql, superpowers/plans/(MVP 플랜 — 진행 상황·남은 태스크), design/
 ```
 

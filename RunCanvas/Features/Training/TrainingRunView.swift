@@ -165,9 +165,13 @@ struct TrainingRunView: View {
             ) {
                 if run.state == .paused { runs.resume() } else { runs.pause() }
             }
-            Button(didFinish ? "저장하고 나가기" : "훈련 끝내기") { confirmsFinish = true }
-                .font(.subheadline)
-                .foregroundStyle(.red)
+            Button { confirmsFinish = true } label: {
+                Text(didFinish ? "저장하고 나가기" : "훈련 끝내기")
+                    .font(.subheadline)
+                    .foregroundStyle(.red)
+                    .frame(minWidth: 44, minHeight: 44)   // RunView 종료 버튼과 같은 탭 영역
+                    .contentShape(Rectangle())
+            }
         }
     }
 

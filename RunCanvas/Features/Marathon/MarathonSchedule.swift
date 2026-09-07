@@ -169,19 +169,16 @@ enum KoreaRegion {
 
 /// 일정 묶음 + 필터링. 순수 함수라 유닛 테스트가 쉽다.
 struct MarathonSchedule: Equatable, Decodable {
-    var updatedAt: String = ""
     var events: [MarathonEvent] = []
 
-    private enum CodingKeys: String, CodingKey { case updatedAt, events }
+    private enum CodingKeys: String, CodingKey { case events }
 
-    init(updatedAt: String = "", events: [MarathonEvent] = []) {
-        self.updatedAt = updatedAt
+    init(events: [MarathonEvent] = []) {
         self.events = events
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        updatedAt = (try? c.decode(String.self, forKey: .updatedAt)) ?? ""
         // 한 항목이 깨져도 나머지는 살린다
         var events: [MarathonEvent] = []
         if var list = try? c.nestedUnkeyedContainer(forKey: .events) {
