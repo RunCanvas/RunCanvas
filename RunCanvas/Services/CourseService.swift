@@ -145,7 +145,7 @@ final class CourseService {
     @MainActor
     func register(path: [CoursePoint], name: String, region: String,
                   ownerID: UUID, ownerNickname: String) async throws -> Course {
-        guard !path.isEmpty else { throw CourseError.tooShort }
+        guard path.count >= 2 else { throw CourseError.tooShort }   // 서버 courses_path_size 하한과 같게
         // 서버 제약과 같은 기준(점 5000개·100km). 여기서 막지 않으면 업로드가 400 으로 튕겨
         // 사용자에게는 "연결을 확인해 주세요"로 보인다
         let distance = CourseGeometry.length(path)
