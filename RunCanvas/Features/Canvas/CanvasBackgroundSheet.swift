@@ -11,7 +11,7 @@ struct CanvasBackgroundSheet: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var showsCamera = false
     @State private var isLoadingPhoto = false
-    @State private var errorMessage: String?
+    @State private var errorMessage: BackgroundMessage?
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -21,7 +21,7 @@ struct CanvasBackgroundSheet: View {
                 VStack(spacing: 20) {
                     HStack(spacing: 12) {
                         PhotosPicker(selection: $photoItem, matching: .images, preferredItemEncoding: .compatible) {
-                            sourceButton(
+                            SecondaryButtonLabel(
                                 title: isLoadingPhoto ? "불러오는 중…" : "사진 앨범",
                                 systemImage: "photo.on.rectangle",
                                 isLoading: isLoadingPhoto
@@ -29,9 +29,7 @@ struct CanvasBackgroundSheet: View {
                         }
                         .disabled(isLoadingPhoto)
 
-                        Button { requestCamera() } label: {
-                            sourceButton(title: "카메라", systemImage: "camera")
-                        }
+                        SecondaryButton(title: "카메라", systemImage: "camera") { requestCamera() }
                         .disabled(isLoadingPhoto)
                     }
 
@@ -54,6 +52,7 @@ struct CanvasBackgroundSheet: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    .disabled(isLoadingPhoto)
                 }
                 .padding(20)
             }
@@ -74,13 +73,13 @@ struct CanvasBackgroundSheet: View {
                     // 시뮬레이터/일부 HEIC에서 loadTransferable이 영영 안 끝나는 경우가 있어 타임아웃을 건다
                     guard let data = try await withTimeoutValue(seconds: 20, { try await item.loadTransferable(type: Data.self) }),
                           let image = UIImage(data: data) else {
-                        errorMessage = "사진을 불러오지 못했어요."
+                        errorMessage = BackgroundMessage(text: "사진을 불러오지 못했어요.")
                         return
                     }
                     onSelect(.photo(await downsampled(image)))
                     dismiss()
                 } catch {
-                    errorMessage = "사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요."
+                    errorMessage = BackgroundMessage(text: "사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요.")
                 }
             }
         }
@@ -98,34 +97,20 @@ struct CanvasBackgroundSheet: View {
         .alert("배경을 선택할 수 없어요", isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
-        )) {
+        ), presenting: errorMessage) { message in
+            if message.opensSettings, let url = URL(string: UIApplication.openSettingsURLString) {
+                Link("설정 열기", destination: url)
+            }
             Button("확인", role: .cancel) {}
         } message: {
-            Text(errorMessage ?? "")
+            Text($0.text)
         }
-    }
-
-    private func sourceButton(title: String, systemImage: String, isLoading: Bool = false) -> some View {
-        HStack(spacing: 6) {
-            if isLoading {
-                ProgressView().controlSize(.small)
-            } else {
-                Image(systemName: systemImage)
-            }
-            Text(title)
-        }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.primary)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(Color.card)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     /// 카메라는 권한이 거부돼 있으면 검은 화면만 뜨므로 미리 확인한다
     private func requestCamera() {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            errorMessage = "이 기기에서는 카메라를 사용할 수 없어요."
+            errorMessage = BackgroundMessage(text: "이 기기에서는 카메라를 사용할 수 없어요.")
             return
         }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -136,11 +121,17 @@ struct CanvasBackgroundSheet: View {
                 if await AVCaptureDevice.requestAccess(for: .video) {
                     showsCamera = true
                 } else {
-                    errorMessage = "설정 앱에서 카메라 권한을 허용해주세요."
+                    errorMessage = BackgroundMessage(
+                        text: "설정 앱에서 카메라 권한을 허용해주세요.",
+                        opensSettings: true
+                    )
                 }
             }
         default:
-            errorMessage = "설정 앱에서 카메라 권한을 허용해주세요."
+            errorMessage = BackgroundMessage(
+                text: "설정 앱에서 카메라 권한을 허용해주세요.",
+                opensSettings: true
+            )
         }
     }
 
@@ -156,6 +147,11 @@ struct CanvasBackgroundSheet: View {
         )
         return await image.byPreparingThumbnail(ofSize: target) ?? image
     }
+}
+
+private struct BackgroundMessage {
+    let text: String
+    var opensSettings = false
 }
 
 struct CameraPicker: UIViewControllerRepresentable {

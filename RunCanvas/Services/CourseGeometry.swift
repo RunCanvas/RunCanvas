@@ -47,47 +47,86 @@ enum CourseGeometry {
         return length(kept) >= minimumLength ? kept : []
     }
 
+    /// 서버 courses_path_size 제약과 같은 값. 넘으면 간격을 늘려 다시 솎는다.
+    static let maxPathPoints = 5_000
+
     /// 기록의 경로를 코스 경로로. 좌표가 거의 안 변한 점은 버려서 크기를 줄인다(1Hz 기록은 대부분 중복).
     static func path(from route: [RoutePoint], minimumSpacing: Double = 5) -> [CoursePoint] {
-        var result: [CoursePoint] = []
-        for point in route {
-            let candidate = CoursePoint(point)
-            if let last = result.last, distance(last, candidate) < minimumSpacing { continue }
-            result.append(candidate)
+        var spacing = minimumSpacing
+        // 장거리 기록은 5m 간격으로도 5000점을 넘는다(25km 이상) — 넘으면 간격을 넓혀 다시 솎는다
+        while true {
+            var result: [CoursePoint] = []
+            for point in route {
+                let candidate = CoursePoint(point)
+                if let last = result.last, distance(last, candidate) < spacing { continue }
+                result.append(candidate)
+            }
+            if result.count <= maxPathPoints || spacing > 200 { return result }
+            spacing *= 2
         }
-        return result
     }
 
     // MARK: - 따라뛰기
 
+    struct Match: Equatable {
+        let index: Int
+        let distanceMeters: Double
+    }
+
+    /// 직전 매칭 뒤쪽만 훑어 왕복·순환 경로의 겹친 점에서 과거 구간으로 튀지 않게 한다.
+    /// 50m 넘게 떨어졌다면 코스 이탈 뒤 다른 지점으로 복귀한 것으로 보고 전체 경로에서 다시 찾는다.
+    static func match(to point: CoursePoint, in path: [CoursePoint], near lastIndex: Int?,
+                      window: Int = 40, fallbackDistance: Double = 50) -> Match? {
+        guard !path.isEmpty else { return nil }
+        guard let lastIndex else { return closestMatch(to: point, in: path.indices, path: path) }
+
+        let start = min(max(lastIndex, path.startIndex), path.index(before: path.endIndex))
+        let end = min(start + max(0, window), path.index(before: path.endIndex))
+        let nearby = closestMatch(to: point, in: start...end, path: path)!
+        if nearby.distanceMeters <= fallbackDistance { return nearby }
+        return closestMatch(to: point, in: path.indices, path: path)
+    }
+
     /// 코스에서 현재 위치와 가장 가까운 점의 인덱스
     static func nearestIndex(to point: CoursePoint, in path: [CoursePoint]) -> Int? {
-        guard !path.isEmpty else { return nil }
-        var best = 0
+        match(to: point, in: path, near: nil)?.index
+    }
+
+    static func nearestIndex(to point: CoursePoint, in path: [CoursePoint], near lastIndex: Int,
+                             window: Int = 40, fallbackDistance: Double = 50) -> Int? {
+        match(to: point, in: path, near: lastIndex,
+              window: window, fallbackDistance: fallbackDistance)?.index
+    }
+
+    private static func closestMatch<Indices: Sequence>(to point: CoursePoint, in indices: Indices,
+                                                        path: [CoursePoint]) -> Match?
+    where Indices.Element == Int {
+        var best: Match?
         var bestDistance = Double.greatestFiniteMagnitude
-        for (index, candidate) in path.enumerated() {
-            let d = distance(point, candidate)
+        for index in indices {
+            let d = distance(point, path[index])
             if d < bestDistance {
                 bestDistance = d
-                best = index
+                best = Match(index: index, distanceMeters: d)
             }
         }
         return best
     }
 
-    /// 코스를 얼마나 왔는지 0…1. 가장 가까운 점까지의 누적 거리 기준이라
-    /// 되돌아 뛰면 값이 줄어든다 — 그게 실제 진행 상황이다.
-    static func progress(at point: CoursePoint, in path: [CoursePoint]) -> Double {
-        guard let index = nearestIndex(to: point, in: path), path.count > 1 else { return 0 }
+    /// 이미 찾은 인덱스를 진행률로 바꾼다. 매칭과 이탈 거리가 같은 점을 기준으로 계산되게 분리했다.
+    static func progress(through index: Int, in path: [CoursePoint]) -> Double {
+        guard path.count > 1, path.indices.contains(index) else { return 0 }
         let total = length(path)
         guard total > 0 else { return 0 }
-        let walked = length(Array(path[0...index]))
+        let walked = length(Array(path[...index]))
         return min(1, max(0, walked / total))
     }
 
-    /// 코스에서 얼마나 벗어났는지(m). 가장 가까운 점까지의 직선 거리.
-    static func offCourseMeters(_ point: CoursePoint, path: [CoursePoint]) -> Double {
-        guard let index = nearestIndex(to: point, in: path) else { return 0 }
-        return distance(point, path[index])
+    /// 코스를 얼마나 왔는지 0…1. 가장 가까운 점까지의 누적 거리 기준.
+    /// (따라뛰기 화면은 match(to:in:near:)로 직전 지점 주변만 보므로 되돌아 뛰어도 값이 뒤로 가지 않는다 —
+    ///  왕복 코스에서 반대편으로 튀는 걸 막는 쪽을 택했다. 이 함수는 그 창 없이 전체에서 찾는다.)
+    static func progress(at point: CoursePoint, in path: [CoursePoint]) -> Double {
+        guard let index = nearestIndex(to: point, in: path), path.count > 1 else { return 0 }
+        return progress(through: index, in: path)
     }
 }

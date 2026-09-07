@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import WatchKit
 
 /// 워크아웃 상태·수치는 전부 메인 액터에서만 만진다 — 원격 명령(Task)과 1초 타이머가 같은 값을 건드려서
 /// 클래스 전체를 @MainActor로 묶었다. HealthKit 델리게이트 콜백만 nonisolated로 받아 메인으로 넘긴다.
@@ -18,26 +19,35 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     @Published private(set) var activeEnergy: Double = 0
     @Published private(set) var elapsedSeconds: Int = 0
     @Published private(set) var syncedDistanceMeters: Double?
-    @Published private(set) var syncedElapsedSeconds: Int?
     @Published private(set) var isPhoneReachable = false
+    /// start()가 권한·beginCollection을 기다리는 동안 true — 뷰에서 시작 버튼을 잠그는 데 쓴다
+    @Published private(set) var isStarting = false
     @Published var errorMessage: String?
 
     /// 폰 스냅샷이 5초 넘게 안 오면 얼어붙은 값 대신 워치 자체 값을 보여준다
     private static let snapshotStaleAfter: TimeInterval = 5
     private var syncedAt: Date?
+    /// 시작 중(await)에 온 원격 명령. 세션이 아직 없어 그냥 버려지므로 기억해 뒀다가 start() 끝에서 처리한다
+    /// (폰에서 시작하자마자 일시정지하면 워치만 계속 달리던 문제)
+    private var pendingCommand: WorkoutSyncAction?
+
+    /// 폰이 이 세션을 실제로 기록 중인지. `isPhoneReachable`(닿는다)과 다르다 —
+    /// 폰이 위치 권한 등으로 시작을 거절하면 닿아도 스냅샷이 아예 안 온다.
+    var isPhoneRecording: Bool { phoneSyncIsFresh }
 
     private var phoneSyncIsFresh: Bool {
         guard isPhoneReachable, let syncedAt else { return false }
         return Date().timeIntervalSince(syncedAt) < Self.snapshotStaleAfter
     }
 
+    /// 거리만 폰 GPS 값을 우선한다 — 워치 단독 거리는 추정치라 덜 정확하다
     var displayedDistanceMeters: Double {
         phoneSyncIsFresh ? (syncedDistanceMeters ?? distanceMeters) : distanceMeters
     }
 
-    var displayedElapsedSeconds: Int {
-        phoneSyncIsFresh ? (syncedElapsedSeconds ?? elapsedSeconds) : elapsedSeconds
-    }
+    /// 시간은 워치 builder.elapsedTime이 진실이다. 폰 값을 우선하면 워치가 먼저 시작했을 때 폰이 늦게 합류하는 순간
+    /// 시간이 뒤로 점프했다가 스냅샷이 끊기면 다시 튀어오른다 (pause/resume은 명령으로 동기화되니 폰 값이 필요 없다)
+    var displayedElapsedSeconds: Int { elapsedSeconds }
 
     private let healthStore = HKHealthStore()
     private let connectivity = WatchConnectivityService()
@@ -60,6 +70,11 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     }
 
     func start(sessionID: UUID = UUID(), sendToPhone: Bool = true) async {
+        // 왜: 권한·beginCollection을 기다리는 동안 두 번째 start()(손목 두 번 탭, 폰 .start 동시 도착)가
+        // 새 HKWorkoutSession을 만들면 HealthKit이 먼저 것을 실패시키고, 그 콜백이 두 번째 세션 참조까지 지워
+        // UI는 idle인데 워크아웃은 계속 도는 상태가 된다
+        guard !isStarting, state == .idle || state == .finished else { return }
+        isStarting = true
         self.sessionID = sessionID
         do {
             try await requestAuthorization()
@@ -84,7 +99,6 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             activeEnergy = 0
             elapsedSeconds = 0
             syncedDistanceMeters = nil
-            syncedElapsedSeconds = nil
             syncedAt = nil
 
             let startDate = Date()
@@ -92,9 +106,10 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             try await builder.beginCollection(at: startDate)
 
             state = .running
+            WKInterfaceDevice.current().play(.start)   // 화면을 안 보는 손목에 탭이 먹었음을 알린다
             startTimer()
             if sendToPhone {
-                connectivity.sendCommand(.start, sessionID: sessionID)
+                connectivity.sendCommand(.start, sessionID: self.sessionID)
             }
             sendSnapshot()
         } catch {
@@ -102,12 +117,23 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             connectivity.sendCommand(.unavailable, sessionID: sessionID)
             resetSession()
         }
+        isStarting = false   // defer로 두면 아래 end()가 다시 대기 명령으로 빠져 영영 안 끝난다
+        let queued = pendingCommand
+        pendingCommand = nil
+        switch queued {
+        case .end: await end(sendToPhone: false)   // 시작이 실패했으면 세션이 없어 guard에서 조용히 빠진다
+        case .discard: await end(sendToPhone: false, discarding: true)
+        case .pause: pause(sendToPhone: false)
+        default: break
+        }
     }
 
     func pause(sendToPhone: Bool = true) {
+        if isStarting { pendingCommand = .pause; return }
         guard state == .running else { return }
         workoutSession?.pause()
         state = .paused
+        WKInterfaceDevice.current().play(.click)
         if sendToPhone { connectivity.sendCommand(.pause, sessionID: sessionID) }
         sendSnapshot()
     }
@@ -116,22 +142,38 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         guard state == .paused else { return }
         workoutSession?.resume()
         state = .running
+        WKInterfaceDevice.current().play(.click)
         if sendToPhone { connectivity.sendCommand(.resume, sessionID: sessionID) }
         sendSnapshot()
     }
 
-    func end(sendToPhone: Bool = true) async {
+    /// `discarding` 이면 건강 앱에 저장하지 않고 버린다 — 폰이 기록을 인계한 경우.
+    func end(sendToPhone: Bool = true, discarding: Bool = false) async {
+        if isStarting {
+            pendingCommand = discarding ? .discard : .end
+            return
+        }
         guard let session = workoutSession, let builder = workoutBuilder else { return }
+        // 왜: endCollection·finishWorkout을 기다리는 동안 두 번째 end()(손목 두 번 탭, 폰 .end 동시 도착)가
+        // 위 guard를 통과해 endCollection을 두 번 부르면 throw→에러 알럿+idle로 튄다. await 전에 비워서 막는다
+        workoutSession = nil
+        workoutBuilder = nil
+        stopTimer()   // 종료 탭 뒤에도 시간이 올라가면 안 먹은 줄 알고 다시 누른다
+        WKInterfaceDevice.current().play(.stop)
 
         if sendToPhone { connectivity.sendCommand(.end, sessionID: sessionID) }
         session.end()
+        guard !discarding else {
+            // 폰이 이어서 기록 중이다. 여기서 저장하면 건강 앱에 몇 초~몇십 초짜리 조각이 하나 더 남는다.
+            builder.discardWorkout()
+            stopTimer()
+            state = .idle
+            return
+        }
         do {
             try await builder.endCollection(at: Date())
             _ = try await builder.finishWorkout()
             state = .finished
-            stopTimer()
-            workoutSession = nil        // 중복 .end가 와도 위 guard에서 조용히 걸린다 (에러 알럿 방지)
-            workoutBuilder = nil
             sendSnapshot()
         } catch {
             errorMessage = error.localizedDescription
@@ -152,6 +194,12 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         let typesToShare: Set<HKSampleType> = [workout, heartRate, distance, activeEnergy]
         let typesToRead: Set<HKObjectType> = [heartRate, distance, activeEnergy]
         try await healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead)
+
+        // 왜: 거부해도 requestAuthorization은 throw하지 않고 뒤의 beginCollection이 시스템 문구로만 실패해
+        // 사용자가 어디서 켜야 하는지 모른 채 막힌다. 워크아웃 쓰기 권한이 없으면 여기서 안내문으로 끊는다
+        guard healthStore.authorizationStatus(for: workout) != .sharingDenied else {
+            throw WatchWorkoutError.sharingDenied
+        }
     }
 
     private func startTimer() {
@@ -171,6 +219,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     }
 
     private func resetSession() {
+        // 왜: beginCollection 실패로 여기 오면 startActivity된 세션이 HealthKit에 살아 있어
+        // 다음 start()가 errorAnotherWorkoutSessionStarted로 깨진다. 이미 끝난 세션이면 end()는 no-op
+        workoutSession?.end()
         workoutSession = nil
         workoutBuilder = nil
         stopTimer()
@@ -214,7 +265,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private func applyRemoteCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
         switch action {
         case .start:
-            guard state == .idle || state == .finished else {
+            guard state == .idle || state == .finished, !isStarting else {
                 // 양쪽에서 거의 동시에 시작한 경우 — 폰을 마스터로 보고 세션 ID를 맞춘다.
                 // (안 맞추면 이후 pause/resume/end가 전부 ID 불일치로 무시된다)
                 self.sessionID = sessionID
@@ -230,6 +281,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         case .end:
             guard sessionID == self.sessionID else { return }
             Task { await end(sendToPhone: false) }
+        case .discard:
+            guard sessionID == self.sessionID else { return }
+            Task { await end(sendToPhone: false, discarding: true) }
         case .unavailable:
             break
         }
@@ -239,7 +293,6 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         guard snapshot.sessionID == sessionID,
               state == .running || state == .paused else { return }
         syncedDistanceMeters = snapshot.distanceMeters
-        syncedElapsedSeconds = snapshot.elapsedSeconds
         syncedAt = Date()
     }
 }
@@ -256,8 +309,13 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate {
         let message = error.localizedDescription
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
-                self?.errorMessage = message
-                self?.resetSession()
+                // 왜: 버려진 옛 세션이 errorAnotherWorkoutSessionStarted로 실패한 콜백이
+                // 방금 만든 현재 세션의 상태·타이머를 지우면 안 된다 (HKWorkoutSession은 Sendable)
+                guard let self, self.workoutSession === workoutSession else { return }
+                self.errorMessage = message
+                // 안 알리면 폰은 스냅샷이 30초 끊길 때까지 워치가 기록 중인 줄 안다
+                self.connectivity.sendCommand(.unavailable, sessionID: self.sessionID)
+                self.resetSession()
             }
         }
     }
@@ -288,8 +346,14 @@ extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {
 
 private enum WatchWorkoutError: LocalizedError {
     case healthDataUnavailable
+    case sharingDenied
 
     var errorDescription: String? {
-        "이 Apple Watch에서는 건강 데이터를 사용할 수 없습니다."
+        switch self {
+        case .healthDataUnavailable:
+            "이 Apple Watch에서는 건강 데이터를 사용할 수 없습니다."
+        case .sharingDenied:
+            "건강 데이터 권한이 꺼져 있어요. iPhone 건강 앱의 공유 > 앱 및 서비스에서 RunCanvas를 허용해 주세요."
+        }
     }
 }

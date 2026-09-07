@@ -26,4 +26,48 @@ enum ProfileService {
         // 캐시 무효화용 쿼리 — 같은 경로에 덮어써도 AsyncImage가 새로 받도록
         return try bucket.getPublicURL(path: path).absoluteString + "?v=\(Int(Date().timeIntervalSince1970))"
     }
+
+    /// 공개 버킷의 사진은 프로필 URL만 비워서는 계속 공개되므로 원본 파일도 함께 지운다.
+    static func removeAvatar(userID: UUID) async throws {
+        let path = "\(userID.uuidString.lowercased())/avatar.jpg"
+        _ = try await supabase.storage.from("avatars").remove(paths: [path])
+    }
+}
+
+/// 설정·편집 화면이 같은 범위와 지역별 소수점 규칙을 쓰도록 한곳에 둔다.
+enum ProfileMeasurement {
+    static let maxHeightCm = 300.0
+    static let maxWeightKg = 500.0
+
+    static func height(from text: String, locale: Locale = .current) -> Double? {
+        parse(text, maximum: maxHeightCm, locale: locale)
+    }
+
+    static func weight(from text: String, locale: Locale = .current) -> Double? {
+        parse(text, maximum: maxWeightKg, locale: locale)
+    }
+
+    static func format(_ value: Double, locale: Locale = .current) -> String {
+        let formatter = formatter(locale: locale)
+        formatter.maximumFractionDigits = 1
+        return formatter.string(from: NSNumber(value: value)) ?? ""
+    }
+
+    private static func parse(_ text: String, maximum: Double, locale: Locale) -> Double? {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty,
+              let value = formatter(locale: locale).number(from: text)?.doubleValue,
+              value > 0,
+              value <= maximum else { return nil }
+        return value
+    }
+
+    private static func formatter(locale: Locale) -> NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.locale = locale
+        formatter.numberStyle = .decimal
+        formatter.isLenient = false
+        formatter.usesGroupingSeparator = false
+        return formatter
+    }
 }

@@ -26,7 +26,7 @@ struct RecapView: View {
         let recap = selected.map { RecapEngine.recap(runs: badgeRuns, scope: scope, anchor: $0) }
 
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(spacing: 24) {
                 if let recap, let selected {
                     pickers(selected)
                     preview
@@ -76,7 +76,8 @@ struct RecapView: View {
                 .shadow(color: .black.opacity(0.2), radius: 12, y: 5)
         } else {
             ProgressView("카드 만드는 중…")
-                .frame(maxWidth: .infinity, minHeight: 320)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(CanvasExporter.size.width / CanvasExporter.size.height, contentMode: .fit)
                 .background(Color.card)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
         }
@@ -93,12 +94,7 @@ struct RecapView: View {
             if let rendered {
                 ShareLink(item: Image(uiImage: rendered),
                           preview: SharePreview(recap.title, image: Image(uiImage: rendered))) {
-                    Label("공유", systemImage: "square.and.arrow.up")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    SecondaryButtonLabel(title: "공유", systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(.plain)
             }

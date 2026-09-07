@@ -7,17 +7,27 @@ struct AppRouter: View {
     @State private var hasProfile = false
     @State private var isLoading = true
     @State private var didShowSplash = false
+    @State private var loadedUserID: UUID?
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
-            if isLoading {
-                SplashView()
+            if isLoading || loadedUserID != auth.userID {
+                if didShowSplash {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color(.systemBackground))
+                } else {
+                    SplashView()
+                }
             } else if !auth.isSignedIn {
                 LoginView()
             } else if !hasProfile {
-                ProfileSetupView { hasProfile = true }
+                ProfileSetupView {
+                    hasProfile = true
+                    markProfiled(auth.userID)
+                }
             } else {
                 RootTabView()
             }
@@ -27,6 +37,7 @@ struct AppRouter: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { syncIfPossible() }
         }
+        .onOpenURL { auth.handleOpenURL($0) }
     }
 
     /// 프로필이 확인된 마지막 계정 — 오프라인에서 "프로필 없음"과 구별하기 위해
@@ -77,6 +88,7 @@ struct AppRouter: View {
             }
             auth.debugUserID = testUser
             hasProfile = true
+            loadedUserID = testUser
             isLoading = false
             return
         }
@@ -84,13 +96,22 @@ struct AppRouter: View {
         isLoading = true
         let started = Date()
         let loadingID = auth.userID          // 이 load()가 담당하는 계정
+        var didAttemptInitialRestore = false
         if let id = loadingID {
+            let wasProfiledOnThisDevice = UserDefaults.standard.string(forKey: Self.profiledUserKey) == id.uuidString
             do {
                 let profile = try await ProfileService.fetchMine(userID: id)
                 guard auth.userID == loadingID else { return }   // 그 사이 계정이 바뀌었으면 이 결과는 버린다
                 profile?.cacheLocally()
                 hasProfile = profile != nil
-                UserDefaults.standard.set(profile != nil ? id.uuidString : "", forKey: Self.profiledUserKey)
+                markProfiled(profile == nil ? nil : id)
+                if profile != nil, !wasProfiledOnThisDevice {
+                    didAttemptInitialRestore = true
+                    // 왜: 새 기기에서 빈 홈을 먼저 보여주지 않되, 서버 지연 때문에 라우팅이 무한히 막히지는 않게 한다.
+                    try? await withTimeoutValue(seconds: 10) {
+                        await SyncService.pullMissing(context: context, ownerID: id)
+                    }
+                }
             } catch {
                 // 네트워크 오류를 "프로필 없음"으로 착각하면 기존 사용자가 오프라인에서 프로필 설정 화면에 갇힌다.
                 // 마지막으로 확인된 계정이면 프로필이 있는 것으로 본다.
@@ -101,13 +122,18 @@ struct AppRouter: View {
             hasProfile = false
         }
         if !didShowSplash {   // 첫 실행만 스플래시 최소 1초
-            didShowSplash = true
             let remaining = 1.0 - Date().timeIntervalSince(started)
             if remaining > 0 { try? await Task.sleep(for: .seconds(remaining)) }
+            didShowSplash = true
         }
         guard auth.userID == loadingID else { return }
+        loadedUserID = loadingID
         isLoading = false
-        syncIfPossible()
+        if !didAttemptInitialRestore { syncIfPossible() }
+    }
+
+    private func markProfiled(_ id: UUID?) {
+        UserDefaults.standard.set(id?.uuidString ?? "", forKey: Self.profiledUserKey)
     }
 }
 

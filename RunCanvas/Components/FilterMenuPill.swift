@@ -44,6 +44,9 @@ struct FilterMenuPill: View {
             .padding(.vertical, 6)
             .background(isNarrowed ? Color.primary : Color.card, in: Capsule())
             .foregroundStyle(isNarrowed ? Color(.systemBackground) : .primary)
+            // 보이는 알약은 작게 유지하되 메뉴를 여는 터치 영역은 44pt를 보장한다.
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .accessibilityIdentifier(title)
         .accessibilityLabel("\(title), 현재 \(selection)")

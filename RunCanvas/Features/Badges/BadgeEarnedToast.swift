@@ -28,6 +28,12 @@ struct BadgeEarnedToast: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
         .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .onAppear {
+            AccessibilityNotification.Announcement(
+                "새 뱃지 \(badges.count)개: \(badges.map(\.title).joined(separator: ", "))"
+            ).post()
+        }
     }
 }
 
@@ -37,6 +43,10 @@ extension View {
             if !badges.wrappedValue.isEmpty {
                 BadgeEarnedToast(badges: badges.wrappedValue)
                     .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture {
+                        withAnimation { badges.wrappedValue = [] }
+                    }
+                    .accessibilityHint("두 번 탭하여 닫기")
                     .task {
                         try? await Task.sleep(for: .seconds(3))
                         withAnimation { badges.wrappedValue = [] }

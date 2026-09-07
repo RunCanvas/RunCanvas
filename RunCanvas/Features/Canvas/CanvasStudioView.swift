@@ -102,7 +102,8 @@ struct CanvasStudioView: View {
             Text("저장하지 않은 스티커 배치는 남지 않아요.")
         }
         .alert(editingTextStickerID == nil ? "텍스트 추가" : "텍스트 수정", isPresented: $showsTextPrompt) {
-            TextField("문구를 입력하세요", text: $customText)
+            // 왜: saveText 가 넘치는 글자를 소리 없이 자르므로 한도를 미리 보여 준다
+            TextField("문구 (\(Self.textLimit)자까지)", text: $customText)
             Button("취소", role: .cancel) { clearTextEditor() }
             Button(editingTextStickerID == nil ? "추가" : "수정") { saveText() }
         }
@@ -118,25 +119,18 @@ struct CanvasStudioView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(Studio.surface, in: Capsule())
+                    .hitTarget()
             }
 
             Spacer()
 
             if let selectedRun {
-                Button { sheet = .run } label: {
-                    HStack(spacing: 5) {
-                        Text("\(RunMath.formatKm(selectedRun.distanceMeters)) km")
-                            .font(.system(size: 14, weight: .semibold))
-                        if !hasFixedRun {
-                            Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(Studio.surface, in: Capsule())
+                // 왜: 고정 기록은 정보 표시다 — disabled 버튼으로 두면 흐려져 "눌러야 하는데 안 되는 것"으로 보인다
+                if hasFixedRun {
+                    runChip(selectedRun)
+                } else {
+                    Button { sheet = .run } label: { runChip(selectedRun).hitTarget() }
                 }
-                .disabled(hasFixedRun)
-                .accessibilityLabel("꾸미는 기록 \(RunMath.formatKm(selectedRun.distanceMeters))킬로미터")
             }
 
             Spacer()
@@ -148,12 +142,27 @@ struct CanvasStudioView: View {
                     .padding(.vertical, 7)
                     .background(selectedRun == nil ? Studio.surface : Color.white, in: Capsule())
                     .foregroundStyle(selectedRun == nil ? Studio.dim : .black)
+                    .hitTarget()
             }
             .disabled(selectedRun == nil)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 3)   // 왜: 히트 영역을 44pt로 키운 만큼 줄여 상단 높이(≈50pt)를 예전 그대로 둔다
+    }
+
+    private func runChip(_ run: Run) -> some View {
+        HStack(spacing: 5) {
+            Text("\(RunMath.formatKm(run.distanceMeters)) km")
+                .font(.system(size: 14, weight: .semibold))
+            if !hasFixedRun {
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Studio.surface, in: Capsule())
+        .accessibilityLabel("꾸미는 기록 \(RunMath.formatKm(run.distanceMeters))킬로미터")
     }
 
     // MARK: - 캔버스: 화면에서 유일하게 밝은 것
@@ -216,28 +225,31 @@ struct CanvasStudioView: View {
 
             // 색은 팔레트에서 고르는 게 스토리 편집기의 어휘다. 맨 끝만 커스텀 피커.
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(Studio.swatches, id: \.self) { color in
-                        Button { applyToSelection { $0.color = color } } label: {
+                // 왜 spacing 0: 44pt 히트 영역 안에 34pt 링이 들어가 있어 시각 간격은 예전(10pt) 그대로다
+                HStack(spacing: 0) {
+                    ForEach(Studio.swatches, id: \.name) { swatch in
+                        let isOn = Studio.isSame(lead.color, swatch.color)
+                        Button { applyToSelection { $0.color = swatch.color } } label: {
                             Circle()
-                                .fill(color)
+                                .fill(swatch.color)
                                 .frame(width: 26, height: 26)
                                 .overlay(Circle().stroke(.white.opacity(0.35), lineWidth: 1))
                                 .overlay {
-                                    if lead.color == color {
+                                    if isOn {
                                         Circle().stroke(.white, lineWidth: 2).frame(width: 34, height: 34)
                                     }
                                 }
+                                .hitTarget()
                         }
-                        .frame(width: 34, height: 34)
-                        .accessibilityLabel(Studio.swatchName(color))
+                        .accessibilityLabel(swatch.name)
+                        .accessibilityAddTraits(isOn ? [.isSelected] : [])
                     }
                     ColorPicker("", selection: Binding(
                         get: { lead.color },
                         set: { color in applyToSelection { $0.color = color } }
                     ), supportsOpacity: false)
                         .labelsHidden()
-                        .frame(width: 34, height: 34)
+                        .frame(width: 44, height: 44)
                         .accessibilityLabel("직접 고르기")
                 }
                 .padding(.horizontal, 18)
@@ -246,31 +258,40 @@ struct CanvasStudioView: View {
             HStack(spacing: 12) {
                 // 글꼴은 이름표보다 실제 모양을 보여주는 게 빠르다
                 ForEach(CanvasSticker.FontStyle.allCases) { style in
+                    let isOn = lead.fontStyle == style
                     Button { applyToSelection { $0.fontStyle = style } } label: {
                         Text("Aa")
                             .font(style.sampleFont)
                             .frame(width: 42, height: 32)
-                            .background(
-                                lead.fontStyle == style ? Color.white : Studio.surface,
-                                in: RoundedRectangle(cornerRadius: 9)
-                            )
-                            .foregroundStyle(lead.fontStyle == style ? .black : .white)
+                            .background(isOn ? Color.white : Studio.surface, in: RoundedRectangle(cornerRadius: 9))
+                            .foregroundStyle(isOn ? .black : .white)
+                            .hitTarget()
                     }
                     .accessibilityLabel("\(style.rawValue) 글꼴")
+                    .accessibilityAddTraits(isOn ? [.isSelected] : [])
                 }
 
-                Slider(value: Binding(
-                    get: { lead.opacity },
-                    set: { value in applyToSelection { $0.opacity = value } }
-                ), in: 0.2...1)
-                    .tint(.white)
-                    .accessibilityLabel("불투명도")
+                Spacer()
 
                 if selection.count == 1, case .text = lead.kind,
                    let index = selectedIndices.first {
                     iconButton("pencil", label: "텍스트 수정") { beginEditingText(at: index) }
                 }
                 iconButton("trash", label: "스티커 삭제") { deleteSelected() }
+            }
+            .padding(.horizontal, 18)
+
+            // 왜 별도 줄: 글꼴·삭제와 한 줄에 두면 SE(375pt)에서 슬라이더 이동 거리가 45pt밖에 안 남아 두세 단계밖에 못 잡는다
+            HStack(spacing: 12) {
+                Image(systemName: "circle.lefthalf.filled")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Studio.dim)
+                Slider(value: Binding(
+                    get: { lead.opacity },
+                    set: { value in applyToSelection { $0.opacity = value } }
+                ), in: 0.2...1)
+                    .tint(.white)
+                    .accessibilityLabel("불투명도")
             }
             .padding(.horizontal, 18)
         }
@@ -286,8 +307,13 @@ struct CanvasStudioView: View {
                 Button("페이스") { add(.pace) }
                 Button("날짜") { add(.date) }
                 Button("칼로리") { add(.calories) }
-                Button("심박수") { add(.heartRate) }
-                Button("경로") { add(.route) }
+                // 왜: 없는 데이터는 "--"·빈 경로 스티커가 되어 공유 이미지에 그대로 박힌다 (defaultStickers 와 같은 가드)
+                if selectedRun?.averageHeartRate != nil {
+                    Button("심박수") { add(.heartRate) }
+                }
+                if (selectedRun?.route.count ?? 0) > 1 {
+                    Button("경로") { add(.route) }
+                }
             } label: {
                 toolLabel("chart.bar", "기록")
             }
@@ -336,6 +362,7 @@ struct CanvasStudioView: View {
                 .frame(width: 34, height: 34)
                 .background(Studio.surface, in: Circle())
                 .foregroundStyle(.white)
+                .hitTarget()
         }
         .accessibilityLabel(label)
     }
@@ -351,10 +378,12 @@ struct CanvasStudioView: View {
         }
     }
 
+    /// 왜: 결과 화면·갤러리에서 기록이 고정돼 들어와도 시트에서 고른 것과 같은 기본 배치로 시작해야 한다
+    /// (예전엔 selectedRun 이 있으면 바로 빠져나가 빈 캔버스가 떴다)
     private func promptForRunIfNeeded() {
-        guard !didPromptForRun, selectedRun == nil else { return }
+        guard !didPromptForRun else { return }
         didPromptForRun = true
-        sheet = .run
+        if let selectedRun { pick(selectedRun) } else { sheet = .run }
     }
 
     private func pick(_ run: Run) {
@@ -382,8 +411,8 @@ struct CanvasStudioView: View {
         let previous = defaultStickerColor
         background = newBackground
         let current = defaultStickerColor
-        guard previous != current else { return }
-        for index in stickers.indices where stickers[index].color == previous {
+        guard !Studio.isSame(previous, current) else { return }
+        for index in stickers.indices where Studio.isSame(stickers[index].color, previous) {
             stickers[index].color = current
         }
     }
@@ -450,24 +479,24 @@ enum Studio {
     static let surface = Color.white.opacity(0.12)
     static let dim = Color.white.opacity(0.45)
 
-    /// 스티커 색 팔레트 — 흰/검정 + 배경 프리셋에서 뽑은 색들
-    static let swatches: [Color] = [
-        .white,
-        .black,
-        Color(red: 0.96, green: 0.77, blue: 0.09),
-        Color(red: 0.95, green: 0.42, blue: 0.11),
-        Color(red: 0.94, green: 0.32, blue: 0.35),
-        Color(red: 0.40, green: 0.66, blue: 0.35),
-        Color(red: 0.20, green: 0.73, blue: 0.78),
-        Color(red: 0.83, green: 0.66, blue: 0.91)
-    ]
+    /// 스티커 색 팔레트 — 흰/검정 + 배경 프리셋에서 뽑은 색들.
+    /// 왜 hex 로 만드나: 설정 테마(`CanvasTheme.presets`)와 같은 값을 가져야 선택 링·기본 색 판정이 맞는다
+    /// (예전엔 0.96 리터럴 vs 245/255 라 `==` 가 늘 false 였다).
+    static let swatches: [(name: String, color: Color)] = [
+        ("흰색", "FFFFFF"), ("검정", "000000"), ("옐로", "F5C417"), ("오렌지", "F26B1C"),
+        ("코랄", "F0525A"), ("그린", "66A859"), ("민트", "33BAC7"), ("라벤더", "D4A8E8")
+    ].compactMap { name, hex in CanvasTheme.color(hex: hex).map { color in (name: name, color: color) } }
 
-    static func swatchName(_ color: Color) -> String {
-        switch color {
-        case .white: "흰색"
-        case .black: "검정"
-        default: "색상"
-        }
+    /// `Color ==` 는 `.white` 와 rgb(1,1,1) 처럼 만든 경로가 다르면 못 알아본다 — 저장 규칙과 같은 hex 6자리로 비교
+    static func isSame(_ a: Color, _ b: Color) -> Bool {
+        CanvasTheme.hex(a) == CanvasTheme.hex(b)
+    }
+}
+
+private extension View {
+    /// 보이는 크기는 두고 터치 영역만 44pt로 — 스티커를 끌다가 바로 누르는 버튼들이라 빗나가기 쉽다
+    func hitTarget() -> some View {
+        frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
     }
 }
 

@@ -14,10 +14,13 @@ struct CourseRegisterView: View {
     @State private var region = KoreaRegion.order.first ?? "서울"
     @State private var isUploading = false
     @State private var didGuessRegion = false
+    @State private var didPrepareRoute = false
+    @State private var sharedPath: [CoursePoint] = []
     @State private var errorMessage: String?
 
     private var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty && !isUploading
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && didPrepareRoute && !sharedPath.isEmpty && !isUploading
     }
 
     var body: some View {
@@ -25,6 +28,10 @@ struct CourseRegisterView: View {
             List {
                 Section {
                     TextField("코스 이름 (예: 한강 야경 5K)", text: $name)
+                        // 왜: 목록·지도 카드가 한 줄이라 긴 이름은 어차피 잘린다 — 올리기 전에 막는다
+                        .onChange(of: name) { _, new in
+                            if new.count > 40 { name = String(new.prefix(40)) }
+                        }
                     Picker("지역", selection: $region) {
                         ForEach(KoreaRegion.order, id: \.self) { Text($0).tag($0) }
                     }
@@ -35,7 +42,16 @@ struct CourseRegisterView: View {
 
                 Section {
                     LabeledContent("기록 거리", value: String(format: "%.2f km", run.distanceKm))
-                    LabeledContent("경로 점", value: "\(run.route.count)개")
+                    LabeledContent(
+                        // CourseGeometry.length는 미터라 그대로 km로 찍으면 1000배가 된다 — formatKm으로 환산
+                        "공유되는 거리",
+                        value: didPrepareRoute ? "\(RunMath.formatKm(CourseGeometry.length(sharedPath))) km" : "계산 중…"
+                    )
+                } footer: {
+                    if didPrepareRoute, sharedPath.isEmpty {
+                        Text(CourseService.CourseError.tooShort.errorDescription ?? "공유할 수 있는 경로가 없어요.")
+                            .foregroundStyle(.red)
+                    }
                 }
                 .listRowBackground(Color.card)
 
@@ -55,6 +71,7 @@ struct CourseRegisterView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("취소") { dismiss() }
+                        .disabled(isUploading)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("등록") { upload() }
@@ -64,7 +81,12 @@ struct CourseRegisterView: View {
             .overlay {
                 if isUploading { ProgressView().controlSize(.large) }
             }
-            .task { await guessRegion() }
+            .interactiveDismissDisabled(isUploading)
+            .task {
+                sharedPath = CourseGeometry.trimmed(CourseGeometry.path(from: run.route))
+                didPrepareRoute = true
+                await guessRegion()
+            }
         }
     }
 
@@ -72,10 +94,12 @@ struct CourseRegisterView: View {
     private func guessRegion() async {
         guard !didGuessRegion, let first = run.route.first else { return }
         didGuessRegion = true
+        let initialRegion = region
         let location = CLLocation(latitude: first.latitude, longitude: first.longitude)
         guard let area = try? await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: Locale(identifier: "ko_KR"))
             .first?.administrativeArea,
               let guessed = KoreaRegion.short(administrativeArea: area) else { return }
+        guard region == initialRegion else { return }
         region = guessed
     }
 
@@ -85,8 +109,8 @@ struct CourseRegisterView: View {
         Task {
             defer { isUploading = false }
             do {
-                let course = try await service.register(route: run.route, name: name, region: region,
-                                                       ownerID: run.ownerID, ownerNickname: nickname)
+                let course = try await service.register(path: sharedPath, name: name, region: region,
+                                                        ownerID: run.ownerID, ownerNickname: nickname)
                 onRegistered?(course)
                 dismiss()
             } catch let error as CourseService.CourseError {

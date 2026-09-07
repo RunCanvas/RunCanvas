@@ -31,14 +31,14 @@ enum RecapEngine {
         return Array(Set(starts)).sorted(by: >)
     }
 
-    static func title(for anchor: Date, scope: Scope, calendar: Calendar = .current) -> String {
+    static func title(for anchor: Date, scope: Scope, calendar: Calendar = .appGregorian) -> String {
         let parts = calendar.dateComponents([.year, .month], from: anchor)
         guard let year = parts.year else { return "" }
         return scope == .month ? "\(year)년 \(parts.month ?? 1)월" : "\(year)년"
     }
 
     /// anchor가 속한 달(해)의 집계. anchor는 그 기간 안의 아무 시각이어도 된다.
-    static func recap(runs: [BadgeRun], scope: Scope, anchor: Date, calendar: Calendar = .current) -> Recap {
+    static func recap(runs: [BadgeRun], scope: Scope, anchor: Date, calendar: Calendar = .appGregorian) -> Recap {
         var recap = Recap(title: title(for: anchor, scope: scope, calendar: calendar))
         guard let interval = calendar.dateInterval(of: scope.component, for: anchor) else { return recap }
 

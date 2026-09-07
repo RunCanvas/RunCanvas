@@ -8,16 +8,16 @@ struct TrainingProgramListView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 24) {   // 섹션 사이 24 (런꾸·정산 탭과 같은 리듬)
                 section("짜여 있는 프로그램", programs: TrainingProgram.builtIn)
 
                 HStack {
                     Text("내가 만든 프로그램").font(.headline)
                     Spacer()
                     Button("새로 만들기") { showsEditor = true }
+                        .frame(minHeight: 44).contentShape(Rectangle())
                         .font(.subheadline.weight(.semibold))
                 }
-                .padding(.top, 14)
 
                 if custom.isEmpty {
                     Text("직접 만든 프로그램이 여기 쌓입니다. 걷기·달리기 구간을 원하는 대로 짜 보세요.")

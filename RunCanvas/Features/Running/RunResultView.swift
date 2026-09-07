@@ -29,7 +29,7 @@ struct RunResultView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Text("러닝 완료").font(.system(size: 30, weight: .bold)).padding(.top, 24)
+                Text("러닝 완료").font(.largeTitle.bold()).padding(.top, 20)
                 RunDetailView(run: run)
 
                 if !completedChallenges.isEmpty {
@@ -42,10 +42,18 @@ struct RunResultView: View {
                 PrimaryButton(title: "사진으로 꾸미기", systemImage: "photo") {
                     showsCanvas = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 20)
 
-                Button("홈으로") { dismiss() }
-                    .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 16)
+                Button { dismiss() } label: {
+                    Text("홈으로")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 6)
             }
             .toolbar(.hidden, for: .navigationBar)
         }

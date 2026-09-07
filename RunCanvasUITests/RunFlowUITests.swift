@@ -50,6 +50,9 @@ final class RunFlowUITests: XCTestCase {
         let finish = app.buttons["러닝 종료"]
         XCTAssertTrue(finish.waitForExistence(timeout: 5))
         finish.tap()
+        let confirmFinish = app.buttons["종료"]
+        XCTAssertTrue(confirmFinish.waitForExistence(timeout: 3), "러닝 종료 확인창이 안 뜸")
+        confirmFinish.tap()
         XCTAssertTrue(app.staticTexts["러닝 완료"].waitForExistence(timeout: 5), "결과 화면이 안 뜸")
 
         XCTAssertTrue(app.staticTexts["km"].exists)
@@ -86,6 +89,13 @@ final class RunFlowUITests: XCTestCase {
         let earned = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '획득'")).firstMatch
         XCTAssertTrue(earned.waitForExistence(timeout: 5), "첫 러닝을 했는데 획득한 뱃지가 없음")
         attachScreenshot(app, name: "badges_after_first_run")
+
+        // 앱 수명 RunSession을 재사용해도 두 번째 러닝이 실제로 시작돼야 한다.
+        openTab("홈", in: app)
+        let secondStart = app.buttons["러닝 시작"]
+        XCTAssertTrue(secondStart.waitForExistence(timeout: 5))
+        secondStart.tap()
+        XCTAssertTrue(app.buttons["일시정지"].waitForExistence(timeout: 5), "두 번째 러닝이 시작되지 않음")
     }
 
     private func attachScreenshot(_ app: XCUIApplication, name: String) {

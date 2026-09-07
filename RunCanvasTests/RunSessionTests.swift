@@ -8,6 +8,7 @@ final class RunSessionTests: XCTestCase {
 
     private final class HealthSpy: HealthServicing {
         var didStartStream = false
+        var streamStartDates: [Date] = []
         var didStopStream = false
         var savedSummary: WorkoutSummary?
         var onSample: ((Double) -> Void)?
@@ -17,6 +18,7 @@ final class RunSessionTests: XCTestCase {
 
         func startHeartRateStream(since startDate: Date, onSample: @escaping (Double) -> Void) {
             didStartStream = true
+            streamStartDates.append(startDate)
             self.onSample = onSample
         }
 
@@ -82,6 +84,18 @@ final class RunSessionTests: XCTestCase {
         XCTAssertNil(health.savedSummary)
     }
 
+    func testWatchTakeoverStartsPhoneHeartRateAtTakeoverTime() {
+        let health = HealthSpy()
+        let s = RunSession(location: LocationService(), health: health, now: { self.now })
+        s.start(healthManagedExternally: true)
+        let takeover = now.addingTimeInterval(30)
+
+        s.takeOverHealthWorkout(since: takeover)
+
+        XCTAssertFalse(s.healthManagedExternally)
+        XCTAssertEqual(health.streamStartDates, [takeover])
+    }
+
     @MainActor
     func testFinishSavesRunForOwner() throws {
         let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
@@ -89,7 +103,7 @@ final class RunSessionTests: XCTestCase {
         let s = makeSession()
         s.start()
         now += 120
-        let run = s.finish(ownerID: owner, weightKg: 60, context: context)
+        let run = try XCTUnwrap(s.finish(ownerID: owner, weightKg: 60, context: context))
         XCTAssertEqual(s.state, .finished)
         XCTAssertEqual(run.movingSeconds, 120)
         XCTAssertEqual(run.ownerID, owner)
@@ -108,7 +122,7 @@ final class RunSessionTests: XCTestCase {
         health.onSample?(120)
         health.onSample?(180)
 
-        let run = s.finish(ownerID: owner, weightKg: 60, context: context)
+        let run = try XCTUnwrap(s.finish(ownerID: owner, weightKg: 60, context: context))
 
         XCTAssertTrue(health.didStopStream)
         XCTAssertEqual(run.averageHeartRate, 150)
@@ -118,5 +132,54 @@ final class RunSessionTests: XCTestCase {
         XCTAssertEqual(health.savedSummary?.endedAt, run.endedAt)
         XCTAssertEqual(health.savedSummary?.distanceMeters, run.distanceMeters)
         XCTAssertEqual(health.savedSummary?.calories, run.calories)
+    }
+
+    /// 세션은 앱 수명이라 같은 객체로 두 번째 러닝을 시작한다 — 지난 시간·심박이 섞이면 안 된다
+    @MainActor
+    func testFinishThenStartAgainStartsFresh() throws {
+        let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let s = makeSession()
+        s.start()
+        s.recordHeartRate(150)
+        now += 60
+        s.finish(ownerID: owner, weightKg: 60, context: context)
+
+        s.start()
+        XCTAssertEqual(s.state, .running)
+        XCTAssertEqual(s.elapsedSeconds, 0)
+        XCTAssertNil(s.heartRate)
+        XCTAssertEqual(s.heartRateSamples, [])
+        now += 10
+        let second = try XCTUnwrap(s.finish(ownerID: owner, weightKg: 60, context: context))
+        XCTAssertEqual(second.movingSeconds, 10)
+        XCTAssertNil(second.averageHeartRate)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 2)
+    }
+
+    /// 종료 연타·워치 end 중복으로 같은 러닝이 두 번 저장되지 않는다
+    @MainActor
+    func testFinishTwiceSavesOnce() throws {
+        let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let s = makeSession()
+        XCTAssertNil(s.finish(ownerID: owner, weightKg: 60, context: context))   // 시작 전
+        s.start()
+        XCTAssertNotNil(s.finish(ownerID: owner, weightKg: 60, context: context))
+        XCTAssertNil(s.finish(ownerID: owner, weightKg: 60, context: context))   // 이미 끝남
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 1)
+    }
+
+    /// 벽시계가 뒤로 가도(자동 시간 보정) 경과 시간이 음수가 되지 않는다
+    func testClockGoingBackwardsNeverGoesNegative() {
+        let s = makeSession()
+        s.start()
+        now -= 5
+        XCTAssertEqual(s.elapsedSeconds, 0)
+        s.pause()                                   // 음수 구간이 accumulated에 쌓이지 않는다
+        now += 30
+        s.resume()
+        now += 10
+        XCTAssertEqual(s.elapsedSeconds, 10)
     }
 }

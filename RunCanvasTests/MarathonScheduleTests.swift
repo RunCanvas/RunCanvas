@@ -107,6 +107,21 @@ final class MarathonScheduleTests: XCTestCase {
         XCTAssertEqual(names(.open), ["접수 중인 것"])
     }
 
+    /// 캐시·씨앗의 status 가 늦게 뒤집혀도 마감일이 지났으면 접수 중이 아니어야 한다
+    func testPastRegistrationDeadlineIsNotAcceptingSignups() {
+        func open(_ name: String, deadline: String?) -> MarathonEvent {
+            MarathonEvent(name: name, date: day("2026-10-05"), status: "open",
+                          registrationEnd: deadline.flatMap(MarathonSchedule.parseDate))
+        }
+        XCTAssertFalse(open("어제 마감", deadline: "2026-09-05").isAcceptingSignups(now: now, calendar: calendar))
+        XCTAssertTrue(open("오늘 마감", deadline: "2026-09-06").isAcceptingSignups(now: now, calendar: calendar))
+        XCTAssertTrue(open("마감일 없음", deadline: nil).isAcceptingSignups(now: now, calendar: calendar))
+
+        let schedule = MarathonSchedule(events: [open("어제 마감", deadline: "2026-09-05"), open("오늘 마감", deadline: "2026-09-06")])
+        let names = schedule.sections(category: .open, now: now, calendar: calendar).flatMap { $0.events.map(\.name) }
+        XCTAssertEqual(names, ["오늘 마감"])
+    }
+
     /// 원본 종목 문자열이 제각각이라("Half", "하프", "~5km") 넓게 매칭돼야 한다
     func testCourseFilterHandlesMessyLabels() {
         let schedule = MarathonSchedule(events: [
@@ -114,15 +129,30 @@ final class MarathonScheduleTests: XCTestCase {
             event("하프 대회", "2026-10-04", courses: ["하프", "5km"]),
             event("단거리", "2026-10-05", courses: ["~5km"]),
             event("십킬로", "2026-10-06", courses: ["10km"]),
+            event("초장거리", "2026-10-07", courses: ["32km"]),
         ])
         func names(_ course: MarathonCourse) -> [String] {
             schedule.sections(course: course, now: now, calendar: calendar).flatMap { $0.events.map(\.name) }
         }
-        XCTAssertEqual(names(.any).count, 4)
+        XCTAssertEqual(names(.any).count, 5)
         XCTAssertEqual(names(.full), ["풀 있는 대회"])
         XCTAssertEqual(names(.half), ["하프 대회"])
         XCTAssertEqual(names(.short), ["하프 대회", "단거리"])
         XCTAssertEqual(names(.ten), ["풀 있는 대회", "십킬로"])
+        // 5km 칩은 5km 급 이하만 — 접두어 비교로는 30km·32km 가 딸려 왔다
+        XCTAssertTrue(MarathonCourse.short.matches("5.18km"))
+        XCTAssertTrue(MarathonCourse.short.matches("3km"))
+        XCTAssertFalse(MarathonCourse.short.matches("30km"))
+        XCTAssertFalse(MarathonCourse.short.matches("42.195km"))
+    }
+
+    /// 날짜를 서울 자정으로 파싱하므로 기본 달력도 서울이어야 기기 시간대에 따라 하루가 밀리지 않는다
+    func testDefaultCalendarIsSeoulGregorian() {
+        XCTAssertEqual(MarathonSchedule.calendar.identifier, .gregorian)
+        XCTAssertEqual(MarathonSchedule.calendar.timeZone.identifier, "Asia/Seoul")
+        let schedule = MarathonSchedule(events: [event("11월 첫날", "2026-11-01")])
+        XCTAssertEqual(schedule.sections(now: now).map(\.id), ["2026-11"])
+        XCTAssertEqual(event("오늘", "2026-09-06").daysAway(now: now), 0)
     }
 
     func testCategoryAndCourseCombine() {

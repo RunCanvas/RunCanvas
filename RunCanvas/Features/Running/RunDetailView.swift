@@ -19,7 +19,7 @@ struct RunDetailView: View {
             VStack(spacing: 24) {
                 RouteMapView(route: run.route)
                     .frame(height: 260)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
 
                 if let decoratedImage {
                     VStack(alignment: .leading, spacing: 10) {
@@ -28,7 +28,7 @@ struct RunDetailView: View {
                         Image(uiImage: decoratedImage)
                             .resizable()
                             .scaledToFit()
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                 }
 
@@ -44,25 +44,20 @@ struct RunDetailView: View {
                     StatLabel(title: "평균 BPM", value: run.averageHeartRate.map { "\(Int($0))" } ?? "--")
                 }
 
-                Text(run.startedAt.formatted(date: .long, time: .shortened))
+                // 한국어 전용 앱 — 기기 로케일이 영어면 "September 6, 2026 at 5:23 PM"으로 나오므로 ko_KR 고정
+                Text(run.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened, locale: Locale(identifier: "ko_KR"))))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
                 // 꾸미기를 거치지 않고 기본 배치 그대로 한 장
-                Button {
+                SecondaryButton(title: isSavingCard ? "저장하는 중…" : "이미지로 저장",
+                                systemImage: "square.and.arrow.down",
+                                isLoading: isSavingCard) {
                     Task { await saveCard() }
-                } label: {
-                    Label(isSavingCard ? "저장하는 중…" : "이미지로 저장", systemImage: "square.and.arrow.down")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .buttonStyle(.plain)
                 .disabled(isSavingCard)
             }
-            .padding(24)
+            .padding(20)
         }
         .navigationTitle("러닝 상세")
         .toolbar {
@@ -73,7 +68,7 @@ struct RunDetailView: View {
         }
         .sheet(isPresented: $showsCourseRegister) {
             CourseRegisterView(run: run, nickname: nickname) { course in
-                courseMessage = "‘\(course.name)’를 올렸어요. 기록 탭 → 더보기 → 러닝 코스에서 볼 수 있어요."
+                courseMessage = "‘\(course.name)’ 코스를 올렸어요. 기록 탭 → 더보기 → 러닝 코스에서 볼 수 있어요."
             }
         }
         .alert("코스로 등록했어요", isPresented: Binding(
@@ -95,8 +90,10 @@ struct RunDetailView: View {
         }
         .task(id: run.decoratedImageFilename) {
             let filename = run.decoratedImageFilename
-            decoratedImage = await Task.detached(priority: .userInitiated) {
-                CanvasStorage.image(filename: filename)
+            decoratedImage = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+                // 왜: 원본은 1080×1350이라 화면 폭에 맞춰 줄여 읽는다(갤러리와 같은 방식)
+                guard let image = CanvasStorage.image(filename: filename) else { return nil }
+                return await image.byPreparingThumbnail(ofSize: CGSize(width: 810, height: 1013))
             }.value
         }
     }

@@ -22,6 +22,18 @@ final class CanvasThemeTests: XCTestCase {
         XCTAssertNotNil(CanvasTheme.color(hex: CanvasTheme.hex(wide)))
     }
 
+    /// 설정 프리셋 색은 편집기 팔레트에도 있어야 하고, `Studio.isSame` 이 그걸 알아봐야 인스펙터 선택 링이 뜬다
+    /// (리터럴 0.96 vs hex 245/255 처럼 만든 경로가 달라도 같은 색으로 본다)
+    func testPresetsMatchStudioSwatches() {
+        for preset in CanvasTheme.presets {
+            let color = CanvasTheme.color(hex: preset.hex)!
+            XCTAssertTrue(Studio.swatches.contains { Studio.isSame($0.color, color) }, preset.name)
+        }
+        XCTAssertTrue(Studio.isSame(.white, Color(red: 1, green: 1, blue: 1)))
+        XCTAssertTrue(Studio.isSame(Color(red: 0.96, green: 0.77, blue: 0.09), CanvasTheme.color(hex: "F5C417")!))
+        XCTAssertFalse(Studio.isSame(.white, .black))
+    }
+
     func testInvalidHexIsRejected() {
         XCTAssertNil(CanvasTheme.color(hex: ""))
         XCTAssertNil(CanvasTheme.color(hex: "FFF"))

@@ -7,6 +7,9 @@ enum WorkoutSyncAction: String {
     case pause
     case resume
     case end
+    /// 폰이 기록을 인계했다 — 워치는 진행 중인 워크아웃을 저장하지 말고 버린다.
+    /// (`.end` 로는 "사용자가 끝냈다"와 구분이 안 돼 건강 앱에 짧은 중복 워크아웃이 남았다)
+    case discard
     case unavailable
 }
 
@@ -29,6 +32,8 @@ final class WatchConnectivityService: NSObject, ObservableObject {
 
     private let session: WCSession?
     private var latestCommandTimestamp: TimeInterval = 0
+    private static let maxStartCommandAge: TimeInterval = 120
+    private static let allowedClockSkew: TimeInterval = 30
 
     override init() {
         session = WCSession.isSupported() ? .default : nil
@@ -86,7 +91,11 @@ final class WatchConnectivityService: NSObject, ObservableObject {
            let rawAction = message["action"] as? String,
            let action = WorkoutSyncAction(rawValue: rawAction) {
             let timestamp = message["timestamp"] as? TimeInterval ?? 0
-            guard timestamp > latestCommandTimestamp else { return }
+            guard timestamp.isFinite, timestamp > latestCommandTimestamp else { return }
+            if action == .start {
+                // transferUserInfo의 오래된 start는 몇 시간 뒤 재생될 수 있다. 타임스탬프 없는 구버전 메시지도 안전하게 버린다.
+                guard Self.isFreshStartCommand(timestamp: timestamp) else { return }
+            }
             latestCommandTimestamp = timestamp
             onCommand?(action, sessionID)
             return
@@ -107,6 +116,12 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         isPaired = session.isPaired
         isWatchAppInstalled = session.isWatchAppInstalled
         isReachable = session.isReachable
+    }
+
+    static func isFreshStartCommand(timestamp: TimeInterval, now: TimeInterval = Date().timeIntervalSince1970) -> Bool {
+        guard timestamp.isFinite, timestamp > 0 else { return false }
+        let age = now - timestamp
+        return age >= -allowedClockSkew && age < maxStartCommandAge
     }
 }
 

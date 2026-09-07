@@ -36,11 +36,11 @@ alter table public.runs        enable row level security;
 alter table public.user_badges enable row level security;
 
 create policy "own profile" on public.profiles
-  for all using (auth.uid() = id) with check (auth.uid() = id);
+  for all using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 create policy "own runs" on public.runs
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "own badges" on public.user_badges
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true);
 create policy "avatar read" on storage.objects
@@ -126,9 +126,50 @@ alter table public.courses enable row level security;
 -- 공유가 목적이라 읽기는 열고, 쓰기는 본인 것만
 create policy "코스 읽기" on public.courses
   for select using (true);
+-- (select auth.uid()) 로 감싸는 이유: 그냥 auth.uid() 를 쓰면 행마다 다시 평가된다(Supabase 린트 0003)
 create policy "본인 코스 등록" on public.courses
-  for insert with check (auth.uid() = owner_id);
+  for insert with check ((select auth.uid()) = owner_id);
 create policy "본인 코스 수정" on public.courses
-  for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+  for update using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
 create policy "본인 코스 삭제" on public.courses
-  for delete using (auth.uid() = owner_id);
+  for delete using ((select auth.uid()) = owner_id);
+
+-- migration "courses_guardrails_and_rls_initplan" (2026-09-07): 공개 목록을 과도한 이름·경로 한 건이 망가뜨리지 않게 제한.
+-- 앱도 같은 값을 알고 있다(CourseGeometry.maxPathPoints, CourseService.CourseError.tooLong) — 여기가 최종 방어선.
+-- 적용 당시 courses 가 0행이라 NOT VALID 없이 바로 검증했다. 기존 데이터가 있는 환경에 옮길 때는
+-- not valid 로 붙이고 위반 행을 정리한 뒤 `alter table public.courses validate constraint ...` 를 실행한다.
+alter table public.courses
+  add constraint courses_name_len check (
+    char_length(name) between 1 and 40 and name ~ '[^[:space:]]'
+  ),
+  add constraint courses_path_size check (
+    case
+      when jsonb_typeof(path) = 'array' then jsonb_array_length(path) between 2 and 5000
+      else false
+    end
+  ),
+  add constraint courses_distance check (distance_m between 300 and 100000);
+
+-- '내 코스만' 필터가 owner_id 로 거른다 — FK 를 덮는 인덱스가 없으면 풀스캔이다
+create index if not exists courses_owner on public.courses (owner_id, created_at desc);
+
+-- 닉네임은 클라이언트가 보낸 값을 믿지 않고 로그인한 사용자의 프로필에서 복사한다.
+create or replace function public.set_course_owner_nickname()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.owner_nickname := coalesce(
+    (select nickname from public.profiles where id = auth.uid()),
+    ''
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists set_course_owner_nickname on public.courses;
+create trigger set_course_owner_nickname
+  before insert or update on public.courses
+  for each row execute function public.set_course_owner_nickname();

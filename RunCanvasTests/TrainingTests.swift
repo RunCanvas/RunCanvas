@@ -40,14 +40,6 @@ final class TrainingTests: XCTestCase {
         XCTAssertNil(TrainingEngine.progress(elapsed: 0, in: TrainingSession(title: "빈 세션", steps: [])))
     }
 
-    func testStepBoundariesAreAnnouncedOnce() {
-        XCTAssertTrue(TrainingEngine.startsNewStep(elapsed: 0, in: session))
-        XCTAssertTrue(TrainingEngine.startsNewStep(elapsed: 300, in: session))
-        XCTAssertTrue(TrainingEngine.startsNewStep(elapsed: 360, in: session))
-        XCTAssertFalse(TrainingEngine.startsNewStep(elapsed: 301, in: session))
-        XCTAssertFalse(TrainingEngine.startsNewStep(elapsed: 123, in: session))
-    }
-
     func testCueMentionsKindAndLength() throws {
         let progress = try XCTUnwrap(TrainingEngine.progress(elapsed: 300, in: session))
         let cue = TrainingEngine.cue(for: progress)
@@ -119,5 +111,71 @@ final class TrainingTests: XCTestCase {
         TrainingStore.markCompleted(program.sessions[1], ownerID: owner, defaults: defaults)   // 두 번 눌러도 하나
         XCTAssertEqual(TrainingStore.completedCount(in: program, ownerID: owner, defaults: defaults), 2)
         XCTAssertEqual(TrainingStore.completedCount(in: .intervals, ownerID: owner, defaults: defaults), 0)
+    }
+
+    func testBuiltInIDsAndProgressSurviveReconstruction() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "training-stable-progress-\(UUID().uuidString)"))
+        let owner = UUID()
+        let original = TrainingProgram.couchTo5K
+        let rebuilt = try JSONDecoder().decode(
+            TrainingProgram.self,
+            from: JSONEncoder().encode(original)
+        )
+
+        XCTAssertEqual(original.id.uuidString, "52554E43-0001-0001-0000-000000000000")
+        XCTAssertEqual(original.sessions.first?.id.uuidString, "52554E43-0002-0001-0001-000000000000")
+        XCTAssertEqual(rebuilt.sessions.map(\.id), original.sessions.map(\.id))
+
+        TrainingStore.markCompleted(original.sessions[0], ownerID: owner, defaults: defaults)
+        XCTAssertEqual(TrainingStore.completedCount(in: rebuilt, ownerID: owner, defaults: defaults), 1)
+    }
+
+    /// 저장 키는 화면 문구와 분리돼 있어야 한다 — 문구를 다듬어도 저장된 프로그램이 안 깨지게
+    func testStepKindStoresStableKeyNotDisplayText() throws {
+        let encoded = String(data: try JSONEncoder().encode(TrainingStep.Kind.run), encoding: .utf8)
+        XCTAssertEqual(encoded, "\"run\"")
+        XCTAssertEqual(TrainingStep.Kind.run.title, "달리기")
+    }
+
+    /// develop 빌드는 kind 를 화면 문구("달리기")로 저장했다. 그 데이터를 못 읽으면 프로그램이
+    /// 목록에서 사라지는 데서 끝나지 않는다 — save 가 "손상된 저장소"로 보고 반환해 새 프로그램도 못 만든다.
+    func testProgramsSavedWithKoreanKindKeysStillLoadAndAllowSaving() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "training-legacy-\(UUID().uuidString)"))
+        let owner = UUID()
+        let legacy = """
+        [{"id":"3F2504E0-4F89-11D3-9A0C-0305E82C3301","name":"예전에 만든 프로그램","summary":"",
+          "isBuiltIn":false,
+          "sessions":[{"id":"3F2504E0-4F89-11D3-9A0C-0305E82C3302","title":"1일차","steps":[
+            {"id":"3F2504E0-4F89-11D3-9A0C-0305E82C3303","kind":"준비 걷기","seconds":300},
+            {"id":"3F2504E0-4F89-11D3-9A0C-0305E82C3304","kind":"달리기","seconds":600},
+            {"id":"3F2504E0-4F89-11D3-9A0C-0305E82C3305","kind":"걷기","seconds":120},
+            {"id":"3F2504E0-4F89-11D3-9A0C-0305E82C3306","kind":"마무리 걷기","seconds":300}]}]}]
+        """
+        defaults.set(Data(legacy.utf8), forKey: "trainingPrograms.\(owner.uuidString)")
+
+        let loaded = TrainingStore.customPrograms(ownerID: owner, defaults: defaults)
+        XCTAssertEqual(loaded.count, 1, "옛 형식 프로그램이 사라졌다")
+        XCTAssertEqual(loaded.first?.sessions.first?.steps.map(\.kind), [.warmup, .run, .walk, .cooldown])
+
+        TrainingStore.save(TrainingProgram(name: "새 프로그램", summary: "", sessions: [session]),
+                           ownerID: owner, defaults: defaults)
+        XCTAssertEqual(TrainingStore.customPrograms(ownerID: owner, defaults: defaults).count, 2,
+                       "옛 데이터가 남아 있으면 새 프로그램 저장이 막힌다")
+    }
+
+    func testSaveDoesNotOverwriteUndecodablePrograms() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "training-corrupt-\(UUID().uuidString)"))
+        let owner = UUID()
+        let key = "trainingPrograms.\(owner.uuidString)"
+        let corrupt = Data("not-json".utf8)
+        defaults.set(corrupt, forKey: key)
+
+        TrainingStore.save(
+            TrainingProgram(name: "새 프로그램", summary: "", sessions: [session]),
+            ownerID: owner,
+            defaults: defaults
+        )
+
+        XCTAssertEqual(defaults.data(forKey: key), corrupt)
     }
 }

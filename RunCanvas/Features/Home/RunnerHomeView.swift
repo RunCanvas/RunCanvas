@@ -22,7 +22,6 @@ struct RunnerHomeView: View {
 /// 현재 계정의 기록만 조회 (ownerID 필터)
 private struct HomeContent: View {
     @Query private var runs: [Run]
-    @Environment(\.levelTier) private var tier
     private let ownerID: UUID?
 
     init(ownerID: UUID?) {
@@ -42,11 +41,11 @@ private struct HomeContent: View {
 
             // 상단 프로필
             ProfileHeader()
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 20)   // 기록·런꾸·설정 탭과 같은 바깥 여백
                 .padding(.top, 20)
 
             ScrollView {
-                VStack(spacing: 28) {
+                VStack(spacing: 24) {
 
                     // 오늘의 러닝 — 현재 위치 지도 위에 (위치 권한은 러닝 화면에서 받고, 허용돼 있으면 내 위치가 보인다)
                     ZStack(alignment: .bottomLeading) {
@@ -71,23 +70,14 @@ private struct HomeContent: View {
                         .padding(20)
                     }
                     .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                     .padding(.top, 8)
 
                     // 러닝 시작 버튼
                     NavigationLink {
                         RunView(startImmediately: true)
                     } label: {
-                        HStack {
-                            Image(systemName: "figure.run")
-                            Text("러닝 시작")
-                        }
-                        .font(.headline)
-                        .foregroundStyle(tier?.onAccent ?? Color(.systemBackground))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(tier?.accent ?? Color.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        PrimaryButtonLabel(title: "러닝 시작", systemImage: "figure.run")
                     }
 
                     // 최근 러닝
@@ -97,10 +87,14 @@ private struct HomeContent: View {
                                 .font(.headline)
                             Spacer()
                             if !runs.isEmpty {
-                                NavigationLink("전체 보기") {
+                                NavigationLink {
                                     RunListView(ownerID: ownerID)
+                                } label: {
+                                    Text("전체 보기")
+                                        .font(.subheadline)
+                                        .frame(minHeight: 44)
+                                        .contentShape(Rectangle())
                                 }
-                                .font(.subheadline)
                             }
                         }
 
@@ -111,7 +105,7 @@ private struct HomeContent: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding()
                                 .background(Color.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
                         } else {
                             ForEach(runs.prefix(3)) { run in
                                 NavigationLink {
@@ -124,8 +118,8 @@ private struct HomeContent: View {
                         }
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
         }
     }
@@ -144,7 +138,8 @@ struct RunHistoryRow: View {
                 Text("\(RunMath.formatKm(run.distanceMeters)) km")
                     .fontWeight(.semibold)
 
-                Text("\(RunMath.formatDuration(run.movingSeconds)) · \(RunMath.formatPace(run.paceSecondsPerKm)) · \(run.startedAt.formatted(.dateTime.month().day()))")
+                // 기기 언어가 영어여도 "9월 6일" — 한국어 전용 앱이라 로케일을 고정
+                Text("\(RunMath.formatDuration(run.movingSeconds)) · \(RunMath.formatPace(run.paceSecondsPerKm)) · \(run.startedAt.formatted(.dateTime.month().day().locale(Locale(identifier: "ko_KR"))))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -157,7 +152,7 @@ struct RunHistoryRow: View {
         }
         .padding()
         .background(Color.card)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 

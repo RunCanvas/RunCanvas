@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import AuthenticationServices
 
-/// 앱이 어떻게 동작하나: 프로필 카드(→ 편집) · 러닝 설정 · 앱 설정 · 연결된 계정 · 계정.
+/// 앱이 어떻게 동작하나: 프로필 카드(→ 편집) · 러닝 설정 · 런꾸 설정 · 연결된 계정 · 계정.
 /// iOS 설정 앱과 같은 인셋 그룹 리스트. 값은 즉시 저장된다(저장 버튼 없음).
 struct SettingsView: View {
     @Environment(AuthService.self) private var auth
@@ -11,24 +11,20 @@ struct SettingsView: View {
     @AppStorage("userNickname") private var userNickname: String = ""
     @AppStorage("avatarURL") private var avatarURL: String = ""
 
-    // 러닝 설정
-    @AppStorage("targetDistance") private var targetDistance: Double = 5.0
+    // 러닝 설정 — 읽는 곳이 없는 항목(1회 목표 거리·알림·거리 단위)은 두지 않는다.
+    // 바꿔도 아무 데도 반영되지 않는 컨트롤은 설정이 고장난 것처럼 보인다. 기능이 생길 때 다시 넣는다.
     @AppStorage("weeklyTargetDistance") private var weeklyTargetDistance: Double = 20.0
     @AppStorage(VoiceCoach.Keys.enabled) private var voiceGuideEnabled = true
 
     // 런꾸 설정 — 빈 값이면 "배경에 맞춤"
     @AppStorage(CanvasTheme.storageKey) private var stickerColorHex = ""
 
-    // 앱 설정
-    @AppStorage("isNotificationEnabled") private var isNotificationEnabled: Bool = true
-    @AppStorage("distanceUnit") private var distanceUnit: String = "km"
-
-    @State private var targetDistanceText = ""
     @State private var weeklyTargetDistanceText = ""
     @State private var isLinking = false
     @State private var appleAuthorizer = AppleAuthorizer()
     @State private var linkMessage: String?
     @State private var isConfirmingDelete = false
+    @State private var isConfirmingSignOut = false
     @State private var isDeleting = false
     @State private var deleteErrorMessage: String?
 
@@ -39,7 +35,6 @@ struct SettingsView: View {
                     profileSection
                     runningSection
                     canvasSection
-                    appSection
                     linkedAccountsSection
                     accountSection
                     versionFooter
@@ -58,16 +53,15 @@ struct SettingsView: View {
                 }
             }
             .onAppear {
-                targetDistanceText = formatted(targetDistance)
                 weeklyTargetDistanceText = formatted(weeklyTargetDistance)
                 Task { await auth.refreshIdentities() }
             }
             // 값은 입력 즉시 저장 (0 이하·숫자 아님은 무시)
-            .onChange(of: targetDistanceText) { _, text in
-                if let v = Double(text), Self.isValidTarget(v) { targetDistance = v }
-            }
             .onChange(of: weeklyTargetDistanceText) { _, text in
-                if let v = Double(text), Self.isValidTarget(v) { weeklyTargetDistance = v }
+                // 왜: 독일·프랑스 로케일 키보드는 소수점이 쉼표라 Double("12,5")가 nil 이 된다
+                if let v = Double(text.replacingOccurrences(of: ",", with: ".")), Self.isValidTarget(v) {
+                    weeklyTargetDistance = v
+                }
             }
             .alert("회원 탈퇴", isPresented: Binding(
                 get: { deleteErrorMessage != nil },
@@ -118,7 +112,6 @@ struct SettingsView: View {
 
     private var runningSection: some View {
         Section {
-            numberRow("1회 목표 거리", text: $targetDistanceText, unit: "km")
             numberRow("주간 목표 거리", text: $weeklyTargetDistanceText, unit: "km")
             NavigationLink {
                 VoiceSettingsView()
@@ -130,7 +123,7 @@ struct SettingsView: View {
         } header: {
             Text("러닝 설정")
         } footer: {
-            Text("목표는 홈과 기록 화면의 진행률에 쓰여요. 음성 안내는 달리는 동안 거리·시간·페이스를 읽어줘요.")
+            Text("주간 목표는 기록 화면의 진행률에 쓰여요. 음성 안내는 달리는 동안 거리·시간·페이스를 읽어줘요.")
         }
     }
 
@@ -177,18 +170,6 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - 앱 설정
-
-    private var appSection: some View {
-        Section("앱 설정") {
-            Toggle("알림", isOn: $isNotificationEnabled)
-            Picker("거리 단위", selection: $distanceUnit) {
-                Text("킬로미터 (km)").tag("km")
-                Text("마일 (mi)").tag("mile")
-            }
-        }
-    }
-
     // MARK: - 연결된 계정
 
     /// 다른 로그인 방법을 같은 계정에 붙인다 → 어느 쪽으로 로그인해도 기록이 한 계정에 모임.
@@ -223,9 +204,12 @@ struct SettingsView: View {
                 Text("연결됨")
                     .foregroundStyle(.secondary)
                 if auth.identities.count > 1 {   // 마지막 하나는 해제 불가
+                    // "연결"과 같은 캡슐 — 글자만 탭되면 "연결됨" 옆에서 오탭이 잦다
                     Button("해제") { link { try await auth.unlink(identity) } }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.red)
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.small)
+                        .tint(.red)
                         .padding(.leading, 8)
                 }
             } else {
@@ -246,8 +230,6 @@ struct SettingsView: View {
             defer { isLinking = false }
             do {
                 try await action()
-            } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
-                // 사용자가 창을 닫음
             } catch let error as ASAuthorizationError where error.code == .canceled {
                 // Apple 시트 취소
             } catch {
@@ -261,11 +243,18 @@ struct SettingsView: View {
     private var accountSection: some View {
         Section("계정") {
             Button {
-                Task { try? await auth.signOut() }   // AppRouter가 세션 변화를 보고 로그인 화면으로
+                isConfirmingSignOut = true
             } label: {
                 Label("로그아웃", systemImage: "rectangle.portrait.and.arrow.right")
             }
             .foregroundStyle(.red)
+            // 스크롤 중 잘못 닿으면 OAuth 로그인을 다시 거쳐야 해서 탈퇴처럼 한 번 확인한다
+            .confirmationDialog("로그아웃할까요?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
+                Button("로그아웃", role: .destructive) {
+                    Task { try? await auth.signOut() }   // AppRouter가 세션 변화를 보고 로그인 화면으로
+                }
+                Button("취소", role: .cancel) {}
+            }
 
             Button {
                 isConfirmingDelete = true
@@ -325,7 +314,9 @@ struct SettingsView: View {
 
     private func formatted(_ value: Double) -> String {
         // %.0f 는 트랩이 없다 (String(Int(value)) 는 범위를 넘으면 크래시)
-        value == value.rounded() ? String(format: "%.0f", value) : String(format: "%.1f", value)
+        // 소수는 자릿수를 자르지 않는다 — 잘라서 넣으면 onAppear → onChange 가 그 값을 다시 저장해
+        // 화면을 열기만 해도 사용자가 넣은 값(5.25 → 5.2)이 바뀐다.
+        value == value.rounded() ? String(format: "%.0f", value) : "\(value)"
     }
 }
 

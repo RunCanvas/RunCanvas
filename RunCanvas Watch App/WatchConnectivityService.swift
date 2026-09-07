@@ -7,6 +7,8 @@ enum WorkoutSyncAction: String {
     case pause
     case resume
     case end
+    /// 폰이 기록을 인계했다 — 저장하지 말고 버린다 (폰 쪽 WorkoutSyncAction 과 같은 목록이어야 한다)
+    case discard
     case unavailable
 }
 
@@ -26,6 +28,9 @@ final class WatchConnectivityService: NSObject, ObservableObject {
 
     private let session: WCSession?
     private var latestCommandTimestamp: TimeInterval = 0
+    /// 큐에 오래 남아 있던 시작 명령은 버린다(폰 쪽 WatchConnectivityService 와 같은 값)
+    private static let maxStartCommandAge: TimeInterval = 120
+    private static let allowedClockSkew: TimeInterval = 30
 
     override init() {
         session = WCSession.isSupported() ? .default : nil
@@ -80,6 +85,10 @@ final class WatchConnectivityService: NSObject, ObservableObject {
            let action = WorkoutSyncAction(rawValue: rawAction) {
             let timestamp = message["timestamp"] as? TimeInterval ?? 0
             guard timestamp > latestCommandTimestamp else { return }
+            // 왜: transferUserInfo 는 상대가 안 닿아도 큐에 남았다가 다음에 앱이 켜질 때 배달된다.
+            // 몇 시간 전 폰이 보낸 .start 가 그때 도착하면 워치가 갑자기 워크아웃을 시작한다.
+            // .pause/.resume/.end 는 sessionID 가 걸러 주므로 시작 명령만 신선도를 본다.
+            if action == .start, !Self.isFreshStartCommand(timestamp: timestamp) { return }
             latestCommandTimestamp = timestamp
             onCommand?(action, sessionID)
             return
@@ -92,6 +101,13 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             elapsedSeconds: message["elapsedSeconds"] as? Int ?? 0,
             distanceMeters: message["distanceMeters"] as? Double ?? 0
         ))
+    }
+
+    /// 시작 명령이 "지금 시작하라"는 뜻인지. 폰 쪽 WatchConnectivityService 와 같은 규칙이다.
+    static func isFreshStartCommand(timestamp: TimeInterval, now: TimeInterval = Date().timeIntervalSince1970) -> Bool {
+        guard timestamp.isFinite, timestamp > 0 else { return false }
+        let age = now - timestamp
+        return age >= -allowedClockSkew && age < maxStartCommandAge
     }
 
     private func updateReachability(_ reachable: Bool) {

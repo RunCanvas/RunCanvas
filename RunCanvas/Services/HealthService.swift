@@ -26,15 +26,20 @@ final class HealthService: HealthServicing {
         var errorDescription: String? {
             switch self {
             case .unavailable:
-                return "이 기기에서는 건강 데이터를 사용할 수 없습니다."
+                return "이 기기에서는 건강 데이터를 쓸 수 없어요."
             case .workoutSaveFailed:
-                return "러닝 워크아웃을 건강 앱에 저장하지 못했습니다."
+                return "러닝 워크아웃을 건강 앱에 저장하지 못했어요."
             }
         }
     }
 
     private let healthStore: HKHealthStore
+    private let streamLock = NSLock()
     private var heartRateQuery: HKAnchoredObjectQuery?
+    private var streamStartDate: Date?
+    private var streamID = UUID()
+    private var queryID = UUID()
+    private var deliveredSampleIDs: Set<UUID> = []
 
     init(healthStore: HKHealthStore = HKHealthStore()) {
         self.healthStore = healthStore
@@ -56,7 +61,22 @@ final class HealthService: HealthServicing {
     }
 
     func startHeartRateStream(since startDate: Date, onSample: @escaping (Double) -> Void) {
-        stopHeartRateStream()
+        let oldQuery: HKAnchoredObjectQuery?
+        let activeStreamID: UUID
+        let activeQueryID = UUID()
+        streamLock.lock()
+        oldQuery = heartRateQuery
+        heartRateQuery = nil
+        queryID = activeQueryID
+        if streamStartDate != startDate {
+            // 왜: 같은 러닝의 재시작은 중복을 막아야 하지만 다음 러닝의 샘플 UUID까지 막으면 안 된다.
+            streamStartDate = startDate
+            streamID = UUID()
+            deliveredSampleIDs.removeAll(keepingCapacity: true)
+        }
+        activeStreamID = streamID
+        streamLock.unlock()
+        if let oldQuery { healthStore.stop(oldQuery) }
 
         let type = HKQuantityType(.heartRate)
         let predicate = HKQuery.predicateForSamples(
@@ -67,12 +87,22 @@ final class HealthService: HealthServicing {
         let unit = HKUnit.count().unitDivided(by: .minute())
 
         let deliver: ([HKSample]?) -> Void = { samples in
-            let heartRates = (samples as? [HKQuantitySample])?
-                .sorted { $0.startDate < $1.startDate }
-                .map { $0.quantity.doubleValue(for: unit) } ?? []
+            let quantitySamples = (samples as? [HKQuantitySample])?.sorted { $0.startDate < $1.startDate } ?? []
+            self.streamLock.lock()
+            guard self.queryID == activeQueryID else {
+                self.streamLock.unlock()
+                return
+            }
+            let freshSamples = quantitySamples.filter { self.deliveredSampleIDs.insert($0.uuid).inserted }
+            self.streamLock.unlock()
+            let heartRates = freshSamples.map { $0.quantity.doubleValue(for: unit) }
 
             guard !heartRates.isEmpty else { return }
             DispatchQueue.main.async {
+                self.streamLock.lock()
+                let isCurrentRun = self.streamID == activeStreamID
+                self.streamLock.unlock()
+                guard isCurrentRun else { return }
                 heartRates.forEach(onSample)
             }
         }
@@ -90,14 +120,23 @@ final class HealthService: HealthServicing {
             deliver(samples)
         }
 
-        heartRateQuery = query
-        healthStore.execute(query)
+        streamLock.lock()
+        let isCurrent = queryID == activeQueryID
+        if isCurrent { heartRateQuery = query }
+        streamLock.unlock()
+        if isCurrent { healthStore.execute(query) }   // 외부 프레임워크 호출은 락 밖에서
     }
 
     func stopHeartRateStream() {
-        guard let heartRateQuery else { return }
-        healthStore.stop(heartRateQuery)
-        self.heartRateQuery = nil
+        streamLock.lock()
+        let query = heartRateQuery
+        heartRateQuery = nil
+        streamStartDate = nil
+        streamID = UUID()
+        queryID = UUID()
+        deliveredSampleIDs.removeAll(keepingCapacity: true)
+        streamLock.unlock()
+        if let query { healthStore.stop(query) }
     }
 
     func saveWorkout(_ summary: WorkoutSummary) async throws {

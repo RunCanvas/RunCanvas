@@ -39,7 +39,7 @@ struct ProfileHeader: View {
 #Preview {
     NavigationStack {
         ProfileHeader()
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 20)
     }
     .environment(AuthService())
 }
