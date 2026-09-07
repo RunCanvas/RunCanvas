@@ -24,10 +24,12 @@ struct RunListView: View {
                             .opacity(0)   // List가 붙이는 꺾쇠 숨김 (행에 이미 있음)
                     }
                     .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
-            }
-            .onDelete { offsets in
-                pendingDeletion = offsets.map { runs[$0] }
+                    .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                    // 왜: .onDelete가 그리는 버튼은 앱에 ko 로컬라이즈가 없어 한국어 기기에서도 "Delete"로 뜬다.
+                    // 직접 그려야 한국어로 보이고, 인덱스 대신 run을 그대로 넘겨 목록이 바뀌어도 안전하다.
+                    .swipeActions(edge: .trailing) {
+                        Button("삭제", role: .destructive) { pendingDeletion = [run] }
+                    }
             }
         }
         .listStyle(.plain)

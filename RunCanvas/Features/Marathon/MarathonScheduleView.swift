@@ -1,3 +1,4 @@
+import SafariServices
 import SwiftUI
 
 /// 마라톤·러닝 이벤트 일정. 종류·거리·지역으로 거르고, 카드를 누르면 신청 페이지로 간다.
@@ -7,6 +8,10 @@ struct MarathonScheduleView: View {
     @State private var category: MarathonCategory = .all
     @State private var course: MarathonCourse = .any
     @State private var region = KoreaRegion.all
+    /// 신청 페이지는 앱 안에서 연다 — 상세 화면이 없어 대회 몇 개를 견주려면 그때마다 앱을 떠났다 돌아와야 했다.
+    /// 시트는 카드가 아니라 목록이 들고 있는다: LazyVStack 은 화면 밖 카드를 버려서, 카드가 띄우면 스크롤 도중 시트가 닫힌다
+    @State private var signupLink: SignupLink?
+    @Environment(\.openURL) private var openURL
 
     private var sections: [MarathonSchedule.MonthSection] {
         MarathonSchedule(events: service.events)
@@ -23,6 +28,18 @@ struct MarathonScheduleView: View {
         .navigationTitle("마라톤 일정")
         .navigationBarTitleDisplayMode(.inline)
         .task { await service.load() }
+        .sheet(item: $signupLink) { link in
+            SafariView(url: link.url).ignoresSafeArea()
+        }
+    }
+
+    /// SFSafariViewController 는 http(s) 만 받는다 — 서버 문자열이 다른 스킴이면 시스템에 넘긴다
+    private func openSignup(_ url: URL) {
+        if url.scheme == "http" || url.scheme == "https" {
+            signupLink = SignupLink(url: url)
+        } else {
+            openURL(url)
+        }
     }
 
     // MARK: 목록
@@ -44,7 +61,7 @@ struct MarathonScheduleView: View {
                 ForEach(sections) { section in
                     Section {
                         ForEach(section.events) { event in
-                            MarathonCard(event: event)
+                            MarathonCard(event: event, onOpen: openSignup)
                         }
                     } header: {
                         monthHeader(for: section)
@@ -181,11 +198,11 @@ struct MarathonScheduleView: View {
 
 private struct MarathonCard: View {
     let event: MarathonEvent
-    @Environment(\.openURL) private var openURL
+    let onOpen: (URL) -> Void
 
     var body: some View {
         Button {
-            if let url = event.signupURL { openURL(url) }
+            if let url = event.signupURL { onOpen(url) }
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 poster
@@ -364,6 +381,27 @@ private struct MarathonCard: View {
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
+}
+
+// MARK: - 앱 안에서 여는 신청 페이지
+
+/// `sheet(item:)` 은 Identifiable 을 요구한다 — URL 에 소급 conformance 를 붙이면 앱 전체에 퍼지므로 이 파일에서만 쓰는 껍데기로 둔다
+private struct SignupLink: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+/// 툴바 색은 앱 톤에 맞춰 흑백(.label)으로 — 기본값은 파란색이라 이 화면만 튄다
+private struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let controller = SFSafariViewController(url: url)
+        controller.preferredControlTintColor = .label
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
 #Preview {

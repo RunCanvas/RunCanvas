@@ -44,6 +44,7 @@ struct LoginView: View {
                 }
             }
             .disabled(isBusy)
+            .opacity(isBusy ? 0.3 : 1)   // PrimaryButton은 배경을 직접 칠해 disabled여도 안 흐려진다 — 프로필 화면과 같은 처리
 
             if isBusy {
                 ProgressView("로그인 중…")

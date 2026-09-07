@@ -101,6 +101,7 @@ struct ProfileSetupView: View {
                 Task { await save() }
             }
             .disabled(!canSave)
+            .opacity(canSave ? 1 : 0.3)   // 비활성 버튼이 눌리는 것처럼 보이지 않게 — 편집 화면과 같은 처리
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(Color(.systemBackground))

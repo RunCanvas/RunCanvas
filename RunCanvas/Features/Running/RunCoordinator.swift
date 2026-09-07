@@ -117,7 +117,6 @@ final class RunCoordinator {
                 }
                 return
             }
-            // 폰이 이미 달리는 중이면 폰이 마스터 — 워치가 폰 sessionID를 따라온다.
             // 저장할 계정이 없으면 아예 받지 않는다 — 받아 두면 .end에서 finish가 실패해
             // 세션이 running(GPS 켜진 채)에 갇히고, 알럿은 RunView에서만 뜨니 아무도 모른다.
             guard session.state == .idle || session.state == .finished, ownerID != nil else { return }
@@ -142,6 +141,10 @@ final class RunCoordinator {
         guard snapshot.sessionID == session.sessionID else { return }
         lastWatchSnapshotAt = Date()
         guard session.state == .running || session.state == .paused else { return }
+        // 폰이 인계한 뒤엔 워치 스냅샷을 아예 듣지 않는다. takeOver가 보낸 .end로 워치가 끝나면서
+        // 같은 sessionID로 "finished"를 되쏘는데, 그걸 받으면 아직 달리는 중인 폰 러닝까지 끝나 버린다.
+        // 심박도 폰 스트림과 이중으로 쌓여 평균·최대가 틀어진다.
+        guard session.healthManagedExternally else { return }
         // 워치의 "finished" 스냅샷은 sendMessage라 .end(transferUserInfo)보다 먼저 온다.
         // 여기서 바로 끝내야 .end가 30초 넘게 늦어도 checkWatchAlive가 "연결 끊김"으로 오판해
         // 폰 심박 스트림을 켜고 HealthKit 워크아웃을 한 번 더 저장하는 일이 없다.
@@ -149,9 +152,7 @@ final class RunCoordinator {
             finish(sendToWatch: false)
             return
         }
-        // 폰이 인계한 뒤엔 폰 스트림이 심박을 받는다 — 워치 스냅샷까지 담으면 같은 심박이 두 번 쌓여
-        // 평균·최대가 틀어진다 (블루투스가 잠깐 끊겼다 붙으면 워치는 모른 채 계속 보낸다)
-        guard session.healthManagedExternally, let heartRate = snapshot.heartRate else { return }
+        guard let heartRate = snapshot.heartRate else { return }
         // 값이 같아도 매번 기록한다 — 바뀔 때만 담으면 심박 변동이 큰 구간으로 평균이 쏠린다
         session.recordHeartRate(heartRate)
     }

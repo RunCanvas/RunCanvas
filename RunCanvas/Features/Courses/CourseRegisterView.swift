@@ -39,8 +39,9 @@ struct CourseRegisterView: View {
                 Section {
                     LabeledContent("기록 거리", value: String(format: "%.2f km", run.distanceKm))
                     LabeledContent(
+                        // CourseGeometry.length는 미터라 그대로 km로 찍으면 1000배가 된다 — formatKm으로 환산
                         "공유되는 거리",
-                        value: didPrepareRoute ? String(format: "%.2f km", CourseGeometry.length(sharedPath)) : "계산 중…"
+                        value: didPrepareRoute ? "\(RunMath.formatKm(CourseGeometry.length(sharedPath))) km" : "계산 중…"
                     )
                 } footer: {
                     if didPrepareRoute, sharedPath.isEmpty {
