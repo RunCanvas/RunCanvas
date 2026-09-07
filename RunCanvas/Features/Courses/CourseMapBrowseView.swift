@@ -14,69 +14,74 @@ struct CourseMapBrowseView: View {
     @State private var position: MapCameraPosition = .automatic
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Map(position: $position, selection: .constant(nil)) {
-                if let selected, selected.path.count > 1 {
-                    MapPolyline(coordinates: selected.coordinates)
-                        .stroke(.white, style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round))
-                    MapPolyline(coordinates: selected.coordinates)
-                        .stroke(Color.primary, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
-                }
+        Map(position: $position, selection: .constant(nil)) {
+            if let selected, selected.path.count > 1 {
+                MapPolyline(coordinates: selected.coordinates)
+                    .stroke(.white, style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round))
+                MapPolyline(coordinates: selected.coordinates)
+                    .stroke(Color.primary, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            }
 
-                ForEach(courses) { course in
-                    if let start = course.coordinates.first {
-                        Annotation(course.name, coordinate: start) {
-                            pin(for: course)
-                        }
-                        .annotationTitles(.hidden)
+            ForEach(courses) { course in
+                if let start = course.coordinates.first {
+                    Annotation(course.name, coordinate: start) {
+                        pin(for: course)
                     }
+                    .annotationTitles(.hidden)
                 }
             }
-            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
-            .mapControlVisibility(.hidden)
-            .onChange(of: courses.map(\.id)) { _, ids in
-                guard let selected, !ids.contains(selected.id) else { return }
-                // 삭제·필터 변경으로 목록에서 빠진 값 복사본을 상세 카드에 남겨 두지 않는다.
-                withAnimation {
-                    self.selected = nil
-                    position = .automatic
-                }
+        }
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+        .mapControlVisibility(.hidden)
+        .onChange(of: courses.map(\.id)) { _, ids in
+            guard let selected, !ids.contains(selected.id) else { return }
+            // 삭제·필터 변경으로 목록에서 빠진 값 복사본을 상세 카드에 남겨 두지 않는다.
+            withAnimation {
+                self.selected = nil
+                position = .automatic
             }
+        }
 
-            if service.isLoading, courses.isEmpty {
-                Label("코스를 불러오는 중…", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.subheadline)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(.bottom, 24)
-            } else if let notice = service.failureNotice {
-                VStack(alignment: .leading, spacing: 10) {
-                    Label(notice, systemImage: "wifi.exclamationmark")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    Button("다시 시도") { Task { await onRetry() } }
-                        .font(.footnote.weight(.semibold))
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
-            } else if courses.isEmpty {
-                Text("이 지역에는 아직 코스가 없어요")
-                    .font(.subheadline)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(.bottom, 24)
-            } else if let selected {
-                selectedCard(selected)
-            } else {
-                Text("핀을 눌러 코스를 골라 보세요 · \(service.totalCount)개")
+        // 왜 safeAreaInset: 하단 카드를 지도 위에 겹쳐 두면 Apple 지도 저작권 표시(‘지도’ 로고·법적 정보)를
+        // 가린다 — 심사에서 걸리는 항목이다. inset 으로 넣으면 MapKit 이 표시를 그 위로 올려 준다.
+        .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
+    }
+
+    @ViewBuilder
+    private var bottomBar: some View {
+        if service.isLoading, courses.isEmpty {
+            Label("코스를 불러오는 중…", systemImage: "arrow.triangle.2.circlepath")
+                .font(.subheadline)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.bottom, 24)
+        } else if let notice = service.failureNotice {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(notice, systemImage: "wifi.exclamationmark")
                     .font(.footnote)
-                    .padding(.horizontal, 14).padding(.vertical, 9)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(.bottom, 24)
+                    .foregroundStyle(.secondary)
+                Button("다시 시도") { Task { await onRetry() } }
+                    .font(.footnote.weight(.semibold))
             }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+        } else if courses.isEmpty {
+            Text("이 지역에는 아직 코스가 없어요")
+                .font(.subheadline)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.bottom, 24)
+        } else if let selected {
+            selectedCard(selected)
+        } else {
+            Text("핀을 눌러 코스를 골라 보세요 · \(service.totalCount)개")
+                .font(.footnote)
+                .padding(.horizontal, 14).padding(.vertical, 9)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.bottom, 24)
         }
     }
 
