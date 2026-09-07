@@ -989,6 +989,25 @@
       "fee_min": 50000
     },
     {
+      "name": "소노 런트립 180K in 경주",
+      "event_date": "2026-10-04",
+      "region": "경북",
+      "place": "소노캄 경주",
+      "courses": [
+        "7km",
+        "9km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/sono-runtrip-180k-in-gyeongju",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788755793/kormarathon/events/event-images-1788755792065.jpg",
+      "reg_start_date": "2026-08-12",
+      "reg_end_date": "2026-10-04",
+      "fee_min": 63000
+    },
+    {
       "name": "제14회 광명시장배 건강달리기대회",
       "event_date": "2026-10-04",
       "region": "경기",
