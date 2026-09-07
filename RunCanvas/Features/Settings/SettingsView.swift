@@ -58,7 +58,10 @@ struct SettingsView: View {
             }
             // 값은 입력 즉시 저장 (0 이하·숫자 아님은 무시)
             .onChange(of: weeklyTargetDistanceText) { _, text in
-                if let v = Double(text), Self.isValidTarget(v) { weeklyTargetDistance = v }
+                // 왜: 독일·프랑스 로케일 키보드는 소수점이 쉼표라 Double("12,5")가 nil 이 된다
+                if let v = Double(text.replacingOccurrences(of: ",", with: ".")), Self.isValidTarget(v) {
+                    weeklyTargetDistance = v
+                }
             }
             .alert("회원 탈퇴", isPresented: Binding(
                 get: { deleteErrorMessage != nil },

@@ -15,6 +15,7 @@ struct TrainingProgramListView: View {
                     Text("내가 만든 프로그램").font(.headline)
                     Spacer()
                     Button("새로 만들기") { showsEditor = true }
+                        .frame(minHeight: 44).contentShape(Rectangle())
                         .font(.subheadline.weight(.semibold))
                 }
                 .padding(.top, 14)

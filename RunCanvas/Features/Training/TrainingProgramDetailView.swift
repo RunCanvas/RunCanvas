@@ -72,7 +72,9 @@ struct TrainingProgramDetailView: View {
                         Button("복제해서 수정") { showsEditor = true }
                     } else {
                         Button("편집") { showsEditor = true }
+                            .frame(minHeight: 44).contentShape(Rectangle())
                         Button("삭제", role: .destructive) { showsDeleteConfirm = true }
+                            .frame(minHeight: 44).contentShape(Rectangle())
                     }
                 }
                 .font(.subheadline)

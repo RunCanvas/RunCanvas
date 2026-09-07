@@ -50,17 +50,11 @@ struct RunDetailView: View {
                     .foregroundStyle(.secondary)
 
                 // 꾸미기를 거치지 않고 기본 배치 그대로 한 장
-                Button {
+                SecondaryButton(title: isSavingCard ? "저장하는 중…" : "이미지로 저장",
+                                systemImage: "square.and.arrow.down",
+                                isLoading: isSavingCard) {
                     Task { await saveCard() }
-                } label: {
-                    Label(isSavingCard ? "저장하는 중…" : "이미지로 저장", systemImage: "square.and.arrow.down")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.card)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .buttonStyle(.plain)
                 .disabled(isSavingCard)
             }
             .padding(20)
@@ -96,8 +90,10 @@ struct RunDetailView: View {
         }
         .task(id: run.decoratedImageFilename) {
             let filename = run.decoratedImageFilename
-            decoratedImage = await Task.detached(priority: .userInitiated) {
-                CanvasStorage.image(filename: filename)
+            decoratedImage = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+                // 왜: 원본은 1080×1350이라 화면 폭에 맞춰 줄여 읽는다(갤러리와 같은 방식)
+                guard let image = CanvasStorage.image(filename: filename) else { return nil }
+                return await image.byPreparingThumbnail(ofSize: CGSize(width: 810, height: 1013))
             }.value
         }
     }

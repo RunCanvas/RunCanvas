@@ -45,6 +45,7 @@ struct CourseDetailView: View {
 
                 if isMine {
                     Button("이 코스 삭제", role: .destructive) { showsDeleteConfirm = true }
+                        .frame(minHeight: 44).contentShape(Rectangle())
                         .font(.subheadline)
                 }
             }

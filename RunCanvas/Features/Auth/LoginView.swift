@@ -44,7 +44,6 @@ struct LoginView: View {
                 }
             }
             .disabled(isBusy)
-            .opacity(isBusy ? 0.3 : 1)   // PrimaryButton은 배경을 직접 칠해 disabled여도 안 흐려진다 — 프로필 화면과 같은 처리
 
             if isBusy {
                 ProgressView("로그인 중…")
@@ -61,7 +60,7 @@ struct LoginView: View {
             Spacer()
                 .frame(height: 40)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 20)
         .alert("회원 탈퇴가 완료되었습니다", isPresented: $auth.didDeleteAccount) {
             Button("확인", role: .cancel) {}
         } message: {

@@ -290,11 +290,12 @@
 				};
 			};
 			buildConfigurationList = 15CF487C2E4EF7B5002F5A44 /* Build configuration list for PBXProject "RunCanvas" */;
-			developmentRegion = en;
+			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ko,
 			);
 			mainGroup = 15CF48782E4EF7B5002F5A44;
 			minimizedProjectReferenceProxies = 1;

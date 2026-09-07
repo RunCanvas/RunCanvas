@@ -224,7 +224,8 @@ struct TrainingRunView: View {
             try await run.requestHealthAuthorization()
             run.restartHeartRateStream()
         } catch {
-            healthAuthorizationMessage = error.localizedDescription
+            // 왜: HealthKit 오류는 영어 시스템 문장이라 한국어 알럿에 그대로 노출하면 읽히지 않는다
+            healthAuthorizationMessage = "설정 > 건강 > 데이터 접근 및 기기에서 RunCanvas를 켜면 심박이 기록돼요."
         }
     }
 }

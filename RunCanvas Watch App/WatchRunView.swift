@@ -15,7 +15,7 @@ struct WatchRunView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     Label(
-                        workout.isPhoneReachable ? "iPhone 동기화" : "Watch 단독 기록",
+                        workout.isPhoneReachable ? "iPhone 동기화" : "건강 앱에만 저장",
                         systemImage: workout.isPhoneReachable ? "iphone.radiowaves.left.and.right" : "applewatch"
                     )
                     .font(.caption2)

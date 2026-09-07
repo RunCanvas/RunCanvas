@@ -28,6 +28,10 @@ struct CourseRegisterView: View {
             List {
                 Section {
                     TextField("코스 이름 (예: 한강 야경 5K)", text: $name)
+                        // 왜: 목록·지도 카드가 한 줄이라 긴 이름은 어차피 잘린다 — 올리기 전에 막는다
+                        .onChange(of: name) { _, new in
+                            if new.count > 40 { name = String(new.prefix(40)) }
+                        }
                     Picker("지역", selection: $region) {
                         ForEach(KoreaRegion.order, id: \.self) { Text($0).tag($0) }
                     }

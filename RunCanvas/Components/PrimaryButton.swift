@@ -18,6 +18,8 @@ struct PrimaryButtonLabel: View {
     let title: String
     var systemImage: String? = nil
     @Environment(\.levelTier) private var tier
+    /// 왜: 비활성인데 겉모습이 그대로면 눌러도 아무 일이 없어 고장으로 보인다 — 컴포넌트가 스스로 흐려진다
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         HStack {
@@ -30,5 +32,6 @@ struct PrimaryButtonLabel: View {
         .padding()
         .background(tier?.accent ?? Color.primary)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .opacity(isEnabled ? 1 : 0.35)
     }
 }

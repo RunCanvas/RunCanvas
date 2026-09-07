@@ -30,6 +30,8 @@ struct RunView: View {
     @State private var courseProgress: Double = 0
     @State private var offCourseMeters: Double = 0
     @State private var warnedOffCourse = false
+    /// 왕복 코스에서 진행도가 반대편으로 튀지 않게, 직전에 맞춘 지점 주변부터 찾는다
+    @State private var lastCourseIndex: Int?
 
     private var session: RunSession { runs.session }
 
@@ -62,8 +64,13 @@ struct RunView: View {
     private func updateCourseFollow() {
         guard let course, let last = session.route.last else { return }
         let point = CoursePoint(last)
-        courseProgress = CourseGeometry.progress(at: point, in: course.path)
-        offCourseMeters = CourseGeometry.offCourseMeters(point, path: course.path)
+        let matched = lastCourseIndex.flatMap {
+            CourseGeometry.nearestIndex(to: point, in: course.path, near: $0)
+        } ?? CourseGeometry.nearestIndex(to: point, in: course.path)
+        guard let matched else { return }
+        lastCourseIndex = matched
+        courseProgress = CourseGeometry.progress(through: matched, in: course.path)
+        offCourseMeters = CourseGeometry.distance(point, course.path[matched])
         if offCourseMeters > 50, !warnedOffCourse {
             warnedOffCourse = true            // 벗어난 동안 계속 떠들지 않게 한 번만
             session.announce("코스에서 벗어났어요")
@@ -296,7 +303,8 @@ struct RunView: View {
             try await session.requestHealthAuthorization()
             session.restartHeartRateStream()   // 권한이 늦게 와도 심박을 놓치지 않게
         } catch {
-            healthAuthorizationMessage = error.localizedDescription
+            // 왜: HealthKit 오류는 영어 시스템 문장이라 한국어 알럿에 그대로 노출하면 읽히지 않는다
+            healthAuthorizationMessage = "설정 > 건강 > 데이터 접근 및 기기에서 RunCanvas를 켜면 심박이 기록돼요."
         }
     }
 

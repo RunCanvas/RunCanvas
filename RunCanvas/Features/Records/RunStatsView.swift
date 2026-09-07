@@ -146,12 +146,12 @@ private struct StatsContent: View {
     }
 
     private var periodTitle: String {
-        // 기기 언어가 영어여도 "9월"·"2026년" — 한국어 전용 앱이라 로케일을 고정
-        let ko = Locale(identifier: "ko_KR")
+        // 기기 언어·달력이 무엇이든 "9월"·"2026년" — 로케일만 바꾸면 불교력 기기에서 "2569년"이 나온다
+        let parts = Calendar.appGregorian.dateComponents([.year, .month], from: .now)
         return switch period {
         case .week: "이번 주"
-        case .month: Date.now.formatted(.dateTime.month(.wide).locale(ko))
-        case .year: Date.now.formatted(.dateTime.year().locale(ko))
+        case .month: "\(parts.month ?? 1)월"
+        case .year: "\(parts.year ?? 0)년"
         }
     }
 

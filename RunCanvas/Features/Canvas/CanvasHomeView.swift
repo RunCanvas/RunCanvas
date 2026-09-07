@@ -68,7 +68,7 @@ private struct CanvasGallery: View {
 
     private var gallery: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 PrimaryButton(title: "새로 꾸미기", systemImage: "wand.and.stars") {
                     isCreating = true
                 }

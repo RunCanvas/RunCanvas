@@ -73,7 +73,6 @@ struct ProfileEditView: View {
                 Task { await save() }
             }
             .disabled(!canSave)
-            .opacity(canSave ? 1 : 0.3)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(Color(.systemBackground))   // ProfileSetupView 와 같은 불투명 시스템 배경
