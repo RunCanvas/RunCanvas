@@ -107,3 +107,112 @@ final class HealthImportTests: XCTestCase {
         XCTAssertTrue(saved.route.isEmpty, "요약엔 경로가 없다 — 다음 가져오기가 채운다")
     }
 }
+
+/// 가져오기 흐름 전체 — 조회부터 저장까지. 실기기 없이 확인할 수 있는 마지막 지점이다.
+final class HealthImportFlowTests: XCTestCase {
+    private let base = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private struct FakeSource: WorkoutImporting {
+        var workouts: [ImportedWorkout] = []
+        var failure: Error?
+        func requestAuthorization() async throws {}
+        func importableWorkouts(since: Date) async throws -> [ImportedWorkout] {
+            if let failure { throw failure }
+            return workouts
+        }
+    }
+
+    private struct Boom: Error {}
+
+    private func makeContext() throws -> ModelContext {
+        ModelContext(try ModelContainer(for: Run.self,
+                                        configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+    }
+
+    private func workout(_ id: UUID = UUID(), route: [RoutePoint] = []) -> ImportedWorkout {
+        ImportedWorkout(id: id, startedAt: base, endedAt: base.addingTimeInterval(1_800),
+                        distanceMeters: 5_000, calories: 300,
+                        averageHeartRate: 150, maxHeartRate: 175, route: route)
+    }
+
+    private var somePoints: [RoutePoint] {
+        [RoutePoint(latitude: 37.5, longitude: 127.0, timestamp: base),
+         RoutePoint(latitude: 37.51, longitude: 127.01, timestamp: base.addingTimeInterval(60))]
+    }
+
+    @MainActor
+    func testBringsInARunTheAppIsMissing() async throws {
+        let context = try makeContext()
+        let owner = UUID()
+        let count = await HealthImport.importMissingRuns(
+            context: context, ownerID: owner, health: FakeSource(workouts: [workout(route: somePoints)])
+        )
+        XCTAssertEqual(count, 1)
+        let saved = try XCTUnwrap(try context.fetch(FetchDescriptor<Run>()).first)
+        XCTAssertEqual(saved.distanceMeters, 5_000)
+        XCTAssertEqual(saved.route.count, 2, "워치가 붙인 경로가 있으면 지도가 나와야 한다")
+    }
+
+    /// 워치 요약이 먼저 도착하면 경로 없는 기록이 생긴다. 다음 가져오기가 지도를 채워야 한다 —
+    /// 안 그러면 그 러닝은 영영 지도가 없다.
+    @MainActor
+    func testFillsInTheMapForARunThatArrivedFromTheWatchSummary() async throws {
+        let context = try makeContext()
+        let owner = UUID()
+        let id = UUID()
+        context.insert(HealthImport.makeRun(from: workout(id), ownerID: owner))   // 경로 없음
+        try context.save()
+
+        let count = await HealthImport.importMissingRuns(
+            context: context, ownerID: owner, health: FakeSource(workouts: [workout(id, route: somePoints)])
+        )
+        let runs = try context.fetch(FetchDescriptor<Run>())
+        XCTAssertEqual(runs.count, 1, "같은 러닝이 두 개가 되면 안 된다")
+        XCTAssertEqual(runs.first?.route.count, 2, "경로가 채워져야 한다")
+        XCTAssertEqual(count, 0, "새로 만든 건 없다 — 채우기만 했다")
+    }
+
+    @MainActor
+    func testDoesNotDuplicateARunThePhoneAlreadyRecorded() async throws {
+        let context = try makeContext()
+        let owner = UUID()
+        // 폰이 기록한 러닝: workoutID 를 모른다(우리가 건강 앱에 따로 저장한 것)
+        context.insert(Run(ownerID: owner, startedAt: base.addingTimeInterval(20),
+                           endedAt: base.addingTimeInterval(1_800), distanceMeters: 5_000,
+                           movingSeconds: 1_780, calories: 300))
+        try context.save()
+
+        let count = await HealthImport.importMissingRuns(
+            context: context, ownerID: owner, health: FakeSource(workouts: [workout()])
+        )
+        XCTAssertEqual(count, 0)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 1)
+    }
+
+    @MainActor
+    func testCreatesNothingWhenHealthLookupFails() async throws {
+        let context = try makeContext()
+        let count = await HealthImport.importMissingRuns(
+            context: context, ownerID: UUID(), health: FakeSource(failure: Boom())
+        )
+        XCTAssertEqual(count, 0)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<Run>()).isEmpty)
+    }
+
+    /// 다른 계정 기록은 건드리지 않는다
+    @MainActor
+    func testImportsIntoTheSignedInAccountOnly() async throws {
+        let context = try makeContext()
+        let other = UUID()
+        context.insert(Run(ownerID: other, startedAt: base, endedAt: base.addingTimeInterval(1_800),
+                           distanceMeters: 5_000, movingSeconds: 1_800, calories: 300))
+        try context.save()
+
+        let mine = UUID()
+        let count = await HealthImport.importMissingRuns(
+            context: context, ownerID: mine, health: FakeSource(workouts: [workout()])
+        )
+        XCTAssertEqual(count, 1, "다른 계정 기록은 중복 판정에 쓰이면 안 된다")
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 2)
+    }
+}

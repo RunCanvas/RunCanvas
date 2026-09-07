@@ -14,6 +14,15 @@ struct ImportedWorkout: Equatable {
     let route: [RoutePoint]
 }
 
+/// 가져올 워크아웃을 어디서 읽는지. HealthService 가 실제 구현이고, 테스트는 가짜를 끼운다 —
+/// 이 이음매가 없으면 "기록이 나타나는가 / 두 개가 되는가"를 실기기 없이 확인할 방법이 없다.
+protocol WorkoutImporting {
+    func requestAuthorization() async throws
+    func importableWorkouts(since: Date) async throws -> [ImportedWorkout]
+}
+
+extension HealthService: WorkoutImporting {}
+
 /// 이미 앱에 있는 기록을 알아보기 위한 최소 정보. `Run` 을 통째로 넘기면 테스트가 SwiftData 를 끌고 온다.
 struct ExistingRun: Equatable {
     let startedAt: Date
@@ -101,7 +110,7 @@ extension HealthImport {
     /// 건강 앱에 있는데 앱에 없는 러닝을 기록으로 만든다. 실패는 조용히 넘기고 다음 기회에 다시 시도한다.
     @MainActor
     @discardableResult
-    static func importMissingRuns(context: ModelContext, ownerID: UUID, health: HealthService) async -> Int {
+    static func importMissingRuns(context: ModelContext, ownerID: UUID, health: WorkoutImporting) async -> Int {
         // 읽기 권한이 없으면 조회가 빈손으로 돌아온다. 새로 추가된 읽기 타입은 여기서 한 번 물어본다.
         try? await health.requestAuthorization()
 
