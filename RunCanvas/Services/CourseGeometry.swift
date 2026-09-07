@@ -122,8 +122,9 @@ enum CourseGeometry {
         return min(1, max(0, walked / total))
     }
 
-    /// 코스를 얼마나 왔는지 0…1. 가장 가까운 점까지의 누적 거리 기준이라
-    /// 되돌아 뛰면 값이 줄어든다 — 그게 실제 진행 상황이다.
+    /// 코스를 얼마나 왔는지 0…1. 가장 가까운 점까지의 누적 거리 기준.
+    /// (따라뛰기 화면은 match(to:in:near:)로 직전 지점 주변만 보므로 되돌아 뛰어도 값이 뒤로 가지 않는다 —
+    ///  왕복 코스에서 반대편으로 튀는 걸 막는 쪽을 택했다. 이 함수는 그 창 없이 전체에서 찾는다.)
     static func progress(at point: CoursePoint, in path: [CoursePoint]) -> Double {
         guard let index = nearestIndex(to: point, in: path), path.count > 1 else { return 0 }
         return progress(through: index, in: path)

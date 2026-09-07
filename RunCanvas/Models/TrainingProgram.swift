@@ -20,6 +20,23 @@ struct TrainingStep: Codable, Equatable, Hashable, Identifiable {
             }
         }
         var isRunning: Bool { self == .run }
+
+        /// 왜: 예전 빌드(develop)는 화면 문구("달리기")를 그대로 저장 키로 썼다. 이 디코더가 없으면
+        /// 그 기기의 사용자 프로그램이 통째로 디코드 실패 → 목록에서 사라지고, TrainingStore.save 가
+        /// "손상된 저장소"로 보고 조용히 반환해 **새 프로그램도 영영 저장되지 않는다**.
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            switch try container.decode(String.self) {
+            case "warmup", "준비 걷기": self = .warmup
+            case "run", "달리기": self = .run
+            case "walk", "걷기": self = .walk
+            case "cooldown", "마무리 걷기": self = .cooldown
+            case let value:
+                throw DecodingError.dataCorruptedError(
+                    in: container, debugDescription: "알 수 없는 트레이닝 구간 종류: \(value)"
+                )
+            }
+        }
     }
 
     var id = UUID()

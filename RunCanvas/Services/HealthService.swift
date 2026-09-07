@@ -121,11 +121,10 @@ final class HealthService: HealthServicing {
         }
 
         streamLock.lock()
-        if queryID == activeQueryID {
-            heartRateQuery = query
-            healthStore.execute(query)
-        }
+        let isCurrent = queryID == activeQueryID
+        if isCurrent { heartRateQuery = query }
         streamLock.unlock()
+        if isCurrent { healthStore.execute(query) }   // 외부 프레임워크 호출은 락 밖에서
     }
 
     func stopHeartRateStream() {

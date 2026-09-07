@@ -249,8 +249,12 @@ struct RunView: View {
             Button("저장") {
                 if let recovered, !runs.saveRecovered(recovered) { showsNoOwner = true }
                 recovered = nil
-                // 홈에서 '러닝 시작'을 눌러 왔다 — 알럿에 답한 뒤 같은 버튼을 또 누르게 하지 않는다
-                if startImmediately, !showsNoOwner { startRun() }
+                // 홈에서 '러닝 시작'을 눌러 왔다 — 알럿에 답한 뒤 같은 버튼을 또 누르게 하지 않는다.
+                // didAutoStart 를 여기서도 찍어야 결과 화면을 닫고 돌아왔을 때 또 시작되지 않는다.
+                if startImmediately, !showsNoOwner, !didAutoStart {
+                    didAutoStart = true
+                    startRun()
+                }
             }
             Button("버리기", role: .destructive) {
                 RunSession.discardRecoverable()

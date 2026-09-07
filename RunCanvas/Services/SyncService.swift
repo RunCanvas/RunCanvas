@@ -62,6 +62,8 @@ enum SyncService {
                     .select("id")
                     .eq("user_id", value: ownerID.uuidString)
                     .order("started_at", ascending: false)
+                    // 같은 시각의 기록도 순서가 고정돼야 offset 페이지에서 빠지거나 겹치지 않는다
+                    .order("id", ascending: true)
                     .range(from: remote.count, to: remote.count + pageSize - 1)
                     .execute().value
                 remote += page.map(\.id)
