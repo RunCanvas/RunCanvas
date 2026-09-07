@@ -81,6 +81,23 @@ extension HealthImport {
     /// 앱을 열 때마다 훑는 구간. 워치로만 뛴 러닝은 폰이 며칠 뒤에야 열릴 수 있다.
     private static let lookbackDays = 90
 
+    /// 워치가 보내온 요약 하나를 기록으로. 이미 있는 러닝이면 아무것도 안 한다.
+    /// 경로는 워치가 건강 앱에만 붙여 두므로 여기선 비어 있고, 다음 가져오기가 채운다.
+    @MainActor
+    @discardableResult
+    static func saveIfMissing(_ workout: ImportedWorkout, ownerID: UUID, context: ModelContext) -> Bool {
+        guard let runs = try? context.fetch(
+            FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == ownerID })
+        ) else { return false }
+        let existing = runs.map { ExistingRun(startedAt: $0.startedAt, endedAt: $0.endedAt,
+                                              healthWorkoutID: $0.healthWorkoutID) }
+        guard !newWorkouts(from: [workout], existing: existing).isEmpty else { return false }
+        context.insert(makeRun(from: workout, ownerID: ownerID))
+        guard (try? context.save()) != nil else { return false }
+        log.info("워치가 보낸 러닝 1건 저장")
+        return true
+    }
+
     /// 건강 앱에 있는데 앱에 없는 러닝을 기록으로 만든다. 실패는 조용히 넘기고 다음 기회에 다시 시도한다.
     @MainActor
     @discardableResult
@@ -107,8 +124,17 @@ extension HealthImport {
         }
         let existing = runs.map { ExistingRun(startedAt: $0.startedAt, endedAt: $0.endedAt,
                                               healthWorkoutID: $0.healthWorkoutID) }
+        // 워치 요약으로 먼저 들어온 기록은 경로가 비어 있다 — 건강 앱에서 읽은 경로로 채운다
+        var filledRoutes = 0
+        let byWorkoutID = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for run in runs where run.route.isEmpty {
+            guard let id = run.healthWorkoutID, let workout = byWorkoutID[id], !workout.route.isEmpty else { continue }
+            run.route = workout.route
+            filledRoutes += 1
+        }
+
         let missing = newWorkouts(from: workouts, existing: existing)
-        guard !missing.isEmpty else { return 0 }
+        guard !missing.isEmpty || filledRoutes > 0 else { return 0 }
 
         missing.forEach { context.insert(makeRun(from: $0, ownerID: ownerID)) }
         do {
@@ -117,7 +143,7 @@ extension HealthImport {
             log.error("가져온 기록 저장 실패: \(error.localizedDescription, privacy: .public)")
             return 0
         }
-        log.info("건강 앱에서 러닝 \(missing.count, privacy: .public)건 가져옴")
+        log.info("건강 앱에서 러닝 \(missing.count, privacy: .public)건 가져오고 경로 \(filledRoutes, privacy: .public)건 채움")
         return missing.count
     }
 }

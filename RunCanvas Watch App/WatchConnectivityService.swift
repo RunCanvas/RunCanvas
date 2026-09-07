@@ -51,6 +51,26 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session.transferUserInfo(message)
     }
 
+    /// 끝난 러닝 요약. 명령과 같은 transferUserInfo — 폰 앱이 꺼져 있어도 큐에 남았다가 배달된다.
+    /// (스냅샷은 sendMessage 라 폰이 잠들면 사라져서, 워치 단독 러닝이 앱에 안 남았다)
+    func sendFinishedWorkout(sessionID: UUID, workoutID: UUID, startedAt: Date, endedAt: Date,
+                             distanceMeters: Double, calories: Double,
+                             averageHeartRate: Double?, maxHeartRate: Double?) {
+        var message: [String: Any] = [
+            "kind": "finished",
+            "sessionID": sessionID.uuidString,
+            "workoutID": workoutID.uuidString,
+            "startedAt": startedAt.timeIntervalSince1970,
+            "endedAt": endedAt.timeIntervalSince1970,
+            "distanceMeters": distanceMeters,
+            "calories": calories
+        ]
+        if let averageHeartRate { message["averageHeartRate"] = averageHeartRate }
+        if let maxHeartRate { message["maxHeartRate"] = maxHeartRate }
+        guard let session, session.activationState == .activated else { return }
+        session.transferUserInfo(message)
+    }
+
     func sendSnapshot(
         sessionID: UUID,
         state: String,

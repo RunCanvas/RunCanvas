@@ -48,6 +48,9 @@ final class RunCoordinator {
         watch.onSnapshot = { [weak self] snapshot in
             self?.apply(snapshot)
         }
+        watch.onFinishedWorkout = { [weak self] finished in
+            self?.save(finished)
+        }
         startSyncLoop()
     }
 
@@ -158,6 +161,25 @@ final class RunCoordinator {
         guard let heartRate = snapshot.heartRate else { return }
         // 값이 같아도 매번 기록한다 — 바뀔 때만 담으면 심박 변동이 큰 구간으로 평균이 쏠린다
         session.recordHeartRate(heartRate)
+    }
+
+    /// 워치가 끝낸 러닝 요약. 폰이 실시간으로 못 받았어도(앱이 잠들어 있었어도) 여기서 기록이 된다.
+    /// 경로는 비어 있고, 다음 `HealthImport` 가 건강 앱에서 읽어 채운다.
+    private func save(_ finished: FinishedWatchWorkout) {
+        guard let ownerID else { return }
+        // 폰이 지금 이 러닝을 기록 중이면 곧 자기가 저장한다 — 겹쳐 만들지 않는다
+        guard session.state != .running, session.state != .paused else { return }
+        // WatchConnectivityService 가 델리게이트 콜백을 메인으로 넘겨 준다 (RunCoordinator 자체는 격리돼 있지 않다)
+        MainActor.assumeIsolated {
+            HealthImport.saveIfMissing(
+                ImportedWorkout(
+                    id: finished.workoutID, startedAt: finished.startedAt, endedAt: finished.endedAt,
+                    distanceMeters: finished.distanceMeters, calories: finished.calories,
+                    averageHeartRate: finished.averageHeartRate, maxHeartRate: finished.maxHeartRate, route: []
+                ),
+                ownerID: ownerID, context: context
+            )
+        }
     }
 
     // MARK: - 스냅샷 송신 + 워치 감시

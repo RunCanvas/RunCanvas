@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import RunCanvas
 
 /// 폰 앱이 꺼진 채 워치로 뛴 러닝을 건강 앱에서 가져온다. 같은 러닝을 두 번 만들지 않는 게 핵심이다.
@@ -62,5 +63,47 @@ final class HealthImportTests: XCTestCase {
         XCTAssertEqual(run.distanceMeters, 5_000)
         XCTAssertEqual(run.movingSeconds, 1_800)
         XCTAssertEqual(run.averageHeartRate, 150)
+    }
+
+    // MARK: 워치가 보내는 요약 (폰 앱이 꺼져 있어도 transferUserInfo 로 배달된다)
+
+    func testFinishedMessageParsesAndRejectsBrokenOnes() throws {
+        let id = UUID()
+        let message: [String: Any] = [
+            "kind": "finished", "sessionID": UUID().uuidString, "workoutID": id.uuidString,
+            "startedAt": base.timeIntervalSince1970,
+            "endedAt": base.addingTimeInterval(1_800).timeIntervalSince1970,
+            "distanceMeters": 5_000.0, "calories": 300.0, "averageHeartRate": 150.0
+        ]
+        let parsed = try XCTUnwrap(FinishedWatchWorkout(message))
+        XCTAssertEqual(parsed.workoutID, id)
+        XCTAssertEqual(parsed.distanceMeters, 5_000)
+        XCTAssertEqual(parsed.averageHeartRate, 150)
+        XCTAssertNil(parsed.maxHeartRate, "안 보낸 값은 nil 이어야 한다")
+
+        XCTAssertNil(FinishedWatchWorkout(["workoutID": "not-a-uuid"]), "깨진 id 는 버린다")
+        var backwards = message
+        backwards["endedAt"] = base.addingTimeInterval(-10).timeIntervalSince1970
+        XCTAssertNil(FinishedWatchWorkout(backwards), "끝이 시작보다 이르면 버린다")
+    }
+
+    @MainActor
+    func testSaveIfMissingInsertsOnceThenSkips() throws {
+        let container = try ModelContainer(for: Run.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let owner = UUID()
+        let incoming = workout()
+
+        XCTAssertTrue(HealthImport.saveIfMissing(incoming, ownerID: owner, context: context))
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 1)
+
+        // 같은 요약이 다시 배달돼도(transferUserInfo 재시도) 기록이 두 개가 되면 안 된다
+        XCTAssertFalse(HealthImport.saveIfMissing(incoming, ownerID: owner, context: context))
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 1)
+
+        let saved = try XCTUnwrap(try context.fetch(FetchDescriptor<Run>()).first)
+        XCTAssertEqual(saved.healthWorkoutID, incoming.id)
+        XCTAssertTrue(saved.route.isEmpty, "요약엔 경로가 없다 — 다음 가져오기가 채운다")
     }
 }

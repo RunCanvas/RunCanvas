@@ -205,6 +205,18 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             routeBuilder = nil
             state = .finished
             sendSnapshot()
+            // 폰이 실시간으로 못 받았어도 이 요약으로 기록이 남는다 (transferUserInfo 는 앱이 꺼져 있어도 배달된다)
+            if let workout {
+                let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
+                let heartRates = workout.statistics(for: HKQuantityType(.heartRate))
+                connectivity.sendFinishedWorkout(
+                    sessionID: sessionID, workoutID: workout.uuid,
+                    startedAt: workout.startDate, endedAt: workout.endDate,
+                    distanceMeters: distanceMeters, calories: activeEnergy,
+                    averageHeartRate: heartRates?.averageQuantity()?.doubleValue(for: beatsPerMinute),
+                    maxHeartRate: heartRates?.maximumQuantity()?.doubleValue(for: beatsPerMinute)
+                )
+            }
         } catch {
             errorMessage = error.localizedDescription
             resetSession()
