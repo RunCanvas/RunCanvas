@@ -66,10 +66,16 @@ struct MarathonEvent: Identifiable, Equatable, Decodable {
         self.imageURL = imageURL
     }
 
-    var isAcceptingSignups: Bool { status == "open" }
+    var isAcceptingSignups: Bool { isAcceptingSignups(now: .now) }
+
+    /// 마감일이 지났으면 status 가 open 이어도 접수 중이 아니다 — 캐시·번들 씨앗은 며칠씩 묵어 status 가 늦게 뒤집힌다
+    func isAcceptingSignups(now: Date, calendar: Calendar = MarathonSchedule.calendar) -> Bool {
+        status == "open"
+            && (registrationEnd.map { calendar.startOfDay(for: $0) >= calendar.startOfDay(for: now) } ?? true)
+    }
 
     /// 대회까지 남은 날. 오늘이면 0, 날짜 미정이면 nil
-    func daysAway(now: Date = .now, calendar: Calendar = .current) -> Int? {
+    func daysAway(now: Date = .now, calendar: Calendar = MarathonSchedule.calendar) -> Int? {
         guard let date else { return nil }
         return calendar.dateComponents([.day], from: calendar.startOfDay(for: now),
                                        to: calendar.startOfDay(for: date)).day
@@ -90,12 +96,12 @@ enum MarathonCategory: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    func includes(_ event: MarathonEvent) -> Bool {
+    func includes(_ event: MarathonEvent, now: Date = .now, calendar: Calendar = MarathonSchedule.calendar) -> Bool {
         switch self {
         case .all: true
         case .race: event.kind == MarathonCategory.race.rawValue
         case .theme: event.kind == MarathonCategory.theme.rawValue
-        case .open: event.isAcceptingSignups
+        case .open: event.isAcceptingSignups(now: now, calendar: calendar)
         }
     }
 }
@@ -114,7 +120,10 @@ enum MarathonCourse: String, CaseIterable, Identifiable {
         let text = raw.lowercased().replacingOccurrences(of: " ", with: "")
         switch self {
         case .any: return true
-        case .short: return text.hasPrefix("5k") || text.hasPrefix("~5k") || text.hasPrefix("3") || text.hasPrefix("4")
+        case .short:
+            // 앞머리 숫자를 거리로 읽는다 — 접두어 비교("3", "4")는 30km·32km 까지 잡았다. 5.18km 처럼 5km 급도 넣는다
+            let km = Double(text.drop(while: { $0 == "~" }).prefix { $0.isNumber || $0 == "." })
+            return km.map { $0.rounded() <= 5 } ?? false
         case .ten: return text.hasPrefix("10k")
         case .half: return text.contains("half") || text.contains("하프") || text.contains("21")
         case .full: return text.contains("full") || text.contains("풀") || text.contains("42")
@@ -197,11 +206,11 @@ struct MarathonSchedule: Equatable, Decodable {
         course: MarathonCourse = .any,
         region: String = KoreaRegion.all,
         now: Date = .now,
-        calendar: Calendar = .current
+        calendar: Calendar = MarathonSchedule.calendar
     ) -> [MonthSection] {
         let today = calendar.startOfDay(for: now)
         let filtered = events
-            .filter { category.includes($0) && course.includes($0) && KoreaRegion.includes(region, $0) }
+            .filter { category.includes($0, now: now, calendar: calendar) && course.includes($0) && KoreaRegion.includes(region, $0) }
             .filter { $0.date.map { calendar.startOfDay(for: $0) >= today } ?? true }
 
         var dated: [String: [MarathonEvent]] = [:]
@@ -222,6 +231,14 @@ struct MarathonSchedule: Equatable, Decodable {
         return sections
     }
 
+    /// 날짜는 서울 자정으로 파싱하므로 묶기·D-day·표시도 같은 달력을 써야 한다.
+    /// 기기 달력(Calendar.current)이면 서울보다 서쪽 시간대에서 하루가 밀리고, 불교력 기기에선 연도가 어긋난다.
+    static let calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        return c
+    }()
+
     static func parseDate(_ text: String?) -> Date? {
         guard let text, !text.isEmpty else { return nil }
         return isoDay.date(from: String(text.prefix(10)))
@@ -230,7 +247,7 @@ struct MarathonSchedule: Equatable, Decodable {
     private static let isoDay: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()

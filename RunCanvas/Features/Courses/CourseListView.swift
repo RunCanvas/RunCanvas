@@ -10,6 +10,17 @@ struct CourseListView: View {
     @State private var mineOnly = false
     @State private var showsMap = false
 
+    private struct FilterKey: Hashable {
+        let region: String
+        let sort: CourseSort
+        let mineOnly: Bool
+        let ownerID: UUID?
+    }
+
+    private var filterKey: FilterKey {
+        FilterKey(region: region, sort: sort, mineOnly: mineOnly, ownerID: auth.userID)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
@@ -22,17 +33,23 @@ struct CourseListView: View {
                         .background(Color.card, in: Capsule())
                 }
                 Spacer()
-                Text("\(service.courses.count)개")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                if service.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("코스 불러오는 중")
+                } else {
+                    Text("\(service.totalCount)개")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 10)
             Divider()
 
             if showsMap {
-                CourseMapBrowseView(courses: service.courses, service: service)
+                CourseMapBrowseView(courses: service.courses, service: service, onRetry: reload)
             } else {
                 list
             }
@@ -57,10 +74,8 @@ struct CourseListView: View {
                 }
             }
         }
-        .onChange(of: region) { Task { await reload() } }
-        .onChange(of: sort) { Task { await reload() } }
-        .onChange(of: mineOnly) { Task { await reload() } }
-        .task { await reload() }
+        // 필터를 빠르게 바꾸면 SwiftUI가 이전 작업을 취소하고 서비스도 마지막 세대 응답만 반영한다.
+        .task(id: filterKey) { await reload() }
     }
 
     /// 서버가 지역으로 걸러 주므로 칩은 앱이 아는 지역을 전부 만들고 개수를 붙인다 —
@@ -76,15 +91,19 @@ struct CourseListView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 14) {
                 if let notice = service.failureNotice {
-                    Label(notice, systemImage: "wifi.exclamationmark")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(notice, systemImage: "wifi.exclamationmark")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Button("다시 시도") { Task { await reload() } }
+                            .font(.footnote.weight(.semibold))
+                    }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.card, in: RoundedRectangle(cornerRadius: 12))
+                        .background(Color.card, in: RoundedRectangle(cornerRadius: 16))
                 }
 
-                if service.courses.isEmpty {
+                if service.courses.isEmpty, service.failureNotice == nil {
                     ContentUnavailableView {
                         Label(service.isLoading ? "불러오는 중" : emptyTitle, systemImage: "map")
                     } description: {
@@ -101,6 +120,23 @@ struct CourseListView: View {
                         CourseCard(course: course)
                     }
                     .buttonStyle(.plain)
+                }
+
+                if service.hasMore {
+                    Button {
+                        Task { await service.loadMore() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if service.isLoadingMore { ProgressView().controlSize(.small) }
+                            Text(service.isLoadingMore ? "불러오는 중…" : "코스 더 보기")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.card, in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(service.isLoadingMore)
                 }
             }
             .padding(20)

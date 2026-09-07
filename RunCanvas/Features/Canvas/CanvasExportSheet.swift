@@ -32,8 +32,10 @@ struct CanvasExportSheet: View {
                     .disabled(renderedImage == nil)
 
                     HStack(spacing: 10) {
-                        secondaryButton("공유", systemImage: "square.and.arrow.up") { showsShareSheet = true }
-                        secondaryButton("앱에 저장", systemImage: "tray.and.arrow.down") {
+                        SecondaryButton(title: "공유", systemImage: "square.and.arrow.up") {
+                            showsShareSheet = true
+                        }
+                        SecondaryButton(title: "앱에 저장", systemImage: "tray.and.arrow.down") {
                             // 같은 기록을 다시 꾸미면 이전 이미지를 덮어쓰므로 먼저 알린다
                             if run.decoratedImageFilename == nil { saveToApp() } else { showsOverwriteConfirmation = true }
                         }
@@ -65,6 +67,9 @@ struct CanvasExportSheet: View {
             isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } }),
             presenting: message
         ) { message in
+            if message.opensSettings, let url = URL(string: UIApplication.openSettingsURLString) {
+                Link("설정 열기", destination: url)
+            }
             Button("확인") {
                 if message.finishesFlow { dismiss(); onSavedToApp() }
             }
@@ -96,18 +101,6 @@ struct CanvasExportSheet: View {
         }
     }
 
-    private func secondaryButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.card)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(.plain)
-    }
-
     @MainActor
     private func render() {
         renderFailed = false
@@ -123,7 +116,17 @@ struct CanvasExportSheet: View {
             onSaved()
             message = ExportMessage(text: "사진 앱에 PNG로 저장했어요.", isSuccess: true)
         } catch {
-            message = ExportMessage(text: error.localizedDescription, isSuccess: false)
+            let opensSettings: Bool
+            if let exportError = error as? CanvasExporter.ExportError, case .notAuthorized = exportError {
+                opensSettings = true
+            } else {
+                opensSettings = false
+            }
+            message = ExportMessage(
+                text: error.localizedDescription,
+                isSuccess: false,
+                opensSettings: opensSettings
+            )
         }
     }
 
@@ -143,6 +146,7 @@ struct CanvasExportSheet: View {
 private struct ExportMessage {
     let text: String
     let isSuccess: Bool
+    var opensSettings = false
     var finishesFlow = false
 }
 

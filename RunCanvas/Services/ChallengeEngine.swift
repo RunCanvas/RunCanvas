@@ -12,12 +12,17 @@ enum ChallengeEngine {
 
     /// "2026-08" / "2026-W35" — 완료 트로피 저장 키에 쓴다
     static func periodKey(_ period: Challenge.Period, now: Date, calendar: Calendar = .current) -> String {
+        // 저장 키의 연도는 기기에서 일본력·불력을 골라도 바뀌면 안 된다.
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        gregorian.firstWeekday = calendar.firstWeekday
+        gregorian.minimumDaysInFirstWeek = calendar.minimumDaysInFirstWeek
         switch period {
         case .month:
-            let c = calendar.dateComponents([.year, .month], from: now)
+            let c = gregorian.dateComponents([.year, .month], from: now)
             return String(format: "%04d-%02d", c.year!, c.month!)
         case .week:
-            let c = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+            let c = gregorian.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
             return String(format: "%04d-W%02d", c.yearForWeekOfYear!, c.weekOfYear!)
         }
     }

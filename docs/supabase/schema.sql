@@ -132,3 +132,39 @@ create policy "본인 코스 수정" on public.courses
   for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
 create policy "본인 코스 삭제" on public.courses
   for delete using (auth.uid() = owner_id);
+
+-- migration "courses_input_guardrails" (2026-09-07): 공개 목록을 과도한 이름·경로 한 건이 망가뜨리지 않게 제한
+-- NOT VALID는 기존 데이터 때문에 배포 자체가 실패하지 않게 하면서도 새 insert/update에는 즉시 적용된다.
+-- 기존 위반 행을 정리한 뒤 각 제약에 `alter table public.courses validate constraint ...`를 실행한다.
+alter table public.courses
+  add constraint courses_name_len check (
+    char_length(name) between 1 and 40 and name ~ '[^[:space:]]'
+  ) not valid,
+  add constraint courses_path_size check (
+    case
+      when jsonb_typeof(path) = 'array' then jsonb_array_length(path) between 2 and 5000
+      else false
+    end
+  ) not valid,
+  add constraint courses_distance check (distance_m between 300 and 100000) not valid;
+
+-- 닉네임은 클라이언트가 보낸 값을 믿지 않고 로그인한 사용자의 프로필에서 복사한다.
+create or replace function public.set_course_owner_nickname()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.owner_nickname := coalesce(
+    (select nickname from public.profiles where id = auth.uid()),
+    ''
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists set_course_owner_nickname on public.courses;
+create trigger set_course_owner_nickname
+  before insert or update on public.courses
+  for each row execute function public.set_course_owner_nickname();

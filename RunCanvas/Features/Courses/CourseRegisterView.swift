@@ -14,10 +14,13 @@ struct CourseRegisterView: View {
     @State private var region = KoreaRegion.order.first ?? "서울"
     @State private var isUploading = false
     @State private var didGuessRegion = false
+    @State private var didPrepareRoute = false
+    @State private var sharedPath: [CoursePoint] = []
     @State private var errorMessage: String?
 
     private var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty && !isUploading
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && didPrepareRoute && !sharedPath.isEmpty && !isUploading
     }
 
     var body: some View {
@@ -35,7 +38,15 @@ struct CourseRegisterView: View {
 
                 Section {
                     LabeledContent("기록 거리", value: String(format: "%.2f km", run.distanceKm))
-                    LabeledContent("경로 점", value: "\(run.route.count)개")
+                    LabeledContent(
+                        "공유되는 거리",
+                        value: didPrepareRoute ? String(format: "%.2f km", CourseGeometry.length(sharedPath)) : "계산 중…"
+                    )
+                } footer: {
+                    if didPrepareRoute, sharedPath.isEmpty {
+                        Text(CourseService.CourseError.tooShort.errorDescription ?? "공유할 수 있는 경로가 없어요.")
+                            .foregroundStyle(.red)
+                    }
                 }
                 .listRowBackground(Color.card)
 
@@ -55,6 +66,7 @@ struct CourseRegisterView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("취소") { dismiss() }
+                        .disabled(isUploading)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("등록") { upload() }
@@ -64,7 +76,12 @@ struct CourseRegisterView: View {
             .overlay {
                 if isUploading { ProgressView().controlSize(.large) }
             }
-            .task { await guessRegion() }
+            .interactiveDismissDisabled(isUploading)
+            .task {
+                sharedPath = CourseGeometry.trimmed(CourseGeometry.path(from: run.route))
+                didPrepareRoute = true
+                await guessRegion()
+            }
         }
     }
 
@@ -72,10 +89,12 @@ struct CourseRegisterView: View {
     private func guessRegion() async {
         guard !didGuessRegion, let first = run.route.first else { return }
         didGuessRegion = true
+        let initialRegion = region
         let location = CLLocation(latitude: first.latitude, longitude: first.longitude)
         guard let area = try? await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: Locale(identifier: "ko_KR"))
             .first?.administrativeArea,
               let guessed = KoreaRegion.short(administrativeArea: area) else { return }
+        guard region == initialRegion else { return }
         region = guessed
     }
 
@@ -85,8 +104,8 @@ struct CourseRegisterView: View {
         Task {
             defer { isUploading = false }
             do {
-                let course = try await service.register(route: run.route, name: name, region: region,
-                                                       ownerID: run.ownerID, ownerNickname: nickname)
+                let course = try await service.register(path: sharedPath, name: name, region: region,
+                                                        ownerID: run.ownerID, ownerNickname: nickname)
                 onRegistered?(course)
                 dismiss()
             } catch let error as CourseService.CourseError {

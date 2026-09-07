@@ -4,15 +4,39 @@ import Foundation
 /// 구간은 종류와 길이(초) 두 가지면 충분하다.
 struct TrainingStep: Codable, Equatable, Hashable, Identifiable {
     enum Kind: String, Codable, CaseIterable, Identifiable {
-        case warmup = "준비 걷기"
-        case run = "달리기"
-        case walk = "걷기"
-        case cooldown = "마무리 걷기"
+        case warmup
+        case run
+        case walk
+        case cooldown
 
         var id: String { rawValue }
         /// 화면·음성에서 쓰는 이름
-        var title: String { rawValue }
+        var title: String {
+            switch self {
+            case .warmup: "준비 걷기"
+            case .run: "달리기"
+            case .walk: "걷기"
+            case .cooldown: "마무리 걷기"
+            }
+        }
         var isRunning: Bool { self == .run }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(String.self)
+            // 예전 버전은 화면 문구를 그대로 저장했으므로, 안정적인 키로 옮긴 뒤에도 기존 프로그램을 읽는다.
+            switch value {
+            case "warmup", "준비 걷기": self = .warmup
+            case "run", "달리기": self = .run
+            case "walk", "걷기": self = .walk
+            case "cooldown", "마무리 걷기": self = .cooldown
+            default:
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "알 수 없는 트레이닝 구간 종류: \(value)"
+                )
+            }
+        }
     }
 
     var id = UUID()
@@ -55,6 +79,7 @@ extension TrainingProgram {
     /// 런데이식 8주 5K — 주 3회, 걷기·달리기 반복 길이를 주마다 늘린다.
     /// 표 한 줄이 한 주(달리기 초, 걷기 초, 반복 횟수)라 주차 조정이 표에서 끝난다.
     static let couchTo5K: TrainingProgram = {
+        let programNumber = 1
         let weeks: [(run: Int, walk: Int, repeats: Int)] = [
             (60, 90, 8), (90, 120, 6), (180, 180, 4), (300, 180, 3),
             (480, 180, 2), (600, 120, 2), (1_200, 0, 1), (1_800, 0, 1)
@@ -62,19 +87,29 @@ extension TrainingProgram {
         var sessions: [TrainingSession] = []
         for (index, week) in weeks.enumerated() {
             for day in 1...3 {
-                var steps = [TrainingStep(kind: .warmup, seconds: 300)]
+                let sessionNumber = index * 3 + day
+                var steps = [builtInStep(.warmup, seconds: 300, program: programNumber,
+                                         session: sessionNumber, index: 1)]
                 for repeatIndex in 0..<week.repeats {
-                    steps.append(TrainingStep(kind: .run, seconds: week.run))
+                    steps.append(builtInStep(.run, seconds: week.run, program: programNumber,
+                                             session: sessionNumber, index: steps.count + 1))
                     // 마지막 반복 뒤 걷기는 마무리 걷기와 겹치므로 넣지 않는다
                     if week.walk > 0, repeatIndex < week.repeats - 1 {
-                        steps.append(TrainingStep(kind: .walk, seconds: week.walk))
+                        steps.append(builtInStep(.walk, seconds: week.walk, program: programNumber,
+                                                 session: sessionNumber, index: steps.count + 1))
                     }
                 }
-                steps.append(TrainingStep(kind: .cooldown, seconds: 300))
-                sessions.append(TrainingSession(title: "\(index + 1)주차 \(day)일", steps: steps))
+                steps.append(builtInStep(.cooldown, seconds: 300, program: programNumber,
+                                         session: sessionNumber, index: steps.count + 1))
+                sessions.append(TrainingSession(
+                    id: builtInID(entity: 2, program: programNumber, session: sessionNumber),
+                    title: "\(index + 1)주차 \(day)일",
+                    steps: steps
+                ))
             }
         }
         return TrainingProgram(
+            id: builtInID(entity: 1, program: programNumber),
             name: "8주 5K 만들기",
             summary: "걷기와 달리기를 섞어 8주 동안 5km를 쉬지 않고 달릴 몸을 만듭니다. 주 3회.",
             sessions: sessions,
@@ -84,17 +119,21 @@ extension TrainingProgram {
 
     /// 이미 뛰는 사람이 30분 연속 달리기를 만드는 4주
     static let thirtyMinutes: TrainingProgram = {
+        let programNumber = 2
         let runSeconds = [900, 1_200, 1_500, 1_800]
         let sessions = runSeconds.enumerated().flatMap { index, seconds in
             (1...3).map { day in
-                TrainingSession(title: "\(index + 1)주차 \(day)일", steps: [
-                    TrainingStep(kind: .warmup, seconds: 300),
-                    TrainingStep(kind: .run, seconds: seconds),
-                    TrainingStep(kind: .cooldown, seconds: 300)
+                let sessionNumber = index * 3 + day
+                return TrainingSession(id: builtInID(entity: 2, program: programNumber, session: sessionNumber),
+                                       title: "\(index + 1)주차 \(day)일", steps: [
+                    builtInStep(.warmup, seconds: 300, program: programNumber, session: sessionNumber, index: 1),
+                    builtInStep(.run, seconds: seconds, program: programNumber, session: sessionNumber, index: 2),
+                    builtInStep(.cooldown, seconds: 300, program: programNumber, session: sessionNumber, index: 3)
                 ])
             }
         }
         return TrainingProgram(
+            id: builtInID(entity: 1, program: programNumber),
             name: "30분 달리기 도전",
             summary: "15분에서 시작해 4주 만에 30분 연속 달리기까지. 주 3회.",
             sessions: sessions,
@@ -103,18 +142,40 @@ extension TrainingProgram {
     }()
 
     /// 속도용 인터벌 한 세션짜리 — 언제든 꺼내 쓰는 단품
-    static let intervals = TrainingProgram(
-        name: "1분 인터벌 8세트",
-        summary: "빠르게 1분, 걸으며 2분 회복을 8번. 페이스를 끌어올릴 때.",
-        sessions: [
-            TrainingSession(title: "인터벌 1회차", steps:
-                [TrainingStep(kind: .warmup, seconds: 300)]
-                + (0..<8).flatMap { index in
-                    [TrainingStep(kind: .run, seconds: 60)]
-                    + (index < 7 ? [TrainingStep(kind: .walk, seconds: 120)] : [])
-                }
-                + [TrainingStep(kind: .cooldown, seconds: 300)])
-        ],
-        isBuiltIn: true
-    )
+    static let intervals: TrainingProgram = {
+        let programNumber = 3
+        let sessionNumber = 1
+        let kindsAndSeconds = [(TrainingStep.Kind.warmup, 300)]
+            + (0..<8).flatMap { index in
+                [(TrainingStep.Kind.run, 60)]
+                    + (index < 7 ? [(TrainingStep.Kind.walk, 120)] : [])
+            }
+            + [(TrainingStep.Kind.cooldown, 300)]
+        let steps = kindsAndSeconds.enumerated().map { index, value in
+            builtInStep(value.0, seconds: value.1, program: programNumber,
+                        session: sessionNumber, index: index + 1)
+        }
+        return TrainingProgram(
+            id: builtInID(entity: 1, program: programNumber),
+            name: "1분 인터벌 8세트",
+            summary: "빠르게 1분, 걸으며 2분 회복을 8번. 페이스를 끌어올릴 때.",
+            sessions: [TrainingSession(
+                id: builtInID(entity: 2, program: programNumber, session: sessionNumber),
+                title: "인터벌 1회차",
+                steps: steps
+            )],
+            isBuiltIn: true
+        )
+    }()
+
+    /// 코드로 다시 만들어도 같은 UUID가 나오게 해 완료 기록이 앱 재실행을 건너 유지된다.
+    private static func builtInID(entity: Int, program: Int, session: Int = 0, step: Int = 0) -> UUID {
+        UUID(uuidString: String(format: "52554E43-%04d-%04d-%04d-%012d", entity, program, session, step))!
+    }
+
+    private static func builtInStep(_ kind: TrainingStep.Kind, seconds: Int,
+                                    program: Int, session: Int, index: Int) -> TrainingStep {
+        TrainingStep(id: builtInID(entity: 3, program: program, session: session, step: index),
+                     kind: kind, seconds: seconds)
+    }
 }

@@ -13,13 +13,12 @@ enum TrainingStore {
     // MARK: 내가 만든 프로그램
 
     static func customPrograms(ownerID: UUID?, defaults: UserDefaults = .standard) -> [TrainingProgram] {
-        guard let data = defaults.data(forKey: key(programsKey, ownerID)),
-              let programs = try? JSONDecoder().decode([TrainingProgram].self, from: data) else { return [] }
-        return programs
+        decodedCustomPrograms(ownerID: ownerID, defaults: defaults) ?? []
     }
 
     static func save(_ program: TrainingProgram, ownerID: UUID?, defaults: UserDefaults = .standard) {
-        var programs = customPrograms(ownerID: ownerID, defaults: defaults)
+        // 데이터가 있는데 읽지 못한 경우 빈 목록으로 간주하면 다음 저장이 기존 프로그램 전체를 덮어쓴다.
+        guard var programs = decodedCustomPrograms(ownerID: ownerID, defaults: defaults) else { return }
         if let index = programs.firstIndex(where: { $0.id == program.id }) {
             programs[index] = program
         } else {
@@ -29,8 +28,14 @@ enum TrainingStore {
     }
 
     static func delete(_ program: TrainingProgram, ownerID: UUID?, defaults: UserDefaults = .standard) {
-        write(customPrograms(ownerID: ownerID, defaults: defaults).filter { $0.id != program.id },
-              ownerID: ownerID, defaults: defaults)
+        guard let programs = decodedCustomPrograms(ownerID: ownerID, defaults: defaults) else { return }
+        write(programs.filter { $0.id != program.id }, ownerID: ownerID, defaults: defaults)
+    }
+
+    /// 빈 저장소는 빈 배열, 손상된 저장소는 nil로 구분해 파괴적인 덮어쓰기를 막는다.
+    private static func decodedCustomPrograms(ownerID: UUID?, defaults: UserDefaults) -> [TrainingProgram]? {
+        guard let data = defaults.data(forKey: key(programsKey, ownerID)) else { return [] }
+        return try? JSONDecoder().decode([TrainingProgram].self, from: data)
     }
 
     private static func write(_ programs: [TrainingProgram], ownerID: UUID?, defaults: UserDefaults) {
@@ -51,8 +56,7 @@ enum TrainingStore {
         defaults.set(ids.map(\.uuidString), forKey: key(completedKey, ownerID))
     }
 
-    /// 프로그램에서 몇 개나 했는지 (내장 프로그램은 앱을 지우면 세션 id가 새로 생기므로 진행도 초기화된다 —
-    /// ponytail: 서버에 붙일 만큼 중요해지면 그때 `training_progress` 테이블로 옮긴다)
+    /// 프로그램에서 몇 개나 했는지. 내장 세션 id도 고정이라 앱 재실행 뒤 완료 기록과 다시 연결된다.
     static func completedCount(in program: TrainingProgram, ownerID: UUID?,
                                defaults: UserDefaults = .standard) -> Int {
         let done = completedSessionIDs(ownerID: ownerID, defaults: defaults)

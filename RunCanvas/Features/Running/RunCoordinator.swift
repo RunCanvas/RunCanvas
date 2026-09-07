@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 import Observation
 import SwiftData
 
@@ -52,13 +53,21 @@ final class RunCoordinator {
 
     // MARK: - 러닝 조작 (RunView·워치 공용)
 
-    func start(sessionID: UUID = UUID(), sendToWatch: Bool = true) {
+    @discardableResult
+    func start(sessionID: UUID = UUID(), sendToWatch: Bool = true) -> Bool {
+        guard ownerID != nil,
+              session.state == .idle || session.state == .finished,
+              session.locationAuthorization == .authorizedWhenInUse
+                || session.locationAuthorization == .authorizedAlways else { return false }
         let usesWatchWorkout = sendToWatch ? watch.isReachable : true
+        finishedRun = nil
         session.start(sessionID: sessionID, healthManagedExternally: usesWatchWorkout)
+        guard session.state == .running else { return false }
         lastWatchSnapshotAt = nil
         watchStartedAt = usesWatchWorkout ? Date() : nil
-        guard sendToWatch, usesWatchWorkout else { return }
+        guard sendToWatch, usesWatchWorkout else { return true }
         watch.sendCommand(.start, sessionID: sessionID)
+        return true
     }
 
     func pause(sendToWatch: Bool = true) {
@@ -74,9 +83,11 @@ final class RunCoordinator {
     /// 저장할 계정을 못 찾으면 false — 호출한 쪽이 알럿을 띄운다
     @discardableResult
     func finish(sendToWatch: Bool) -> Bool {
-        guard let ownerID else { return false }
+        guard let ownerID,
+              session.state == .running || session.state == .paused else { return false }
         if sendToWatch { watch.sendCommand(.end, sessionID: session.sessionID) }
-        finishedRun = session.finish(ownerID: ownerID, weightKg: weightKg, context: context)
+        guard let run = session.finish(ownerID: ownerID, weightKg: weightKg, context: context) else { return false }
+        finishedRun = run
         watchStartedAt = nil
         lastWatchSnapshotAt = nil
         return true
@@ -95,9 +106,22 @@ final class RunCoordinator {
     private func handle(_ action: WorkoutSyncAction, remoteSessionID: UUID) {
         switch action {
         case .start:
-            // 폰이 이미 달리는 중이면 폰이 마스터 — 워치가 폰 sessionID를 따라온다
-            guard session.state == .idle else { return }
-            start(sessionID: remoteSessionID, sendToWatch: false)
+            if session.state == .running || session.state == .paused {
+                // 왜: 양쪽에서 따로 시작해 sessionID가 갈리면 이후 pause/end가 모두 버려진다.
+                // 원래 워치가 담당하던 세션이면 폰 ID를 다시 알려 맞추고, 폰이 담당 중이면
+                // 늦게 시작한 워치를 끝내 HealthKit에 워크아웃 두 개가 저장되지 않게 한다.
+                if session.healthManagedExternally {
+                    watch.sendCommand(.start, sessionID: session.sessionID)
+                } else {
+                    watch.sendCommand(.end, sessionID: remoteSessionID)
+                }
+                return
+            }
+            // 폰이 이미 달리는 중이면 폰이 마스터 — 워치가 폰 sessionID를 따라온다.
+            // 저장할 계정이 없으면 아예 받지 않는다 — 받아 두면 .end에서 finish가 실패해
+            // 세션이 running(GPS 켜진 채)에 갇히고, 알럿은 RunView에서만 뜨니 아무도 모른다.
+            guard session.state == .idle || session.state == .finished, ownerID != nil else { return }
+            _ = start(sessionID: remoteSessionID, sendToWatch: false)
         case .pause:
             guard remoteSessionID == session.sessionID else { return }
             pause(sendToWatch: false)
@@ -117,8 +141,17 @@ final class RunCoordinator {
     private func apply(_ snapshot: WatchWorkoutSnapshot) {
         guard snapshot.sessionID == session.sessionID else { return }
         lastWatchSnapshotAt = Date()
-        guard session.state == .running || session.state == .paused,
-              let heartRate = snapshot.heartRate else { return }
+        guard session.state == .running || session.state == .paused else { return }
+        // 워치의 "finished" 스냅샷은 sendMessage라 .end(transferUserInfo)보다 먼저 온다.
+        // 여기서 바로 끝내야 .end가 30초 넘게 늦어도 checkWatchAlive가 "연결 끊김"으로 오판해
+        // 폰 심박 스트림을 켜고 HealthKit 워크아웃을 한 번 더 저장하는 일이 없다.
+        if snapshot.state == "finished" {
+            finish(sendToWatch: false)
+            return
+        }
+        // 폰이 인계한 뒤엔 폰 스트림이 심박을 받는다 — 워치 스냅샷까지 담으면 같은 심박이 두 번 쌓여
+        // 평균·최대가 틀어진다 (블루투스가 잠깐 끊겼다 붙으면 워치는 모른 채 계속 보낸다)
+        guard session.healthManagedExternally, let heartRate = snapshot.heartRate else { return }
         // 값이 같아도 매번 기록한다 — 바뀔 때만 담으면 심박 변동이 큰 구간으로 평균이 쏠린다
         session.recordHeartRate(heartRate)
     }
@@ -163,7 +196,10 @@ final class RunCoordinator {
 
     private func takeOver(_ message: String) {
         guard session.healthManagedExternally else { return }
-        session.takeOverHealthWorkout()
+        // 워치 start가 늦게 도착하거나 잠깐 끊긴 뒤에도 둘 다 HealthKit 워크아웃을 저장하지 않게
+        // 같은 sessionID의 종료를 큐에 남긴다. 워치의 start-await 중 end 유실은 pendingEnd가 막는다.
+        watch.sendCommand(.end, sessionID: session.sessionID)
+        session.takeOverHealthWorkout(since: lastWatchSnapshotAt ?? Date())
         watchStartedAt = nil
         takeoverMessage = message
     }

@@ -7,6 +7,7 @@ import Supabase
 @MainActor
 @Observable
 final class AuthService {
+    private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "auth")
     private(set) var session: Session?
     /// 현재 계정에 연결된 로그인 방법들 (provider: "apple" / "google" / "kakao")
     private(set) var identities: [UserIdentity] = []
@@ -29,16 +30,22 @@ final class AuthService {
     private static let redirectURL = URL(string: "runcanvas://auth-callback")!
     /// 카카오 콘솔 동의항목과 정확히 일치해야 한다(불일치 시 invalid_scope). 이메일은 비즈 앱 전환 후 추가됨.
     private static let kakaoScopes = "profile_nickname profile_image account_email"
+    @ObservationIgnored private var authStateTask: Task<Void, Never>?
 
     init() {
         session = supabase.auth.currentSession
         identities = session?.user.identities ?? []
-        Task { [weak self] in
+        authStateTask = Task { [weak self] in
             for await (_, session) in supabase.auth.authStateChanges {
-                self?.session = session
-                self?.identities = session?.user.identities ?? []
+                guard !Task.isCancelled, let self else { return }
+                self.session = session
+                self.identities = session?.user.identities ?? []
             }
         }
+    }
+
+    deinit {
+        authStateTask?.cancel()
     }
 
     // MARK: - 로그인
@@ -89,12 +96,27 @@ final class AuthService {
         await refreshIdentities()
     }
 
+    /// Safari에서 돌아오는 계정 연결 콜백은 로그인용 ASWebAuthenticationSession과 달리 앱이 직접 교환해야 한다.
+    func handleOpenURL(_ url: URL) {
+        guard url.scheme == Self.redirectURL.scheme, url.host == Self.redirectURL.host else { return }
+        Task { [weak self] in
+            do {
+                let session = try await supabase.auth.session(from: url)
+                guard let self else { return }
+                self.session = session
+                await self.refreshIdentities()
+            } catch {
+                Self.log.error("인증 콜백 처리 실패: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     // MARK: - 로그아웃 / 탈퇴
 
     func signOut() async throws {
+        // 왜: SDK는 로컬 세션을 먼저 지운 뒤 네트워크 오류를 던질 수 있어, 캐시 정리는 defer로 보장한다.
+        defer { Profile.clearLocalCache() }
         try await supabase.auth.signOut()
-        // 다음 사용자에게 이전 계정의 닉네임·아바타·체중이 남지 않도록 (기록은 ownerID 로 분리돼 그대로 둔다)
-        Profile.clearLocalCache()
     }
 
     /// 1) 아바타 파일 삭제(Storage API — DB 함수에서 storage.objects 직접 삭제는 Supabase가 막음)
@@ -105,14 +127,14 @@ final class AuthService {
         if let id {
             // 공개 버킷이라 남으면 URL 아는 사람에게 계속 노출된다 → 실패는 남겨서 추적 가능하게
             do {
-                _ = try await supabase.storage.from("avatars").remove(paths: ["\(id.uuidString.lowercased())/avatar.jpg"])
+                try await ProfileService.removeAvatar(userID: id)
             } catch {
-                Logger(subsystem: "name.dongharyu.RunCanvas", category: "auth")
-                    .error("탈퇴 시 아바타 삭제 실패: \(error.localizedDescription, privacy: .public)")
+                Self.log.error("탈퇴 시 아바타 삭제 실패: \(error.localizedDescription, privacy: .public)")
             }
         }
         try await supabase.rpc("delete_own_account").execute()
-        try await supabase.auth.signOut(scope: .local)
+        // 계정 삭제는 이미 확정됐다. SDK 로그아웃의 후속 네트워크 실패가 로컬 정리를 막아서는 안 된다.
+        try? await supabase.auth.signOut(scope: .local)
         Profile.clearLocalCache()
         if let id { BadgeStore.reset(for: id) }   // 같은 폰에서 새 계정을 만들 때 옛 뱃지·챌린지 캐시가 남지 않도록
         didDeleteAccount = true

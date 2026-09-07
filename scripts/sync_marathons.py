@@ -19,6 +19,7 @@ import os
 import sys
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 from html import unescape
 from datetime import date, datetime, timedelta, timezone
@@ -35,30 +36,43 @@ def fetch(url: str, timeout: int = 30) -> bytes:
 
 # ---------------------------------------------------------------- 수집: kormarathon 월별 목록
 
-def from_kormarathon(months: int) -> list[dict]:
+def from_kormarathon(months: int) -> tuple[list[dict], date | None]:
     """월별 페이지에 서버 렌더링된 `"events":[...]` 배열을 그대로 읽는다.
 
     HTML 구조를 긁는 것보다 안정적이지만, 사이트가 바꾸면 깨질 수 있다 →
     한 달이 실패해도 나머지는 계속 진행하고, 전체가 0건이면 호출한 쪽이 실패로 처리한다.
+
+    함께 돌려주는 날짜는 실제로 이벤트를 읽어 낸 마지막 달의 말일 — 그 날까지는
+    "이번 실행에서 못 본 행 = 원본에서 사라진 행" 으로 믿고 지워도 된다(purge_stale).
     """
     events: list[dict] = []
     cursor = date.today().replace(day=1)
     misses = 0
+    seen_until: date | None = None
+    contiguous = True
     for _ in range(months):
         url = KORMARATHON_MONTH.format(year=cursor.year, month=cursor.month)
+        next_month = (cursor + timedelta(days=32)).replace(day=1)
         try:
             raw = fetch(url).decode("utf-8", errors="replace")
             found = parse_kormarathon(raw)
             events += found
             misses = 0 if found else misses + 1
+            if found and contiguous:
+                seen_until = next_month - timedelta(days=1)
+            elif not found:
+                # 왜: 한 달을 못 읽고 그 뒤 달을 읽었다고 삭제 범위를 뒤로 늘리면,
+                # 비어 있던 달의 정상 DB 행까지 '원본에서 사라짐'으로 오판한다.
+                contiguous = False
         except Exception as error:
             print(f"[안내] {url}: {error}", file=sys.stderr)
             misses += 1
+            contiguous = False
         # 아직 등록이 안 된 먼 미래 달이 이어지면 그만 둔다
         if misses >= 2:
             break
-        cursor = (cursor + timedelta(days=32)).replace(day=1)
-    return events
+        cursor = next_month
+    return events, seen_until
 
 
 CARD_RE = re.compile(r'<a class="group block.*?</a>', re.S)
@@ -141,16 +155,19 @@ def parse_detail(html: str) -> dict:
 
 
 def add_details(events: list[dict], known: dict) -> None:
-    """대회마다 상세 페이지를 한 번씩 읽어 채운다.
+    """대회마다 상세 페이지를 읽어 채운다.
 
-    이미 DB에 포스터가 있는 대회는 건너뛴다 — 안 그러면 6시간마다 200번씩 남의 사이트를 긁는다.
+    DB에 포스터가 있고 접수 중이 아닌 대회는 건너뛴다 — 안 그러면 6시간마다 200번씩 남의 사이트를 긁는다.
+    접수 중인 대회는 매번 다시 읽는다: 접수 연장·조기마감·참가비 변경은 상세에만 있어서, 한 번 읽은
+    마감일을 계속 쓰면 목록에서 온 '접수 중' 과 이미 지난 마감일이 카드에 같이 보인다.
     상세가 없어도 목록은 나와야 하므로 실패는 조용히 넘긴다.
     """
     fetched = 0
     for event in events:
         cached = known.get((event["name"], event.get("event_date")), {})
-        if cached.get("image_url"):
-            event.update({key: cached[key] for key in DETAIL_KEYS if cached.get(key) is not None})
+        # 왜: DB 값을 먼저 깔아 둔다 — 재조회가 실패하거나 일부만 파싱돼도 업서트가 기존 값을 NULL 로 덮지 않게
+        event.update({key: cached[key] for key in DETAIL_KEYS if cached.get(key) is not None})
+        if cached.get("image_url") and event.get("status") != "open":
             continue
         url = event.get("signup_url")
         if not url:
@@ -164,7 +181,7 @@ def add_details(events: list[dict], known: dict) -> None:
 
 
 def known_details() -> dict:
-    """DB에 이미 있는 상세값 — 없으면 빈 dict(전부 새로 받는다)."""
+    """DB에 이미 있는 상세값 — 자격증명이 없으면 빈 dict(전부 새로 받는다)."""
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
@@ -175,8 +192,9 @@ def known_details() -> dict:
         with urllib.request.urlopen(request, timeout=60) as response:
             rows = json.loads(response.read())
     except Exception as error:
-        print(f"[경고] 기존 상세 조회 실패: {error}", file=sys.stderr)
-        return {}
+        # 왜: 여기서 빈 dict 로 넘어가면 곧 같은 DB 에 업서트하면서, 상세 재조회에 실패한 대회의
+        # 포스터·마감일을 NULL 로 덮는다. 읽기가 안 되는 DB 에는 쓰지 않는다.
+        raise SystemExit(f"기존 상세 조회 실패: {error} — 다음 실행에서 다시 시도합니다")
     return {(row["name"], row.get("event_date")): row for row in rows}
 
 
@@ -235,13 +253,13 @@ UPLOAD_COLUMNS = ("name", "event_date", "region", "place", "courses", "type", "t
                   "updated_at")
 
 
-def rows_for_upload(events: list[dict]) -> list[dict]:
+def rows_for_upload(events: list[dict], synced_at: str | None = None) -> list[dict]:
     """모든 행을 같은 키로 맞춘다. 빠진 칸은 None, NOT NULL 인 칸은 기본값으로.
 
     `updated_at` 은 직접 넣는다 — 업서트로 갱신될 때는 컬럼 기본값 now() 가 다시 적용되지 않아서,
     안 넣으면 이 값이 "마지막 동기화"가 아니라 "처음 들어온 시각"으로 남는다.
     """
-    synced_at = datetime.now(timezone.utc).isoformat()
+    synced_at = synced_at or datetime.now(timezone.utc).isoformat()
     rows = []
     for event in events:
         row = {column: event.get(column) for column in UPLOAD_COLUMNS}
@@ -253,7 +271,8 @@ def rows_for_upload(events: list[dict]) -> list[dict]:
     return rows
 
 
-def upload(events: list[dict]) -> None:
+def upload(events: list[dict]) -> str:
+    """업서트하고, 모든 행에 찍은 `updated_at`(이번 동기화 시각)을 돌려준다 — purge_stale 의 기준."""
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
@@ -266,7 +285,8 @@ def upload(events: list[dict]) -> None:
         "Content-Type": "application/json",
         "Prefer": "resolution=merge-duplicates,return=minimal",
     }
-    rows = rows_for_upload(events)
+    synced_at = datetime.now(timezone.utc).isoformat()
+    rows = rows_for_upload(events, synced_at)
     # 한 번에 다 보내면 실패했을 때 원인을 못 찾는다 → 50건씩
     for start in range(0, len(rows), 50):
         chunk = rows[start:start + 50]
@@ -280,6 +300,32 @@ def upload(events: list[dict]) -> None:
             print(f"[오류] {start + 1}~{start + len(chunk)}번: {error.read().decode('utf-8', 'replace')}",
                   file=sys.stderr)
             raise
+    return synced_at
+
+
+def purge_stale(synced_at: str, seen_until: date | None) -> None:
+    """이번 실행에서 못 본 kormarathon 행을 지운다 — 연기·개명·취소된 대회의 옛 행이 앱에 두 번 보이지 않게.
+
+    업서트는 (name, event_date) 로만 맞추므로 날짜나 이름이 바뀌면 옛 행이 그대로 남고, 그 행의
+    status 는 다시 갱신되지 않아 '접수 중' 으로 굳는다. 원본을 끝까지 못 읽은 실행(사이트 장애로
+    일찍 끊김)이 멀쩡한 미래 일정을 지우지 않도록, 실제로 읽어 낸 마지막 달(seen_until)까지만 지운다.
+    upload 가 성공한 뒤에만 부른다 — 업서트가 실패했으면 '못 본 행' 을 가릴 수 없다.
+    """
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key or seen_until is None:
+        return
+    # 왜: synced_at 의 '+00:00' 이 그대로 URL 에 들어가면 공백으로 읽혀 필터가 깨진다 → 인코딩
+    query = urllib.parse.urlencode({
+        "source": "eq.kormarathon.com",
+        "updated_at": f"lt.{synced_at}",
+        "event_date": f"lte.{seen_until.isoformat()}",
+    })
+    endpoint = f"{url.rstrip('/')}/rest/v1/marathon_events?{query}"
+    headers = {"apikey": key, "Authorization": f"Bearer {key}", "Prefer": "return=minimal"}
+    request = urllib.request.Request(endpoint, headers=headers, method="DELETE")
+    with urllib.request.urlopen(request, timeout=60) as response:
+        print(f"  원본에서 사라진 일정 삭제({seen_until.isoformat()} 까지) → HTTP {response.status}")
 
 
 def purge_past() -> None:
@@ -304,7 +350,7 @@ def main() -> None:
     parser.add_argument("--out", help="정규화 결과를 JSON 파일로도 저장(앱 번들 씨앗 갱신용)")
     args = parser.parse_args()
 
-    community = from_kormarathon(args.months)
+    community, seen_until = from_kormarathon(args.months)
     print(f"kormarathon {len(community)}건")
     if not community:
         raise SystemExit("수집 0건 — 원본이 바뀌었을 수 있습니다. 파서를 확인하세요.")
@@ -321,15 +367,17 @@ def main() -> None:
 
     if args.out:
         with open(args.out, "w", encoding="utf-8") as file:
-            json.dump({"updatedAt": date.today().isoformat(), "events": events},
-                      file, ensure_ascii=False, indent=2)
+            # 왜: updatedAt(오늘 날짜)을 넣으면 일정이 하나도 안 바뀐 날에도 파일이 달라져
+            # 워크플로의 `git diff --quiet` 가 매일 봇 커밋을 쌓는다. 앱은 events 만 읽는다.
+            json.dump({"events": events}, file, ensure_ascii=False, indent=2)
         print(f"씨앗 JSON 저장: {args.out}")
 
     if args.dry_run:
         for event in events[:5]:
             print(" ", event["event_date"], event["type"], event["name"])
         return
-    upload(events)
+    synced_at = upload(events)
+    purge_stale(synced_at, seen_until)
     purge_past()
     print("업로드 완료")
 

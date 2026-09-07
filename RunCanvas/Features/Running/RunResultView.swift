@@ -44,8 +44,16 @@ struct RunResultView: View {
                 }
                 .padding(.horizontal, 24)
 
-                Button("홈으로") { dismiss() }
-                    .font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 16)
+                Button { dismiss() } label: {
+                    Text("홈으로")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 6)
             }
             .toolbar(.hidden, for: .navigationBar)
         }

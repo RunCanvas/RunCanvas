@@ -2,13 +2,20 @@ import SwiftUI
 
 /// 프로그램 하나 — 오늘 할 세션을 맨 위에서 바로 시작하고, 나머지는 주차별로 접어 본다.
 struct TrainingProgramDetailView: View {
-    let program: TrainingProgram
     let ownerID: UUID?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(RunCoordinator.self) private var runs
+    /// 편집 시트가 저장한 결과를 바로 비추려고 상태로 든다 — let 이면 뒤로 나갔다 와야 반영된다
+    @State private var program: TrainingProgram
     @State private var completed: Set<UUID> = []
     @State private var showsEditor = false
     @State private var showsDeleteConfirm = false
+
+    init(program: TrainingProgram, ownerID: UUID?) {
+        _program = State(initialValue: program)
+        self.ownerID = ownerID
+    }
 
     /// 아직 안 한 첫 세션 — 런데이처럼 "오늘 할 것"을 찾아 헤매지 않게 맨 위에 올린다
     private var nextSession: TrainingSession? {
@@ -26,6 +33,12 @@ struct TrainingProgramDetailView: View {
                     resumeCard(nextSession)
                 }
 
+                if isRunActive {
+                    Text("진행 중인 러닝을 먼저 끝낸 뒤 훈련을 시작해 주세요.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
                 ForEach(groups) { group in
                     Section {
                         ForEach(group.sessions) { session in
@@ -35,9 +48,10 @@ struct TrainingProgramDetailView: View {
                                 row(session)
                             }
                             .buttonStyle(.plain)
+                            .disabled(isRunActive)
                         }
                     } header: {
-                        if groups.count > 1 {
+                        if groups.count > 1, !group.id.isEmpty {
                             HStack {
                                 Text(group.id).font(.headline)
                                 Spacer()
@@ -52,14 +66,17 @@ struct TrainingProgramDetailView: View {
                     }
                 }
 
-                if !program.isBuiltIn {
-                    HStack(spacing: 16) {
+                HStack(spacing: 16) {
+                    if program.isBuiltIn {
+                        // 내장은 원본을 못 고치니 복제본으로 연다 — 에디터가 "(내 버전)" 복제를 만든다
+                        Button("복제해서 수정") { showsEditor = true }
+                    } else {
                         Button("편집") { showsEditor = true }
                         Button("삭제", role: .destructive) { showsDeleteConfirm = true }
                     }
-                    .font(.subheadline)
-                    .padding(.top, 8)
                 }
+                .font(.subheadline)
+                .padding(.top, 8)
             }
             .padding(20)
         }
@@ -67,7 +84,7 @@ struct TrainingProgramDetailView: View {
         .navigationTitle(program.name)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { completed = TrainingStore.completedSessionIDs(ownerID: ownerID) }
-        .sheet(isPresented: $showsEditor) {
+        .sheet(isPresented: $showsEditor, onDismiss: reload) {
             ProgramEditorView(program: program, ownerID: ownerID)
         }
         .confirmationDialog("이 프로그램을 삭제할까요?", isPresented: $showsDeleteConfirm, titleVisibility: .visible) {
@@ -77,6 +94,18 @@ struct TrainingProgramDetailView: View {
             }
             Button("취소", role: .cancel) {}
         }
+    }
+
+    /// 편집 시트는 TrainingStore 에만 저장하므로 닫힐 때 다시 읽어야 제목·세션이 바뀐다.
+    /// 내장 프로그램은 복제본이 새 id 로 저장되니 여기선 못 찾고, 목록으로 돌아가면 보인다.
+    private func reload() {
+        if let saved = TrainingStore.customPrograms(ownerID: ownerID).first(where: { $0.id == program.id }) {
+            program = saved
+        }
+    }
+
+    private var isRunActive: Bool {
+        runs.session.state == .running || runs.session.state == .paused
     }
 
     // MARK: 조각
@@ -127,6 +156,7 @@ struct TrainingProgramDetailView: View {
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary, lineWidth: 1.5))
         }
         .buttonStyle(.plain)
+        .disabled(isRunActive)
         .accessibilityElement(children: .combine)
     }
 
@@ -161,11 +191,13 @@ struct TrainingProgramDetailView: View {
     }
 
     /// "3주차 2일" → "3주차" 로 묶는다. 24세션을 한 줄로 늘어놓으면 어디까지 했는지 알 수 없다.
+    /// 한 단어 제목("1일차")은 주차 구분이 없으니 빈 키 한 묶음으로 — 세션마다 헤더가 붙어 이름이 두 번 보이지 않게.
     private var groups: [SessionGroup] {
         var order: [String] = []
         var buckets: [String: [TrainingSession]] = [:]
         for session in program.sessions {
-            let key = session.title.split(separator: " ").first.map(String.init) ?? session.title
+            let words = session.title.split(separator: " ")
+            let key = words.count > 1 ? String(words[0]) : ""
             if buckets[key] == nil { order.append(key) }
             buckets[key, default: []].append(session)
         }

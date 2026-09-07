@@ -30,4 +30,28 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(d.double(forKey: "userHeight"), 170)
         XCTAssertEqual(d.string(forKey: "avatarURL"), "https://x/a.jpg")
     }
+
+    func testProfileUpsertPayloadEncodesNilAvatarForRemoval() throws {
+        let profile = Profile(id: UUID(), nickname: "테스트", weightKg: 60, heightCm: 170, avatarURL: nil)
+        let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(ProfileUpsertPayload(profile))) as! [String: Any]
+        XCTAssertTrue(object.keys.contains("avatar_url"))
+        XCTAssertTrue(object["avatar_url"] is NSNull)
+    }
+
+    func testMeasurementsUseCurrentKeypadDecimalSeparatorAndBounds() {
+        let german = Locale(identifier: "de_DE")
+        XCTAssertEqual(ProfileMeasurement.height(from: "170,5", locale: german), 170.5)
+        XCTAssertEqual(ProfileMeasurement.weight(from: "70,5", locale: german), 70.5)
+        XCTAssertNil(ProfileMeasurement.height(from: "301", locale: german))
+        XCTAssertNil(ProfileMeasurement.weight(from: "501", locale: german))
+        XCTAssertNil(ProfileMeasurement.weight(from: "inf", locale: german))
+    }
+
+    func testMeasurementFormattingMatchesParsingLocaleWithoutIntConversion() {
+        let german = Locale(identifier: "de_DE")
+        let text = ProfileMeasurement.format(70.5, locale: german)
+        XCTAssertEqual(text, "70,5")
+        XCTAssertEqual(ProfileMeasurement.weight(from: text, locale: german), 70.5)
+        XCTAssertFalse(ProfileMeasurement.format(1e20, locale: german).isEmpty)
+    }
 }

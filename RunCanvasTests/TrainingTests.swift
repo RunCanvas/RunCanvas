@@ -120,4 +120,44 @@ final class TrainingTests: XCTestCase {
         XCTAssertEqual(TrainingStore.completedCount(in: program, ownerID: owner, defaults: defaults), 2)
         XCTAssertEqual(TrainingStore.completedCount(in: .intervals, ownerID: owner, defaults: defaults), 0)
     }
+
+    func testBuiltInIDsAndProgressSurviveReconstruction() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "training-stable-progress-\(UUID().uuidString)"))
+        let owner = UUID()
+        let original = TrainingProgram.couchTo5K
+        let rebuilt = try JSONDecoder().decode(
+            TrainingProgram.self,
+            from: JSONEncoder().encode(original)
+        )
+
+        XCTAssertEqual(original.id.uuidString, "52554E43-0001-0001-0000-000000000000")
+        XCTAssertEqual(original.sessions.first?.id.uuidString, "52554E43-0002-0001-0001-000000000000")
+        XCTAssertEqual(rebuilt.sessions.map(\.id), original.sessions.map(\.id))
+
+        TrainingStore.markCompleted(original.sessions[0], ownerID: owner, defaults: defaults)
+        XCTAssertEqual(TrainingStore.completedCount(in: rebuilt, ownerID: owner, defaults: defaults), 1)
+    }
+
+    func testLegacyKoreanStepKindDecodesAndNewEncodingUsesStableKey() throws {
+        let legacy = try JSONDecoder().decode(TrainingStep.Kind.self, from: Data("\"달리기\"".utf8))
+        XCTAssertEqual(legacy, .run)
+        XCTAssertEqual(String(data: try JSONEncoder().encode(legacy), encoding: .utf8), "\"run\"")
+        XCTAssertEqual(legacy.title, "달리기")
+    }
+
+    func testSaveDoesNotOverwriteUndecodablePrograms() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "training-corrupt-\(UUID().uuidString)"))
+        let owner = UUID()
+        let key = "trainingPrograms.\(owner.uuidString)"
+        let corrupt = Data("not-json".utf8)
+        defaults.set(corrupt, forKey: key)
+
+        TrainingStore.save(
+            TrainingProgram(name: "새 프로그램", summary: "", sessions: [session]),
+            ownerID: owner,
+            defaults: defaults
+        )
+
+        XCTAssertEqual(defaults.data(forKey: key), corrupt)
+    }
 }

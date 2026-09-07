@@ -23,7 +23,7 @@ struct LoginView: View {
                     .font(.system(size: 45))
 
                 Text("RunCanvas")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.largeTitle.bold())
             }
 
             Spacer()
@@ -44,6 +44,12 @@ struct LoginView: View {
                 }
             }
             .disabled(isBusy)
+
+            if isBusy {
+                ProgressView("로그인 중…")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
 
             if let errorMessage {
                 Text(errorMessage)

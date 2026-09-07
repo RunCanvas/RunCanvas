@@ -244,7 +244,9 @@ private struct StickerLayer: View {
                 let start = rotateStartAngle ?? sticker.rotation
                 if rotateStartAngle == nil { rotateStartAngle = start }
                 let next = start + value.rotation
-                sticker.rotation = abs(next.degrees.truncatingRemainder(dividingBy: 360)) < 4 ? .zero : next
+                // 왜: truncatingRemainder는 부호를 남겨 반대로 한 바퀴 돌린 358°가 -2°로 안 잡히므로 360° 쪽도 함께 본다
+                let remainder = abs(next.degrees.truncatingRemainder(dividingBy: 360))
+                sticker.rotation = (remainder < 4 || remainder > 356) ? .zero : next
             }
             .onEnded { _ in rotateStartAngle = nil }
     }
@@ -306,7 +308,8 @@ private struct StickerContent: View {
             case .pace:
                 metricLabel("PACE /KM", RunMath.formatPace(run.paceSecondsPerKm))
             case .date:
-                Text(run.startedAt.formatted(.dateTime.year().month(.wide).day()))
+                // 왜: 사진 앱에 저장되는 결과물이라 기기 언어와 상관없이 한국어로 고정한다
+                Text(run.startedAt.formatted(.dateTime.year().month(.wide).day().locale(Locale(identifier: "ko_KR"))))
                     .font(stickerFont(size: 22))
             case .calories:
                 metricLabel("KCAL", "\(Int(run.calories.rounded()))")
@@ -367,14 +370,20 @@ private struct RouteStickerShape: Shape {
               let minLon = route.map(\.longitude).min(),
               let maxLon = route.map(\.longitude).max() else { return Path() }
 
-        let latSpan = max(maxLat - minLat, 0.000_001)
-        let lonSpan = max(maxLon - minLon, 0.000_001)
+        // 왜: 축마다 따로 늘리면 정사각형 코스가 직사각형이 되고 남북 직선은 경도 잡음이 폭 전체로 커진다.
+        // 경도는 위도에 따라 짧아지므로(cos φ) 보정한 뒤 한 배율로 가운데에 그려 RouteMapView와 같은 모양을 유지한다.
+        let lonScale = cos((minLat + maxLat) / 2 * .pi / 180)
+        let width = (maxLon - minLon) * lonScale
+        let height = maxLat - minLat
         let inset = rect.insetBy(dx: 6, dy: 6)
+        let scale = min(inset.width / max(width, 0.000_001), inset.height / max(height, 0.000_001))
+        let originX = inset.midX - width * scale / 2
+        let originY = inset.midY + height * scale / 2
         var path = Path()
 
         for (index, point) in route.enumerated() {
-            let x = inset.minX + ((point.longitude - minLon) / lonSpan) * inset.width
-            let y = inset.maxY - ((point.latitude - minLat) / latSpan) * inset.height
+            let x = originX + (point.longitude - minLon) * lonScale * scale
+            let y = originY - (point.latitude - minLat) * scale
             if index == 0 { path.move(to: CGPoint(x: x, y: y)) }
             else { path.addLine(to: CGPoint(x: x, y: y)) }
         }

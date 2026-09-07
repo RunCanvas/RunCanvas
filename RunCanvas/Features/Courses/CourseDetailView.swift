@@ -35,17 +35,9 @@ struct CourseDetailView: View {
                     .font(.subheadline)
                 }
 
-                Button {
+                PrimaryButton(title: "이 코스로 달리기", systemImage: "figure.run") {
                     showsRun = true
-                } label: {
-                    Label("이 코스로 달리기", systemImage: "figure.run")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.primary)
-                .foregroundStyle(Color(.systemBackground))
 
                 Text("코스는 올린 사람의 기록에서 앞뒤 150m를 잘라 만든 것이라, 실제 출발·도착 지점과는 조금 다릅니다.")
                     .font(.caption2)

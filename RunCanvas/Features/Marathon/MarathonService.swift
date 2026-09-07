@@ -12,57 +12,108 @@ final class MarathonService {
     private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "marathon")
     private static let cacheName = "marathon-cache.json"
 
+    @ObservationIgnored private let fetchEvents: () async throws -> [MarathonEvent]
+    @ObservationIgnored private let readCachedEvents: () -> [MarathonEvent]?
+    @ObservationIgnored private let readBundledEvents: () -> [MarathonEvent]
+    @ObservationIgnored private let storeCachedEvents: ([MarathonEvent]) -> Void
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+
     private(set) var events: [MarathonEvent] = []
     private(set) var isLoading = false
     /// 서버를 못 읽어 캐시·씨앗으로 보여주는 중이면 채워진다
     private(set) var fallbackNotice: String?
 
+    init(
+        fetchEvents: (() async throws -> [MarathonEvent])? = nil,
+        readCachedEvents: (() -> [MarathonEvent]?)? = nil,
+        readBundledEvents: (() -> [MarathonEvent])? = nil,
+        storeCachedEvents: (([MarathonEvent]) -> Void)? = nil
+    ) {
+        self.fetchEvents = fetchEvents ?? Self.fetchFromServer
+        self.readCachedEvents = readCachedEvents ?? Self.readCache
+        self.readBundledEvents = readBundledEvents ?? { MarathonSchedule.bundled().events }
+        self.storeCachedEvents = storeCachedEvents ?? Self.cache
+    }
+
     /// 서버 → 캐시 → 번들 씨앗
     @MainActor
     func load() async {
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
+        // 첫 로드 중 당겨서 새로고침해도 즉시 끝내지 않고 같은 조회가 끝날 때까지 기다린다.
+        if let loadTask {
+            await loadTask.value
+            return
+        }
 
+        isLoading = true
+        showQuickFallback()
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.refreshFromServer()
+        }
+        loadTask = task
+        await task.value
+        loadTask = nil
+        isLoading = false
+    }
+
+    /// 캐시·씨앗을 먼저 그려 느린 네트워크에서도 빈 화면이 생기지 않게 한다.
+    @MainActor
+    private func showQuickFallback() {
+        guard events.isEmpty else { return }
+        if let cached = readCachedEvents(), !cached.isEmpty {
+            events = cached
+            return
+        }
+        let bundled = readBundledEvents()
+        if !bundled.isEmpty { events = bundled }
+    }
+
+    @MainActor
+    private func refreshFromServer() async {
         do {
-            let today = Self.dayFormatter.string(from: .now)
-            let rows: [MarathonEvent] = try await supabase
-                .from("marathon_events")
-                .select("name,event_date,region,place,courses,type,tags,status,reg_end_date,fee_min,signup_url,image_url")
-                // 날짜 미정(null)도 함께 가져온다
-                .or("event_date.gte.\(today),event_date.is.null")
-                .order("event_date", ascending: true)
-                .execute()
-                .value
+            let rows = try await fetchEvents()
             guard !rows.isEmpty else { throw LoadError.empty }
             events = rows
             fallbackNotice = nil
-            cache(rows)
+            storeCachedEvents(rows)
         } catch {
             Self.log.error("마라톤 일정 서버 조회 실패: \(error.localizedDescription, privacy: .public)")
             loadFallback()
         }
     }
 
+    private static func fetchFromServer() async throws -> [MarathonEvent] {
+        let today = dayFormatter.string(from: .now)
+        return try await supabase
+            .from("marathon_events")
+            .select("name,event_date,region,place,courses,type,tags,status,reg_end_date,fee_min,signup_url,image_url")
+            // 날짜 미정(null)도 함께 가져온다
+            .or("event_date.gte.\(today),event_date.is.null")
+            .order("event_date", ascending: true)
+            .execute()
+            .value
+    }
+
     private enum LoadError: Error { case empty }
 
     private func loadFallback() {
-        if let cached = Self.readCache(), !cached.isEmpty {
+        if let cached = readCachedEvents(), !cached.isEmpty {
             events = cached
-            fallbackNotice = "저장해 둔 목록을 보여주고 있어요. 연결되면 최신으로 바뀝니다."
+            fallbackNotice = "저장해 둔 목록을 보여주고 있어요. 아래로 당기면 다시 불러와요."
             return
         }
-        let seeded = MarathonSchedule.bundled().events
+        let seeded = readBundledEvents()
         events = seeded
         fallbackNotice = seeded.isEmpty
-            ? "일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
-            : "앱에 담아 둔 목록을 보여주고 있어요. 연결되면 최신으로 바뀝니다."
+            ? "일정을 불러오지 못했어요. 아래로 당겨 다시 불러와 주세요."
+            : "앱에 담아 둔 목록을 보여주고 있어요. 아래로 당기면 다시 불러와요."
     }
 
     // MARK: 캐시
 
-    private func cache(_ rows: [MarathonEvent]) {
-        guard let url = Self.cacheURL,
+    private static func cache(_ rows: [MarathonEvent]) {
+        guard let url = cacheURL,
               let data = try? JSONEncoder().encode(rows.map(CachedEvent.init)) else { return }
         try? data.write(to: url, options: .atomic)
     }

@@ -10,6 +10,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 import sync_marathons as sync
 
 
+def test_workflow_pushes_only_the_dispatched_branch():
+    """수동 실행 브랜치의 HEAD를 develop에 강제로 보내면 feature 커밋까지 섞인다."""
+    workflow = (Path(__file__).parents[1] / ".github/workflows/sync-marathons.yml").read_text()
+    assert "git push origin HEAD:develop" not in workflow
+    assert 'git pull --rebase origin "$GITHUB_REF_NAME"' in workflow
+    assert 'git push origin HEAD:"$GITHUB_REF_NAME"' in workflow
+
+
 def test_upload_rows_have_identical_keys():
     """PostgREST 는 배열 안 객체 키가 다르면 배치 전체를 400 으로 튕긴다(PGRST102)."""
     rows = sync.rows_for_upload([
@@ -54,6 +62,51 @@ def test_classification_and_tags():
     assert sync.classify("카카오프렌즈 런") == "테마런"
     assert "야간" in sync.tags_for("2026 잠수교 10K 나이트런", [])
     assert "풀코스" in sync.tags_for("공주백제마라톤", ["10km", "Full"])
+
+
+def test_detail_failure_keeps_cached_values():
+    """상세 재조회가 실패해도 DB에서 읽은 포스터·접수 정보가 NULL로 덮이면 안 된다."""
+    event = {"name": "대회", "event_date": "2026-10-03", "status": "open",
+             "signup_url": "https://example.com/detail"}
+    known = {("대회", "2026-10-03"): {
+        "image_url": "https://example.com/poster.jpg",
+        "reg_start_date": "2026-08-01",
+        "reg_end_date": "2026-09-30",
+        "fee_min": 30000,
+    }}
+    original_fetch = sync.fetch
+    try:
+        sync.fetch = lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("offline"))
+        sync.add_details([event], known)
+    finally:
+        sync.fetch = original_fetch
+    assert all(event[key] == value for key, value in known[("대회", "2026-10-03")].items())
+
+
+def test_failed_month_does_not_expand_stale_purge_horizon():
+    """중간 달을 못 읽은 뒤 미래 달이 성공해도 삭제 가능 범위는 실패 전 달까지만이다."""
+    start = sync.date.today().replace(day=1)
+    calls = 0
+    original_fetch = sync.fetch
+    original_parse = sync.parse_kormarathon
+    try:
+        def fake_fetch(_url, timeout=30):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise OSError("temporary")
+            return str(calls).encode()
+
+        sync.fetch = fake_fetch
+        sync.parse_kormarathon = lambda html: [{"name": f"대회 {html}", "event_date": "2099-01-01"}]
+        events, seen_until = sync.from_kormarathon(3)
+    finally:
+        sync.fetch = original_fetch
+        sync.parse_kormarathon = original_parse
+
+    next_month = (start + sync.timedelta(days=32)).replace(day=1)
+    assert len(events) == 2
+    assert seen_until == next_month - sync.timedelta(days=1)
 
 
 if __name__ == "__main__":

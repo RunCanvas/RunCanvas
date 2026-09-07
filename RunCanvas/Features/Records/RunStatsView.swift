@@ -146,16 +146,18 @@ private struct StatsContent: View {
     }
 
     private var periodTitle: String {
-        switch period {
+        // 기기 언어가 영어여도 "9월"·"2026년" — 한국어 전용 앱이라 로케일을 고정
+        let ko = Locale(identifier: "ko_KR")
+        return switch period {
         case .week: "이번 주"
-        case .month: Date.now.formatted(.dateTime.month(.wide))
-        case .year: Date.now.formatted(.dateTime.year())
+        case .month: Date.now.formatted(.dateTime.month(.wide).locale(ko))
+        case .year: Date.now.formatted(.dateTime.year().locale(ko))
         }
     }
 
-    /// 월은 31개라 5일 간격만 표시
+    /// 월은 31개라 1·5·10·…·30일만 표시 (id는 0부터라 +1 해서 달력 날짜 기준으로 거른다)
     private func axisLabels(_ buckets: [StatsEngine.Bucket]) -> [String] {
-        period == .month ? buckets.filter { $0.id % 5 == 0 }.map(\.label) : buckets.map(\.label)
+        period == .month ? buckets.filter { $0.id == 0 || ($0.id + 1) % 5 == 0 }.map(\.label) : buckets.map(\.label)
     }
 
     // MARK: - 이번 주 목표 (설정의 주간 목표 거리)
@@ -217,22 +219,23 @@ private struct StatsContent: View {
                 Text("최근 러닝")
                     .font(.headline)
                 Spacer()
-                NavigationLink("전체 보기") {
+                NavigationLink {
                     RunListView(ownerID: ownerID)
+                } label: {
+                    // 글자 박스만 눌리면 44pt 미달 — 러닝 직후 손 떨릴 때도 눌리게 히트 영역 확보
+                    Text("전체 보기")
+                        .font(.subheadline)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
-                .font(.subheadline)
             }
 
+            // 홈·전체 목록과 같은 행 — 같은 데이터가 화면마다 다르게 보이지 않게
             ForEach(runs.prefix(3)) { run in
                 NavigationLink {
                     RunDetailView(run: run)
                 } label: {
-                    RunStatHistoryRow(
-                        date: run.startedAt.formatted(.dateTime.month().day()),
-                        distance: "\(RunMath.formatKm(run.distanceMeters)) km",
-                        time: RunMath.formatDuration(run.movingSeconds),
-                        pace: RunMath.formatPace(run.paceSecondsPerKm)
-                    )
+                    RunHistoryRow(run: run)
                 }
                 .buttonStyle(.plain)
             }
@@ -267,49 +270,6 @@ struct StatCard: View {
         .padding(18)
         .background(Color.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-// MARK: - 최근 러닝 기록
-
-struct RunStatHistoryRow: View {
-    let date: String
-    let distance: String
-    let time: String
-    let pace: String
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(date)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                
-                Text(distance)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 6) {
-                Text(time)
-                    .font(.subheadline)
-                
-                Text("\(pace) /km")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.leading, 8)
-                .accessibilityHidden(true)
-        }
-        .padding(16)
-        .background(Color.card)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 

@@ -7,8 +7,16 @@ struct StatLabel: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.headline)
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(value)
+                .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .monospacedDigit()
         }
         .frame(maxWidth: .infinity)
     }
