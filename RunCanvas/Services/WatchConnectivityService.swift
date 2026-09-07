@@ -7,6 +7,9 @@ enum WorkoutSyncAction: String {
     case pause
     case resume
     case end
+    /// 폰이 기록을 인계했다 — 워치는 진행 중인 워크아웃을 저장하지 말고 버린다.
+    /// (`.end` 로는 "사용자가 끝냈다"와 구분이 안 돼 건강 앱에 짧은 중복 워크아웃이 남았다)
+    case discard
     case unavailable
 }
 

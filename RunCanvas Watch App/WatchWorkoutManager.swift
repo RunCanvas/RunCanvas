@@ -31,6 +31,10 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// (폰에서 시작하자마자 일시정지하면 워치만 계속 달리던 문제)
     private var pendingCommand: WorkoutSyncAction?
 
+    /// 폰이 이 세션을 실제로 기록 중인지. `isPhoneReachable`(닿는다)과 다르다 —
+    /// 폰이 위치 권한 등으로 시작을 거절하면 닿아도 스냅샷이 아예 안 온다.
+    var isPhoneRecording: Bool { phoneSyncIsFresh }
+
     private var phoneSyncIsFresh: Bool {
         guard isPhoneReachable, let syncedAt else { return false }
         return Date().timeIntervalSince(syncedAt) < Self.snapshotStaleAfter
@@ -118,6 +122,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         pendingCommand = nil
         switch queued {
         case .end: await end(sendToPhone: false)   // 시작이 실패했으면 세션이 없어 guard에서 조용히 빠진다
+        case .discard: await end(sendToPhone: false, discarding: true)
         case .pause: pause(sendToPhone: false)
         default: break
         }
@@ -142,9 +147,10 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         sendSnapshot()
     }
 
-    func end(sendToPhone: Bool = true) async {
+    /// `discarding` 이면 건강 앱에 저장하지 않고 버린다 — 폰이 기록을 인계한 경우.
+    func end(sendToPhone: Bool = true, discarding: Bool = false) async {
         if isStarting {
-            pendingCommand = .end
+            pendingCommand = discarding ? .discard : .end
             return
         }
         guard let session = workoutSession, let builder = workoutBuilder else { return }
@@ -157,6 +163,13 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
         if sendToPhone { connectivity.sendCommand(.end, sessionID: sessionID) }
         session.end()
+        guard !discarding else {
+            // 폰이 이어서 기록 중이다. 여기서 저장하면 건강 앱에 몇 초~몇십 초짜리 조각이 하나 더 남는다.
+            builder.discardWorkout()
+            stopTimer()
+            state = .idle
+            return
+        }
         do {
             try await builder.endCollection(at: Date())
             _ = try await builder.finishWorkout()
@@ -268,6 +281,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         case .end:
             guard sessionID == self.sessionID else { return }
             Task { await end(sendToPhone: false) }
+        case .discard:
+            guard sessionID == self.sessionID else { return }
+            Task { await end(sendToPhone: false, discarding: true) }
         case .unavailable:
             break
         }

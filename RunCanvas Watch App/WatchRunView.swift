@@ -15,11 +15,11 @@ struct WatchRunView: View {
                         .foregroundStyle(.secondary)
                 } else {
                     Label(
-                        workout.isPhoneReachable ? "iPhone 동기화" : "건강 앱에만 저장",
-                        systemImage: workout.isPhoneReachable ? "iphone.radiowaves.left.and.right" : "applewatch"
+                        isPhoneKeepingRecord ? "iPhone 동기화" : "건강 앱에만 저장",
+                        systemImage: isPhoneKeepingRecord ? "iphone.radiowaves.left.and.right" : "applewatch"
                     )
                     .font(.caption2)
-                    .foregroundStyle(workout.isPhoneReachable ? .green : .secondary)
+                    .foregroundStyle(isPhoneKeepingRecord ? .green : .secondary)
                 }
 
                 HStack(spacing: 12) {
@@ -87,6 +87,15 @@ struct WatchRunView: View {
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+
+    /// 왜: 폰에 '닿는다'와 폰이 '기록한다'는 다르다. 폰이 위치 권한 등으로 시작을 거절하면
+    /// 닿아 있어도 스냅샷이 안 오는데, 그때 "iPhone 동기화"라고 쓰면 거짓말이 된다.
+    /// 다만 시작 직후엔 명령이 큐로 가느라 폰 스냅샷이 아직 없으니 20초까지는 판단을 미룬다.
+    private var isPhoneKeepingRecord: Bool {
+        guard workout.state == .running || workout.state == .paused,
+              workout.displayedElapsedSeconds > 20 else { return workout.isPhoneReachable }
+        return workout.isPhoneRecording
     }
 
     private var endButton: some View {

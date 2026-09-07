@@ -230,8 +230,6 @@ struct SettingsView: View {
             defer { isLinking = false }
             do {
                 try await action()
-            } catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {
-                // 사용자가 창을 닫음
             } catch let error as ASAuthorizationError where error.code == .canceled {
                 // Apple 시트 취소
             } catch {

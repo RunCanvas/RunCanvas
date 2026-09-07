@@ -132,6 +132,8 @@ final class RunCoordinator {
             guard remoteSessionID == session.sessionID,
                   session.state == .running || session.state == .paused else { return }
             finish(sendToWatch: false)
+        case .discard:
+            break   // 폰이 보내기만 하는 명령
         case .unavailable:
             guard remoteSessionID == session.sessionID else { return }
             takeOver("Apple Watch에서 운동을 시작하지 못해 iPhone 기록으로 전환했어요.")
@@ -199,8 +201,9 @@ final class RunCoordinator {
     private func takeOver(_ message: String) {
         guard session.healthManagedExternally else { return }
         // 워치 start가 늦게 도착하거나 잠깐 끊긴 뒤에도 둘 다 HealthKit 워크아웃을 저장하지 않게
-        // 같은 sessionID의 종료를 큐에 남긴다. 워치의 start-await 중 end 유실은 pendingEnd가 막는다.
-        watch.sendCommand(.end, sessionID: session.sessionID)
+        // 같은 sessionID의 종료를 큐에 남긴다. 워치의 start-await 중 유실은 pendingCommand가 막는다.
+        // .end 가 아니라 .discard — 폰이 계속 기록하므로 워치의 몇 초짜리 조각은 건강 앱에 남기지 않는다.
+        watch.sendCommand(.discard, sessionID: session.sessionID)
         session.takeOverHealthWorkout(since: lastWatchSnapshotAt ?? Date())
         watchStartedAt = nil
         takeoverMessage = message

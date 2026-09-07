@@ -7,6 +7,8 @@ enum WorkoutSyncAction: String {
     case pause
     case resume
     case end
+    /// 폰이 기록을 인계했다 — 저장하지 말고 버린다 (폰 쪽 WorkoutSyncAction 과 같은 목록이어야 한다)
+    case discard
     case unavailable
 }
 
