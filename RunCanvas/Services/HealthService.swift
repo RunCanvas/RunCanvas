@@ -206,7 +206,8 @@ final class HealthService: HealthServicing {
 extension HealthService {
     /// 우리 앱(폰·워치)이 건강 앱에 저장한 러닝 워크아웃. 다른 앱 기록은 가져오지 않는다(사용자 결정).
     /// 워치 앱은 폰과 다른 번들 ID(`...watchkitapp`)라 접두사로 함께 잡는다.
-    func importableWorkouts(since: Date) async throws -> [ImportedWorkout] {
+    func importableWorkouts(since: Date,
+                            needsRoute: @escaping (ImportedWorkout) -> Bool) async throws -> [ImportedWorkout] {
         guard HKHealthStore.isHealthDataAvailable() else { throw HealthError.unavailable }
         let ours = (Bundle.main.bundleIdentifier ?? "").replacingOccurrences(of: ".watchkitapp", with: "")
 
@@ -230,7 +231,8 @@ extension HealthService {
         where !ours.isEmpty && workout.sourceRevision.source.bundleIdentifier.hasPrefix(ours) {
             let heartRates = workout.statistics(for: HKQuantityType(.heartRate))
             let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
-            result.append(ImportedWorkout(
+            // 경로 없이 먼저 만들어 호출자에게 물어본다 — 필요 없으면 무거운 경로 조회를 건너뛴다
+            let summary = ImportedWorkout(
                 id: workout.uuid,
                 startedAt: workout.startDate,
                 endedAt: workout.endDate,
@@ -240,6 +242,13 @@ extension HealthService {
                     .sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0,
                 averageHeartRate: heartRates?.averageQuantity()?.doubleValue(for: beatsPerMinute),
                 maxHeartRate: heartRates?.maximumQuantity()?.doubleValue(for: beatsPerMinute),
+                route: []
+            )
+            guard needsRoute(summary) else { result.append(summary); continue }
+            result.append(ImportedWorkout(
+                id: summary.id, startedAt: summary.startedAt, endedAt: summary.endedAt,
+                distanceMeters: summary.distanceMeters, calories: summary.calories,
+                averageHeartRate: summary.averageHeartRate, maxHeartRate: summary.maxHeartRate,
                 route: (try? await route(of: workout)) ?? []
             ))
         }
@@ -263,8 +272,12 @@ extension HealthService {
 
         return try await withCheckedThrowingContinuation { continuation in
             var points: [RoutePoint] = []
+            // 왜: continuation 을 두 번 재개하면 크래시다. done 이후에도 핸들러가 불릴 수 있어 한 번만 통과시킨다.
+            var didResume = false
             let query = HKWorkoutRouteQuery(route: series) { query, locations, done, error in
+                guard !didResume else { return }
                 if let error {
+                    didResume = true
                     self.healthStore.stop(query)
                     continuation.resume(throwing: error)
                     return
@@ -273,7 +286,11 @@ extension HealthService {
                     RoutePoint(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude,
                                timestamp: $0.timestamp)
                 }
-                if done { continuation.resume(returning: points) }
+                if done {
+                    didResume = true
+                    self.healthStore.stop(query)
+                    continuation.resume(returning: points)
+                }
             }
             healthStore.execute(query)
         }

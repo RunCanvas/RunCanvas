@@ -112,13 +112,32 @@ final class HealthImportTests: XCTestCase {
 final class HealthImportFlowTests: XCTestCase {
     private let base = Date(timeIntervalSince1970: 1_800_000_000)
 
-    private struct FakeSource: WorkoutImporting {
+    /// 경로를 실제로 읽었는지 기록한다 — 경로 조회는 한 건당 HealthKit 쿼리 2개라 불필요한 호출이 곧 비용이다
+    private final class FakeSource: WorkoutImporting {
         var workouts: [ImportedWorkout] = []
         var failure: Error?
+        private(set) var routesRead: [UUID] = []
+
+        init(workouts: [ImportedWorkout] = [], failure: Error? = nil) {
+            self.workouts = workouts
+            self.failure = failure
+        }
+
         func requestAuthorization() async throws {}
-        func importableWorkouts(since: Date) async throws -> [ImportedWorkout] {
+
+        func importableWorkouts(since: Date,
+                                needsRoute: @escaping (ImportedWorkout) -> Bool) async throws -> [ImportedWorkout] {
             if let failure { throw failure }
-            return workouts
+            return workouts.map { full in
+                let summary = ImportedWorkout(
+                    id: full.id, startedAt: full.startedAt, endedAt: full.endedAt,
+                    distanceMeters: full.distanceMeters, calories: full.calories,
+                    averageHeartRate: full.averageHeartRate, maxHeartRate: full.maxHeartRate, route: []
+                )
+                guard needsRoute(summary) else { return summary }
+                routesRead.append(full.id)
+                return full
+            }
         }
     }
 
@@ -129,10 +148,12 @@ final class HealthImportFlowTests: XCTestCase {
                                         configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     }
 
-    private func workout(_ id: UUID = UUID(), route: [RoutePoint] = []) -> ImportedWorkout {
-        ImportedWorkout(id: id, startedAt: base, endedAt: base.addingTimeInterval(1_800),
-                        distanceMeters: 5_000, calories: 300,
-                        averageHeartRate: 150, maxHeartRate: 175, route: route)
+    private func workout(_ id: UUID = UUID(), offset: TimeInterval = 0,
+                         route: [RoutePoint] = []) -> ImportedWorkout {
+        let start = base.addingTimeInterval(offset)
+        return ImportedWorkout(id: id, startedAt: start, endedAt: start.addingTimeInterval(1_800),
+                               distanceMeters: 5_000, calories: 300,
+                               averageHeartRate: 150, maxHeartRate: 175, route: route)
     }
 
     private var somePoints: [RoutePoint] {
@@ -214,5 +235,35 @@ final class HealthImportFlowTests: XCTestCase {
         )
         XCTAssertEqual(count, 1, "다른 계정 기록은 중복 판정에 쓰이면 안 된다")
         XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 2)
+    }
+
+    /// 앱을 열 때마다 90일치 경로를 전부 읽으면 HealthKit 쿼리가 수백 번 돈다.
+    /// 이미 있고 지도도 있는 러닝은 경로를 읽지 않아야 한다.
+    @MainActor
+    func testDoesNotReadRoutesForRunsItAlreadyHas() async throws {
+        let context = try makeContext()
+        let owner = UUID()
+        let id = UUID()
+        context.insert(HealthImport.makeRun(from: workout(id, route: somePoints), ownerID: owner))
+        try context.save()
+
+        let source = FakeSource(workouts: [workout(id, route: somePoints)])
+        _ = await HealthImport.importMissingRuns(context: context, ownerID: owner, health: source)
+        XCTAssertTrue(source.routesRead.isEmpty, "이미 지도까지 있는 기록의 경로를 다시 읽었다")
+    }
+
+    /// 반대로, 지도를 채워야 하거나 새로 만들 기록은 경로를 읽어야 한다
+    @MainActor
+    func testReadsRoutesWhenTheyAreActuallyNeeded() async throws {
+        let context = try makeContext()
+        let owner = UUID()
+        let needsFill = UUID()
+        context.insert(HealthImport.makeRun(from: workout(needsFill), ownerID: owner))   // 경로 없음
+        try context.save()
+
+        let brandNew = workout(offset: -86_400, route: somePoints)   // 다른 날 — 겹침으로 안 걸리게
+        let source = FakeSource(workouts: [workout(needsFill, route: somePoints), brandNew])
+        _ = await HealthImport.importMissingRuns(context: context, ownerID: owner, health: source)
+        XCTAssertEqual(Set(source.routesRead), [needsFill, brandNew.id])
     }
 }

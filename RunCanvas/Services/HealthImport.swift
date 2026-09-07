@@ -18,7 +18,10 @@ struct ImportedWorkout: Equatable {
 /// 이 이음매가 없으면 "기록이 나타나는가 / 두 개가 되는가"를 실기기 없이 확인할 방법이 없다.
 protocol WorkoutImporting {
     func requestAuthorization() async throws
-    func importableWorkouts(since: Date) async throws -> [ImportedWorkout]
+    /// `needsRoute` 가 true 인 워크아웃만 경로까지 읽는다. 경로 조회는 한 건당 HealthKit 쿼리 2개라
+    /// 90일치를 통째로 읽으면 앱을 열 때마다 수백 번 돈다 — 대부분은 이미 앱에 있어 버려지는데도.
+    func importableWorkouts(since: Date,
+                            needsRoute: @escaping (ImportedWorkout) -> Bool) async throws -> [ImportedWorkout]
 }
 
 extension HealthService: WorkoutImporting {}
@@ -114,17 +117,8 @@ extension HealthImport {
         // 읽기 권한이 없으면 조회가 빈손으로 돌아온다. 새로 추가된 읽기 타입은 여기서 한 번 물어본다.
         try? await health.requestAuthorization()
 
-        let since = Calendar.appGregorian.date(byAdding: .day, value: -lookbackDays, to: .now) ?? .distantPast
-        let workouts: [ImportedWorkout]
-        do {
-            workouts = try await health.importableWorkouts(since: since)
-        } catch {
-            log.error("건강 앱 조회 실패: \(error.localizedDescription, privacy: .public)")
-            return 0
-        }
-        guard !workouts.isEmpty else { return 0 }
-
-        // 왜: 로컬 조회가 실패했는데 빈 목록으로 진행하면 이미 있는 러닝을 전부 다시 만든다
+        // 왜 로컬 조회가 먼저: 무엇이 이미 있는지 알아야 '경로까지 읽을 워크아웃'을 고를 수 있다.
+        // 왜: 조회가 실패했는데 빈 목록으로 진행하면 이미 있는 러닝을 전부 다시 만든다
         guard let runs = try? context.fetch(
             FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == ownerID })
         ) else {
@@ -133,6 +127,21 @@ extension HealthImport {
         }
         let existing = runs.map { ExistingRun(startedAt: $0.startedAt, endedAt: $0.endedAt,
                                               healthWorkoutID: $0.healthWorkoutID) }
+        // 경로가 필요한 건 둘뿐이다: 새로 만들 기록, 그리고 지도가 비어 있어 채워야 할 기록
+        let needsRouteFill = Set(runs.filter { $0.route.isEmpty }.compactMap(\.healthWorkoutID))
+
+        let since = Calendar.appGregorian.date(byAdding: .day, value: -lookbackDays, to: .now) ?? .distantPast
+        let workouts: [ImportedWorkout]
+        do {
+            workouts = try await health.importableWorkouts(since: since) { candidate in
+                needsRouteFill.contains(candidate.id)
+                    || !newWorkouts(from: [candidate], existing: existing).isEmpty
+            }
+        } catch {
+            log.error("건강 앱 조회 실패: \(error.localizedDescription, privacy: .public)")
+            return 0
+        }
+        guard !workouts.isEmpty else { return 0 }
         // 워치 요약으로 먼저 들어온 기록은 경로가 비어 있다 — 건강 앱에서 읽은 경로로 채운다
         var filledRoutes = 0
         let byWorkoutID = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
