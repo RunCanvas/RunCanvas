@@ -10,8 +10,11 @@ struct WatchRunView: View {
             VStack(spacing: 10) {
                 // 왜: 종료 뒤 지표가 그대로 남아 있어 저장됐는지 알 수 없다 — 상태 라벨 자리를 빌려 알린다
                 if workout.state == .finished {
-                    Text("건강 앱에 저장됐어요")
+                    // 왜: 예전엔 "건강 앱에 저장됐어요" 한 줄뿐이라, 사용자가 RunCanvas 에 남았는지를 알 수 없었다.
+                    // 폰이 실시간으로 받아 갔으면 이미 앱에 있고, 아니면 앱을 열 때 건강 앱에서 가져온다.
+                    Text(didPhoneRecord ? "iPhone에 저장됐어요" : "건강 앱에 저장됐어요\niPhone 앱을 열면 옮겨져요")
                         .font(.caption2)
+                        .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                 } else {
                     Label(
@@ -34,6 +37,13 @@ struct WatchRunView: View {
                 controls
             }
             .padding(.horizontal, 4)
+        }
+        .onChange(of: workout.isPhoneRecording) { _, recording in
+            // 종료 시점엔 스냅샷이 이미 끊겨 있으므로, 러닝 중에 한 번이라도 받아 갔는지를 기억해 둔다
+            if recording { didPhoneRecord = true }
+        }
+        .onChange(of: workout.state) { _, state in
+            if state == .running, workout.displayedElapsedSeconds < 3 { didPhoneRecord = false }
         }
         .alert("러닝을 처리할 수 없어요", isPresented: Binding(
             get: { workout.errorMessage != nil },
@@ -88,6 +98,9 @@ struct WatchRunView: View {
             .buttonStyle(.borderedProminent)
         }
     }
+
+    /// 이번 러닝을 폰이 실제로 받아 갔는지. 종료 문구가 이걸로 갈린다.
+    @State private var didPhoneRecord = false
 
     /// 왜: 폰에 '닿는다'와 폰이 '기록한다'는 다르다. 폰이 위치 권한 등으로 시작을 거절하면
     /// 닿아 있어도 스냅샷이 안 오는데, 그때 "iPhone 동기화"라고 쓰면 거짓말이 된다.
