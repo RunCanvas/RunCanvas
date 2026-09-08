@@ -663,6 +663,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = RunCanvas;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수와 운동 데이터를 표시합니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "애플워치에서 측정한 러닝 기록을 건강 앱에 저장합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "iPhone 없이 달릴 때 애플워치가 경로를 기록합니다.";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(APP_BUNDLE_ID)";
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -698,6 +699,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = RunCanvas;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "러닝 중 심박수와 운동 데이터를 표시합니다.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "애플워치에서 측정한 러닝 기록을 건강 앱에 저장합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "iPhone 없이 달릴 때 애플워치가 경로를 기록합니다.";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(APP_BUNDLE_ID)";
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = YES;
 				LD_RUNPATH_SEARCH_PATHS = (

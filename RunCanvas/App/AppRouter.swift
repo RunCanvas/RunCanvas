@@ -46,7 +46,12 @@ struct AppRouter: View {
     /// 안 올라간 기록·뱃지를 서버로 (로그인 상태에서만, 실패는 조용히)
     private func syncIfPossible() {
         guard auth.canSync, hasProfile, let id = auth.userID else { return }
-        Task { await SyncService.sync(context: context, ownerID: id) }
+        Task {
+            // 왜 가져오기가 먼저: 폰 앱이 꺼진 채 워치로 뛴 러닝은 건강 앱에만 있다.
+            // 여기서 기록으로 만들어 둬야 이어지는 sync 가 그것까지 서버에 올린다.
+            await HealthImport.importMissingRuns(context: context, ownerID: id, health: HealthService())
+            await SyncService.sync(context: context, ownerID: id)
+        }
     }
 
     private func load() async {

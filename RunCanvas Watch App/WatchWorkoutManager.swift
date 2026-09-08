@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 import HealthKit
 import WatchKit
 
@@ -49,7 +50,16 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// 시간이 뒤로 점프했다가 스냅샷이 끊기면 다시 튀어오른다 (pause/resume은 명령으로 동기화되니 폰 값이 필요 없다)
     var displayedElapsedSeconds: Int { elapsedSeconds }
 
+    /// 폰이 이만큼 기록 신호를 안 보내면 워치가 직접 GPS 를 켠다.
+    /// 워치 GPS 는 배터리를 많이 먹어서, 폰이 기록 중이면(더 정확하다) 켜지 않는다.
+    private static let ownRouteAfter: TimeInterval = 20
+
     private let healthStore = HKHealthStore()
+    private let locationManager = CLLocationManager()
+    private var routeBuilder: HKWorkoutRouteBuilder?
+    /// 이번 러닝에서 워치가 경로를 모으기 시작했는지. 한 번 켜면 끝까지 유지한다 —
+    /// 폰이 중간에 돌아왔다고 껐다 켜면 경로가 조각난다.
+    private(set) var isRecordingOwnRoute = false
     private let connectivity = WatchConnectivityService()
     private var workoutSession: HKWorkoutSession?
     private var workoutBuilder: HKLiveWorkoutBuilder?
@@ -67,6 +77,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         connectivity.onSnapshot = { [weak self] snapshot in
             self?.applyPhoneSnapshot(snapshot)
         }
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        locationManager.activityType = .fitness
     }
 
     func start(sessionID: UUID = UUID(), sendToPhone: Bool = true) async {
@@ -100,6 +113,12 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             elapsedSeconds = 0
             syncedDistanceMeters = nil
             syncedAt = nil
+            routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: .local())
+            isRecordingOwnRoute = false
+            // 권한은 미리 물어 둔다 — 폰이 끊긴 걸 알아챈 순간(러닝 중)에 시트를 띄우면 이미 늦다
+            if locationManager.authorizationStatus == .notDetermined {
+                locationManager.requestWhenInUseAuthorization()
+            }
 
             let startDate = Date()
             session.startActivity(with: startDate)
@@ -166,15 +185,38 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         guard !discarding else {
             // 폰이 이어서 기록 중이다. 여기서 저장하면 건강 앱에 몇 초~몇십 초짜리 조각이 하나 더 남는다.
             builder.discardWorkout()
+            stopOwnRoute()
+            routeBuilder = nil
             stopTimer()
             state = .idle
             return
         }
+        let collectedRoute = isRecordingOwnRoute
+        stopOwnRoute()
         do {
             try await builder.endCollection(at: Date())
-            _ = try await builder.finishWorkout()
+            let workout = try await builder.finishWorkout()
+            // 왜: 경로는 워크아웃이 저장된 뒤에야 붙일 수 있다(HKWorkout 이 있어야 한다).
+            // 실패해도 러닝 자체는 이미 저장됐으므로 지도만 없는 기록으로 남긴다.
+            if collectedRoute, let workout, let routeBuilder {
+                do { try await routeBuilder.finishRoute(with: workout, metadata: nil) }
+                catch { errorMessage = "경로를 저장하지 못했어요. 러닝 기록은 건강 앱에 저장됐어요." }
+            }
+            routeBuilder = nil
             state = .finished
             sendSnapshot()
+            // 폰이 실시간으로 못 받았어도 이 요약으로 기록이 남는다 (transferUserInfo 는 앱이 꺼져 있어도 배달된다)
+            if let workout {
+                let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
+                let heartRates = workout.statistics(for: HKQuantityType(.heartRate))
+                connectivity.sendFinishedWorkout(
+                    sessionID: sessionID, workoutID: workout.uuid,
+                    startedAt: workout.startDate, endedAt: workout.endDate,
+                    distanceMeters: distanceMeters, calories: activeEnergy,
+                    averageHeartRate: heartRates?.averageQuantity()?.doubleValue(for: beatsPerMinute),
+                    maxHeartRate: heartRates?.maximumQuantity()?.doubleValue(for: beatsPerMinute)
+                )
+            }
         } catch {
             errorMessage = error.localizedDescription
             resetSession()
@@ -208,9 +250,28 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             MainActor.assumeIsolated {   // 메인 런루프 타이머라 이미 메인이다
                 guard let self, let builder = self.workoutBuilder else { return }
                 self.elapsedSeconds = Int(builder.elapsedTime(at: Date()))
+                self.startOwnRouteIfPhoneIsNotRecording()
                 self.sendSnapshot()
             }
         }
+    }
+
+    /// 폰이 기록 중이면 폰 GPS 가 더 정확하고 워치 배터리도 아낀다. 폰 스냅샷이 20초 넘게
+    /// 없으면(폰을 두고 나왔거나, 폰 앱이 시작을 거절했거나) 워치가 직접 경로를 모은다.
+    private func startOwnRouteIfPhoneIsNotRecording() {
+        guard !isRecordingOwnRoute, state == .running,
+              Double(elapsedSeconds) > Self.ownRouteAfter, !phoneSyncIsFresh else { return }
+        guard [.authorizedWhenInUse, .authorizedAlways].contains(locationManager.authorizationStatus) else { return }
+        isRecordingOwnRoute = true
+        locationManager.allowsBackgroundLocationUpdates = true   // 손목을 내려도 계속 모은다
+        locationManager.startUpdatingLocation()
+    }
+
+    private func stopOwnRoute() {
+        guard isRecordingOwnRoute else { return }
+        locationManager.stopUpdatingLocation()
+        locationManager.allowsBackgroundLocationUpdates = false
+        isRecordingOwnRoute = false
     }
 
     private func stopTimer() {
@@ -224,6 +285,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         workoutSession?.end()
         workoutSession = nil
         workoutBuilder = nil
+        stopOwnRoute()
+        routeBuilder = nil
         stopTimer()
         state = .idle
     }
@@ -355,5 +418,21 @@ private enum WatchWorkoutError: LocalizedError {
         case .sharingDenied:
             "건강 데이터 권한이 꺼져 있어요. iPhone 건강 앱의 공유 > 앱 및 서비스에서 RunCanvas를 허용해 주세요."
         }
+    }
+}
+
+extension WatchWorkoutManager: CLLocationManagerDelegate {
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        // 왜: 워크아웃 경로에 실내·초기 흔들림이 섞이면 지도가 튄다. 수평 정확도 50m 안쪽만 담는다.
+        let usable = locations.filter { $0.horizontalAccuracy > 0 && $0.horizontalAccuracy <= 50 }
+        guard !usable.isEmpty else { return }
+        Task { @MainActor [weak self] in
+            guard let self, self.isRecordingOwnRoute, let routeBuilder = self.routeBuilder else { return }
+            try? await routeBuilder.insertRouteData(usable)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        // 일시적 실패는 다음 업데이트에서 회복된다 — 러닝을 멈출 이유는 아니다
     }
 }

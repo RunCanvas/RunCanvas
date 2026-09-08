@@ -13,6 +13,31 @@ enum WorkoutSyncAction: String {
     case unavailable
 }
 
+/// 워치가 러닝을 끝내며 보내는 요약. 스냅샷과 달리 transferUserInfo 로 가므로
+/// 폰 앱이 꺼져 있어도 큐에 남았다가 배달된다 — 건강 앱 권한이 없어도 기록이 남는 길.
+struct FinishedWatchWorkout {
+    let workoutID: UUID
+    let startedAt: Date
+    let endedAt: Date
+    let distanceMeters: Double
+    let calories: Double
+    let averageHeartRate: Double?
+    let maxHeartRate: Double?
+
+    init?(_ message: [String: Any]) {
+        guard let idString = message["workoutID"] as? String, let workoutID = UUID(uuidString: idString),
+              let start = message["startedAt"] as? TimeInterval,
+              let end = message["endedAt"] as? TimeInterval, end > start else { return nil }
+        self.workoutID = workoutID
+        self.startedAt = Date(timeIntervalSince1970: start)
+        self.endedAt = Date(timeIntervalSince1970: end)
+        self.distanceMeters = message["distanceMeters"] as? Double ?? 0
+        self.calories = message["calories"] as? Double ?? 0
+        self.averageHeartRate = message["averageHeartRate"] as? Double
+        self.maxHeartRate = message["maxHeartRate"] as? Double
+    }
+}
+
 struct WatchWorkoutSnapshot {
     let sessionID: UUID
     let state: String
@@ -29,6 +54,8 @@ final class WatchConnectivityService: NSObject, ObservableObject {
 
     var onCommand: ((WorkoutSyncAction, UUID) -> Void)?
     var onSnapshot: ((WatchWorkoutSnapshot) -> Void)?
+    /// 워치가 끝낸 러닝 요약 — 폰이 실시간으로 못 받았어도 기록으로 남긴다
+    var onFinishedWorkout: ((FinishedWatchWorkout) -> Void)?
 
     private let session: WCSession?
     private var latestCommandTimestamp: TimeInterval = 0
@@ -98,6 +125,11 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             }
             latestCommandTimestamp = timestamp
             onCommand?(action, sessionID)
+            return
+        }
+
+        if kind == "finished", let finished = FinishedWatchWorkout(message) {
+            onFinishedWorkout?(finished)
             return
         }
 

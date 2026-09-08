@@ -17,10 +17,13 @@ final class Run {
     var route: [RoutePoint]         // ponytail: 인라인 저장. 1시간 1Hz ≈ 90KB. 장거리 기록이 많아지면 관계 테이블로 분리
     var syncedAt: Date?
     var decoratedImageFilename: String?
+    /// 건강 앱에서 가져온 기록이면 그 워크아웃의 UUID. 폰이 직접 기록한 러닝은 nil —
+    /// 그쪽은 시간 겹침으로 걸러진다(HealthImport 참고). 옵셔널이라 기존 저장소는 그대로 열린다.
+    var healthWorkoutID: UUID?
 
     init(id: UUID = UUID(), ownerID: UUID, startedAt: Date, endedAt: Date, distanceMeters: Double,
          movingSeconds: Int, calories: Double, averageHeartRate: Double? = nil,
-         maxHeartRate: Double? = nil, route: [RoutePoint] = []) {
+         maxHeartRate: Double? = nil, route: [RoutePoint] = [], healthWorkoutID: UUID? = nil) {
         self.id = id
         self.ownerID = ownerID
         self.startedAt = startedAt
@@ -31,6 +34,7 @@ final class Run {
         self.averageHeartRate = averageHeartRate
         self.maxHeartRate = maxHeartRate
         self.route = route
+        self.healthWorkoutID = healthWorkoutID
     }
 
     var distanceKm: Double { distanceMeters / 1000 }
