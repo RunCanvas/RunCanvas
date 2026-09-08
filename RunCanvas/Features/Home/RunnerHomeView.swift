@@ -36,11 +36,17 @@ private struct HomeContent: View {
         return runs.prefix { cal.isDateInToday($0.startedAt) }.reduce(0) { $0 + $1.distanceMeters }
     }
 
+    private var totalMeters: Double { runs.reduce(0) { $0 + $1.distanceMeters } }
+
+    private var weekMeters: Double {
+        StatsEngine.summary(runs: runs.map(\.badgeRun), period: .week).totalMeters
+    }
+
     var body: some View {
         VStack(spacing: 0) {
 
-            // 상단 프로필
-            ProfileHeader()
+            // 상단 프로필 — 누적·이번 주 거리는 홈이 이미 들고 있어 그대로 넘긴다
+            ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
                 .padding(.horizontal, 20)   // 기록·런꾸·설정 탭과 같은 바깥 여백
                 .padding(.top, 20)
 
@@ -136,6 +142,7 @@ struct RunHistoryRow: View {
 
             VStack(alignment: .leading) {
                 Text("\(RunMath.formatKm(run.distanceMeters)) km")
+                    .accessibilityIdentifier("runHistoryDistance")
                     .fontWeight(.semibold)
 
                 // 기기 언어가 영어여도 "9월 6일" — 한국어 전용 앱이라 로케일을 고정
