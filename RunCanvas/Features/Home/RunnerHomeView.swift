@@ -44,14 +44,13 @@ private struct HomeContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-
-            // 상단 프로필 — 누적·이번 주 거리는 홈이 이미 들고 있어 그대로 넘긴다
-            ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
-                .padding(.horizontal, 20)   // 기록·런꾸·설정 탭과 같은 바깥 여백
-                .padding(.top, 20)
-
             ScrollView {
                 VStack(spacing: 24) {
+
+                    // 상단 프로필 — 누적·이번 주 거리는 홈이 이미 들고 있어 그대로 넘긴다.
+                    // 왜 ScrollView 안인가: 카드가 되면서 150pt 가 됐다. 밖에 고정해 두면 그만큼을
+                    // 화면에서 영구히 잡아먹어 지도·버튼이 밀리고, 첫 항목이 어정쩡하게 잘린다.
+                    ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
 
                     // 오늘의 러닝 — 현재 위치 지도 위에 (위치 권한은 러닝 화면에서 받고, 허용돼 있으면 내 위치가 보인다)
                     ZStack(alignment: .bottomLeading) {
@@ -77,7 +76,6 @@ private struct HomeContent: View {
                     }
                     .frame(height: 240)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.top, 8)
 
                     // 러닝 시작 버튼
                     NavigationLink {
@@ -125,6 +123,7 @@ private struct HomeContent: View {
                     }
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 20)
                 .padding(.bottom, 20)
             }
         }
