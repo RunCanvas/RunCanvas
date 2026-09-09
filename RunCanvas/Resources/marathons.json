@@ -1343,22 +1343,6 @@
       "fee_min": 50000
     },
     {
-      "name": "마블런 서울 2026",
-      "event_date": "2026-10-10",
-      "region": "서울",
-      "place": "미정",
-      "courses": [
-        "10km",
-        "Half"
-      ],
-      "status": null,
-      "signup_url": "https://www.kormarathon.com/ko/races/marvel-run-seoul-2026",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1776068650/kormarathon/events/event-images-1776068649803.png"
-    },
-    {
       "name": "앙성비내길마라톤",
       "event_date": "2026-10-10",
       "region": "충북",
@@ -2575,6 +2559,24 @@
       "fee_min": 45000
     },
     {
+      "name": "Save Race 2026 (세이브 레이스 - 카카오뱅크)",
+      "event_date": "2026-11-07",
+      "region": "서울",
+      "place": "여의도공원 문화의마당",
+      "courses": [
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/save-race-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788920480/kormarathon/events/event-images-1788920480015.png",
+      "reg_start_date": "2026-09-07",
+      "reg_end_date": "2026-09-18",
+      "fee_min": 50000
+    },
+    {
       "name": "넥슨과 함께하는 2026 미라클365 푸르메런",
       "event_date": "2026-11-07",
       "region": "서울",
@@ -2733,7 +2735,7 @@
       "name": "2026 청양군체육회장기 칠갑마라톤대회",
       "event_date": "2026-11-08",
       "region": "충남",
-      "place": "청양군 청양목재문화자연사체험관",
+      "place": "청양군 청양목재문화자연사체험관 및 칠갑저수지 일원",
       "courses": [
         "7km",
         "14km",
@@ -2744,28 +2746,10 @@
       "source": "kormarathon.com",
       "type": "대회",
       "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788224938/kormarathon/events/event-images-1788224936928.jpg",
-      "reg_start_date": "2026-09-01",
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788922478/kormarathon/events/event-images-1788922476221.jpg",
+      "reg_start_date": "2026-09-02",
       "reg_end_date": "2026-10-15",
       "fee_min": 30000
-    },
-    {
-      "name": "Save Race 2026 (세이브 레이스 - 카카오뱅크)",
-      "event_date": "2026-11-08",
-      "region": "서울",
-      "place": "여의도공원 문화의마당",
-      "courses": [
-        "10km"
-      ],
-      "status": "open",
-      "signup_url": "https://www.kormarathon.com/ko/races/save-race-2026",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1768454463/kormarathon/events/event-save-race-2025-main.jpg",
-      "reg_start_date": "2026-09-07",
-      "reg_end_date": "2026-09-18",
-      "fee_min": 50000
     },
     {
       "name": "라운드랩 RUN",
