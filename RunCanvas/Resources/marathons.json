@@ -60,6 +60,26 @@
       "fee_min": 45000
     },
     {
+      "name": "2026 여수 백리섬섬 트레일런",
+      "event_date": "2026-09-12",
+      "region": "전남",
+      "place": "청심국제해양청소년수련원 (여수시 화양면 장수로 183-5)",
+      "courses": [
+        "16.4km",
+        "27.6km",
+        "40km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/yeosu-baekriseomseom-trail-run-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788950979/kormarathon/events/event-images-1788950978211.jpg",
+      "reg_start_date": "2026-07-18",
+      "reg_end_date": "2026-07-22",
+      "fee_min": 50000
+    },
+    {
       "name": "2026 제2회 화이트런",
       "event_date": "2026-09-12",
       "region": "서울",
@@ -154,6 +174,26 @@
       "reg_start_date": "2026-08-14",
       "reg_end_date": "2026-08-23",
       "fee_min": 20000
+    },
+    {
+      "name": "빵트레일런2026",
+      "event_date": "2026-09-12",
+      "region": "강원",
+      "place": "하이원 리조트 및 하늘길",
+      "courses": [
+        "12km",
+        "20km",
+        "30km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/bbang-trail-run-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788954973/kormarathon/events/event-images-1788954971919.jpg",
+      "reg_start_date": "2026-03-25",
+      "reg_end_date": "2026-05-31",
+      "fee_min": 79000
     },
     {
       "name": "서울올림픽기념 88RUN",
@@ -331,6 +371,25 @@
       "fee_min": 45000
     },
     {
+      "name": "제19회 구로구청장배 안양천 단풍 마라톤대회",
+      "event_date": "2026-09-13",
+      "region": "서울",
+      "place": "구일역 하부 인라인스케이트장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/19th-guro-mayors-cup-anyangcheon-fall-foliage-marathon-2026",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788956265/kormarathon/events/event-images-1788956264135.jpg",
+      "reg_start_date": "2026-08-03",
+      "reg_end_date": "2026-08-31",
+      "fee_min": 35000
+    },
+    {
       "name": "중앙대학교 개교 110주년 기념 마라톤",
       "event_date": "2026-09-15",
       "region": "서울",
@@ -419,6 +478,24 @@
       "reg_start_date": "2026-08-07",
       "reg_end_date": "2026-09-10",
       "fee_min": 30000
+    },
+    {
+      "name": "2026 시포레 RUN & FIT with 디스커버리",
+      "event_date": "2026-09-19",
+      "region": "경기",
+      "place": "일산호수공원 노래하는 분수대 일대",
+      "courses": [
+        "10km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-city-forestival-run-and-fit-with-discovery-expedition",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788956339/kormarathon/events/event-images-1788956338280.jpg",
+      "reg_start_date": "2026-07-16",
+      "reg_end_date": "2026-08-20",
+      "fee_min": 69000
     },
     {
       "name": "2026 안양천 하프 마라톤",
@@ -847,6 +924,26 @@
       "reg_start_date": "2026-08-18",
       "reg_end_date": "2026-09-10",
       "fee_min": 89000
+    },
+    {
+      "name": "제25회 김제새만금 지평선 전국마라톤대회",
+      "event_date": "2026-10-03",
+      "region": "전북",
+      "place": "김제시민운동장 외 주로코스",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/25th-gimje-saemangeum-horizon-national-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788956681/kormarathon/events/event-images-1788956680378.jpg",
+      "reg_start_date": "2026-05-20",
+      "reg_end_date": "2026-06-09",
+      "fee_min": 25000
     },
     {
       "name": "해리포터 런",
@@ -2301,6 +2398,29 @@
       "reg_start_date": "2026-08-20",
       "reg_end_date": "2026-09-30",
       "fee_min": 2000
+    },
+    {
+      "name": "2026 마블런",
+      "event_date": "2026-10-31",
+      "region": "강원",
+      "place": "인제스피디움",
+      "courses": [
+        "5km",
+        "10km",
+        "Half",
+        "Full"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/marvel-run-seoul-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [
+        "풀코스"
+      ],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788958035/kormarathon/events/event-images-1788958034781.jpg",
+      "reg_start_date": "2026-09-22",
+      "reg_end_date": "2026-09-16",
+      "fee_min": 50000
     },
     {
       "name": "2026 오티즘 레이스",
