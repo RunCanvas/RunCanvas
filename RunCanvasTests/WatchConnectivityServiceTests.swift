@@ -2,6 +2,48 @@ import XCTest
 @testable import RunCanvas
 
 final class WatchConnectivityServiceTests: XCTestCase {
+    func testImmediateAndQueuedStartAreHandledOnlyOnce() {
+        let service = WatchConnectivityService()
+        let id = UUID()
+        var received: [UUID] = []
+        service.onCommand = { action, sessionID in
+            XCTAssertEqual(action, .start)
+            received.append(sessionID)
+        }
+        let message = WatchConnectivityService.commandMessage(.start, sessionID: id)
+        service.receive(message)
+        service.receive(message)
+        XCTAssertEqual(received, [id])
+    }
+
+    func testQueuedStartCannotRestartAfterNewerEnd() {
+        let service = WatchConnectivityService()
+        let id = UUID()
+        let now = Date().timeIntervalSince1970
+        var actions: [WorkoutSyncAction] = []
+        service.onCommand = { action, _ in actions.append(action) }
+        service.receive(WatchConnectivityService.commandMessage(.start, sessionID: id, timestamp: now - 1))
+        service.receive(WatchConnectivityService.commandMessage(.end, sessionID: id, timestamp: now))
+        service.receive(WatchConnectivityService.commandMessage(.start, sessionID: id, timestamp: now - 1))
+        XCTAssertEqual(actions, [.start, .end])
+    }
+
+    func testEndCommandCarriesCanonicalPhoneMetrics() {
+        let id = UUID()
+        let message = WatchConnectivityService.commandMessage(
+            .end,
+            sessionID: id,
+            finalDistanceMeters: 5_432.1,
+            finalElapsedSeconds: 2_001,
+            timestamp: 123
+        )
+
+        XCTAssertEqual(message["action"] as? String, "end")
+        XCTAssertEqual(message["sessionID"] as? String, id.uuidString)
+        XCTAssertEqual(message["finalDistanceMeters"] as? Double, 5_432.1)
+        XCTAssertEqual(message["finalElapsedSeconds"] as? Int, 2_001)
+    }
+
     func testStartCommandRejectsMissingStaleAndFarFutureTimestamps() {
         let now = 10_000.0
         XCTAssertFalse(WatchConnectivityService.isFreshStartCommand(timestamp: 0, now: now))

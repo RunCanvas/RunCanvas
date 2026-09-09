@@ -1,5 +1,7 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
+import UIKit
 
 /// 런꾸 — 인스타 스토리 편집기처럼 **한 화면**에서 배경·기록·스티커·저장을 전부 한다.
 /// (4단계 플로우 CanvasFlowView/BackgroundPickerView/StickerEditorView/CanvasExportView를 대체)
@@ -25,7 +27,11 @@ struct CanvasStudioView: View {
     @State private var showsTextPrompt = false
     @State private var customText = ""
     @State private var editingTextStickerID: UUID?
-    @State private var earnedBadges: [Badge] = []
+    @State private var imageItem: PhotosPickerItem?
+    @State private var isLoadingImage = false
+    @State private var imageErrorMessage: String?
+    @State private var undoStack: [CanvasEditSnapshot] = []
+    @State private var isRotationMode = false
     @State private var didPromptForRun = false
     @State private var showsDiscardConfirmation = false
     @State private var didSave = false
@@ -43,6 +49,11 @@ struct CanvasStudioView: View {
         var id: Int { hashValue }
     }
 
+    private struct CanvasEditSnapshot {
+        let background: CanvasBackground
+        let stickers: [CanvasSticker]
+    }
+
     private var selectedIndices: [Int] {
         stickers.indices.filter { selection.contains(stickers[$0].id) }
     }
@@ -58,7 +69,8 @@ struct CanvasStudioView: View {
     }
 
     /// 고른 스티커 전부에 같은 변경을 적용한다 — "선택한 것들 한 번에 색 바꾸기"
-    private func applyToSelection(_ change: (inout CanvasSticker) -> Void) {
+    private func applyToSelection(recordUndo: Bool = true, _ change: (inout CanvasSticker) -> Void) {
+        if recordUndo { rememberState() }
         for index in selectedIndices { change(&stickers[index]) }
     }
 
@@ -74,7 +86,6 @@ struct CanvasStudioView: View {
         }
         .preferredColorScheme(.dark)   // 크롬이 항상 어둡다 — 시트·키보드까지 일관되게
         .onAppear {
-            loadEarnedBadges()
             promptForRunIfNeeded()
         }
         .sheet(item: $sheet) { which in
@@ -107,20 +118,47 @@ struct CanvasStudioView: View {
             Button("취소", role: .cancel) { clearTextEditor() }
             Button(editingTextStickerID == nil ? "추가" : "수정") { saveText() }
         }
+        .alert("이미지를 추가할 수 없어요", isPresented: Binding(
+            get: { imageErrorMessage != nil },
+            set: { if !$0 { imageErrorMessage = nil } }
+        )) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(imageErrorMessage ?? "")
+        }
+        .onChange(of: imageItem) { _, item in
+            guard let item, !isLoadingImage else { return }
+            loadImageSticker(from: item)
+        }
+        .onChange(of: selection) { _, selection in
+            if selection.isEmpty { isRotationMode = false }
+        }
     }
 
     // MARK: - 상단: 크롬은 최소로, 캔버스에 자리를 내준다
 
     private var topBar: some View {
         HStack {
-            Button { close() } label: {
-                Text("취소")
+            Button { goBack() } label: {
+                Label("뒤로", systemImage: "chevron.left")
                     .font(.system(size: 15, weight: .semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(Studio.surface, in: Capsule())
                     .hitTarget()
             }
+
+
+            Button { undoLastEdit() } label: {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 34, height: 34)
+                    .background(Studio.surface, in: Circle())
+                    .foregroundStyle(undoStack.isEmpty ? Studio.dim : .white)
+                    .hitTarget()
+            }
+            .disabled(undoStack.isEmpty)
+            .accessibilityLabel("실행 취소")
 
             Spacer()
 
@@ -174,7 +212,11 @@ struct CanvasStudioView: View {
                 background: background,
                 run: selectedRun,
                 stickers: $stickers,
-                selection: $selection
+                selection: $selection,
+                isRotationMode: isRotationMode,
+                onDeleteSticker: { deleteSticker(id: $0) },
+                onEditTextSticker: { beginEditingText(id: $0) },
+                onEditBegan: { rememberState() }
             )
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .shadow(color: .black.opacity(0.6), radius: 24, y: 8)
@@ -246,11 +288,12 @@ struct CanvasStudioView: View {
                     }
                     ColorPicker("", selection: Binding(
                         get: { lead.color },
-                        set: { color in applyToSelection { $0.color = color } }
+                        set: { color in applyToSelection(recordUndo: false) { $0.color = color } }
                     ), supportsOpacity: false)
                         .labelsHidden()
                         .frame(width: 44, height: 44)
                         .accessibilityLabel("직접 고르기")
+                        .simultaneousGesture(TapGesture().onEnded { rememberState() })
                 }
                 .padding(.horizontal, 18)
             }
@@ -277,6 +320,13 @@ struct CanvasStudioView: View {
                    let index = selectedIndices.first {
                     iconButton("pencil", label: "텍스트 수정") { beginEditingText(at: index) }
                 }
+                iconButton(
+                    "rotate.right",
+                    label: isRotationMode ? "회전 모드 끄기" : "회전 모드 켜기",
+                    isOn: isRotationMode
+                ) {
+                    isRotationMode.toggle()
+                }
                 iconButton("trash", label: "스티커 삭제") { deleteSelected() }
             }
             .padding(.horizontal, 18)
@@ -288,8 +338,10 @@ struct CanvasStudioView: View {
                     .foregroundStyle(Studio.dim)
                 Slider(value: Binding(
                     get: { lead.opacity },
-                    set: { value in applyToSelection { $0.opacity = value } }
-                ), in: 0.2...1)
+                    set: { value in applyToSelection(recordUndo: false) { $0.opacity = value } }
+                ), in: 0.2...1, onEditingChanged: { editing in
+                    if editing { rememberState() }
+                })
                     .tint(.white)
                     .accessibilityLabel("불투명도")
             }
@@ -322,19 +374,11 @@ struct CanvasStudioView: View {
             toolButton("textformat", "텍스트") { beginAddingText() }
                 .disabled(selectedRun == nil)
 
-            if earnedBadges.isEmpty {
-                toolButton("rosette", "뱃지") {}
-                    .disabled(true)
-            } else {
-                Menu {
-                    ForEach(earnedBadges) { badge in
-                        Button(badge.title) { add(.badge(badge)) }
-                    }
-                } label: {
-                    toolLabel("rosette", "뱃지")
-                }
-                .disabled(selectedRun == nil)
+            PhotosPicker(selection: $imageItem, matching: .images, preferredItemEncoding: .compatible) {
+                toolLabel(isLoadingImage ? "hourglass" : "photo.badge.plus", isLoadingImage ? "불러오는 중" : "이미지")
             }
+            .disabled(selectedRun == nil || isLoadingImage)
+            .accessibilityLabel(isLoadingImage ? "이미지 불러오는 중" : "이미지 추가")
         }
         .padding(.bottom, 4)
     }
@@ -355,13 +399,18 @@ struct CanvasStudioView: View {
         .foregroundStyle(.white)
     }
 
-    private func iconButton(_ systemImage: String, label: String, action: @escaping () -> Void) -> some View {
+    private func iconButton(
+        _ systemImage: String,
+        label: String,
+        isOn: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: 15, weight: .medium))
                 .frame(width: 34, height: 34)
-                .background(Studio.surface, in: Circle())
-                .foregroundStyle(.white)
+                .background(isOn ? Color.white : Studio.surface, in: Circle())
+                .foregroundStyle(isOn ? .black : .white)
                 .hitTarget()
         }
         .accessibilityLabel(label)
@@ -370,7 +419,7 @@ struct CanvasStudioView: View {
     // MARK: - 동작
 
     /// 저장한 적 없이 꾸미던 중이면 한 번 물어본다 (인스타가 하는 방식)
-    private func close() {
+    private func goBack() {
         if selectedRun != nil && !didSave {
             showsDiscardConfirmation = true
         } else {
@@ -394,6 +443,7 @@ struct CanvasStudioView: View {
     }
 
     private func add(_ kind: CanvasSticker.Kind) {
+        rememberState()
         let offset = CGFloat(stickers.count % 4) * 0.04
         let sticker = CanvasSticker(
             kind: kind,
@@ -408,6 +458,7 @@ struct CanvasStudioView: View {
     /// 색을 직접 고른 스티커는 건드리지 않는다 — 기준이 "흰/검정"에서 "바뀌기 전 기본 색"으로 바뀌었을 뿐,
     /// 테마가 "배경에 맞춤"이면 그 기본 색이 곧 흰/검정이라 예전 동작 그대로다.
     private func changeBackground(to newBackground: CanvasBackground) {
+        rememberState()
         let previous = defaultStickerColor
         background = newBackground
         let current = defaultStickerColor
@@ -418,15 +469,17 @@ struct CanvasStudioView: View {
     }
 
     private func deleteSelected() {
+        guard !selection.isEmpty else { return }
+        rememberState()
         stickers.removeAll { selection.contains($0.id) }
         selection = []
     }
 
-    /// 획득한 뱃지만 스티커로 붙일 수 있다. UserDefaults를 매 렌더에 읽지 않도록 한 번만.
-    private func loadEarnedBadges() {
-        guard let ownerID = auth.userID else { return }
-        let dates = BadgeStore.earnedDates(for: ownerID)
-        earnedBadges = Badge.allCases.filter { dates[$0] != nil }
+    private func deleteSticker(id: UUID) {
+        guard stickers.contains(where: { $0.id == id }) else { return }
+        rememberState()
+        stickers.removeAll { $0.id == id }
+        selection.remove(id)
     }
 
     private func beginAddingText() {
@@ -442,11 +495,48 @@ struct CanvasStudioView: View {
         showsTextPrompt = true
     }
 
+    private func beginEditingText(id: UUID) {
+        guard let index = stickers.firstIndex(where: { $0.id == id }) else { return }
+        beginEditingText(at: index)
+    }
+
+    private func loadImageSticker(from item: PhotosPickerItem) {
+        isLoadingImage = true
+        Task {
+            defer {
+                isLoadingImage = false
+                imageItem = nil
+            }
+            do {
+                guard let data = try await withTimeoutValue(
+                    seconds: 20,
+                    { try await item.loadTransferable(type: Data.self) }
+                ), let image = UIImage(data: data) else {
+                    imageErrorMessage = "사진을 불러오지 못했어요."
+                    return
+                }
+                add(.image(await downsampledStickerImage(image)))
+            } catch {
+                imageErrorMessage = "사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요."
+            }
+        }
+    }
+
+    private func downsampledStickerImage(_ image: UIImage) async -> UIImage {
+        let maxSide: CGFloat = 1_600
+        let longest = max(image.size.width, image.size.height)
+        guard longest > maxSide else { return image }
+        let ratio = maxSide / longest
+        let target = CGSize(width: image.size.width * ratio, height: image.size.height * ratio)
+        return await image.byPreparingThumbnail(ofSize: target) ?? image
+    }
+
     private func saveText() {
         let trimmed = String(customText.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.textLimit))
         guard !trimmed.isEmpty else { clearTextEditor(); return }
         if let editingTextStickerID,
            let index = stickers.firstIndex(where: { $0.id == editingTextStickerID }) {
+            rememberState()
             stickers[index].kind = .text(trimmed)
         } else {
             add(.text(trimmed))
@@ -457,6 +547,19 @@ struct CanvasStudioView: View {
     private func clearTextEditor() {
         editingTextStickerID = nil
         customText = ""
+    }
+
+    private func rememberState() {
+        undoStack.append(CanvasEditSnapshot(background: background, stickers: stickers))
+        if undoStack.count > 30 { undoStack.removeFirst(undoStack.count - 30) }
+    }
+
+    private func undoLastEdit() {
+        guard let previous = undoStack.popLast() else { return }
+        background = previous.background
+        stickers = previous.stickers
+        selection = []
+        isRotationMode = false
     }
 
     static func defaultStickers(for run: Run, color: Color) -> [CanvasSticker] {

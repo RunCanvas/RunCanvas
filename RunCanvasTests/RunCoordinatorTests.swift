@@ -58,7 +58,9 @@ final class RunCoordinatorTests: XCTestCase {
             sessionID: id, state: "finished", elapsedSeconds: 20, distanceMeters: 80, heartRate: 150
         ))
         XCTAssertEqual(session.state, .finished, "워치가 끝냈으면 폰도 끝나야 한다")
-        XCTAssertNotNil(coordinator.finishedRun, "결과 화면에 띄울 기록이 남아야 한다")
+        // 폰이 최종 거리의 기준이다. 이 테스트는 폰 GPS 이동이 없으므로 저장하지 않는다.
+        XCTAssertNil(coordinator.finishedRun)
+        XCTAssertTrue(coordinator.showsDiscardedRun)
     }
 
     /// 다른 세션의 명령·스냅샷은 무시한다 — 지난 러닝의 큐가 늦게 배달돼도 지금 러닝을 건드리지 않게

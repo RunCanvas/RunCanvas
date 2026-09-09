@@ -47,15 +47,11 @@ enum HealthImport {
     /// 같은 러닝으로 볼 시작 시각 차이. 폰과 워치가 같은 러닝을 저장해도 몇 초는 어긋난다.
     static let sameRunTolerance: TimeInterval = 120
 
-    /// 너무 짧은 워크아웃은 가져오지 않는다 — 잘못 눌러 생긴 조각까지 기록으로 만들면 통계가 흐려진다.
-    static let minimumSeconds: TimeInterval = 60
-    static let minimumMeters: Double = 100
-
     static func newWorkouts(from workouts: [ImportedWorkout], existing: [ExistingRun]) -> [ImportedWorkout] {
         let knownIDs = Set(existing.compactMap(\.healthWorkoutID))
         return workouts.filter { workout in
-            guard workout.endedAt.timeIntervalSince(workout.startedAt) >= minimumSeconds,
-                  workout.distanceMeters >= minimumMeters else { return false }
+            guard workout.endedAt > workout.startedAt,
+                  RunSavePolicy.shouldSave(distanceMeters: workout.distanceMeters) else { return false }
             guard !knownIDs.contains(workout.id) else { return false }
             // 폰이 직접 기록한 러닝은 우리가 건강 앱에도 저장해 둔다 — 그걸 그대로 가져오면 같은 러닝이 두 개가 된다.
             // id 를 모르는 예전 기록까지 걸러야 하므로 시간이 겹치는지로 판단한다.

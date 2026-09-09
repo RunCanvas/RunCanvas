@@ -7,32 +7,38 @@ struct WatchRunView: View {
     var body: some View {
         ScrollView {
             // 왜: 앱 이름 제목을 빼야 40/41mm에서 일시정지·종료 버튼이 스크롤 없이 첫 화면에 들어온다
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 // 왜: 종료 뒤 지표가 그대로 남아 있어 저장됐는지 알 수 없다 — 상태 라벨 자리를 빌려 알린다
                 if workout.state == .finished {
                     // 왜: 예전엔 "건강 앱에 저장됐어요" 한 줄뿐이라, 사용자가 RunCanvas 에 남았는지를 알 수 없었다.
                     // 폰이 실시간으로 받아 갔으면 이미 앱에 있고, 아니면 앱을 열 때 건강 앱에서 가져온다.
-                    Text(didPhoneRecord ? "iPhone에 저장됐어요" : "건강 앱에 저장됐어요\niPhone 앱을 열면 옮겨져요")
+                    Text(!RunSavePolicy.shouldSave(distanceMeters: workout.displayedDistanceMeters)
+                         ? "50m 이하라\n저장하지 않았어요"
+                         : (didPhoneRecord ? "iPhone에 저장됐어요" : "건강 앱에 저장됐어요\niPhone 앱을 열면 옮겨져요"))
                         .font(.caption2)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.82))
                 } else {
                     Label(
                         isPhoneKeepingRecord ? "iPhone 동기화" : "건강 앱에만 저장",
                         systemImage: isPhoneKeepingRecord ? "iphone.radiowaves.left.and.right" : "applewatch"
                     )
                     .font(.caption2)
-                    .foregroundStyle(isPhoneKeepingRecord ? .green : .secondary)
+                    .foregroundStyle(isPhoneKeepingRecord ? .mint : .white.opacity(0.72))
                 }
 
-                HStack(spacing: 12) {
-                    metric(title: "BPM", value: workout.heartRate.map { "\(Int($0))" } ?? "--")
-                    metric(title: "KM", value: String(format: "%.2f", workout.displayedDistanceMeters / 1_000))
-                }
+                metric(
+                    title: "DISTANCE",
+                    value: String(format: "%.2f KM", workout.displayedDistanceMeters / 1_000),
+                    color: .cyan,
+                    valueFont: .title2
+                )
 
-                Text(formatDuration(workout.displayedElapsedSeconds))
-                    .font(.system(.title2, design: .rounded, weight: .bold))
-                    .monospacedDigit()
+                HStack(spacing: 4) {
+                    metric(title: "TIME", value: formatDuration(workout.displayedElapsedSeconds), color: .white)
+                    metric(title: "PACE", value: formatPace(workout.displayedPaceSecondsPerKm), color: .yellow)
+                    metric(title: "BPM", value: workout.heartRate.map { "\(Int($0))" } ?? "--", color: .pink)
+                }
 
                 controls
             }
@@ -118,13 +124,21 @@ struct WatchRunView: View {
         .tint(.red)
     }
 
-    private func metric(title: String, value: String) -> some View {
+    private func metric(
+        title: String,
+        value: String,
+        color: Color,
+        valueFont: Font.TextStyle = .headline
+    ) -> some View {
         VStack(spacing: 2) {
             Text(title)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .foregroundStyle(color.opacity(0.8))
             Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold))
+                .font(.system(valueFont, design: .rounded, weight: .bold))
+                .foregroundStyle(color)
+                .minimumScaleFactor(0.68)
+                .lineLimit(1)
                 .monospacedDigit()
         }
         .frame(maxWidth: .infinity)
@@ -135,6 +149,12 @@ struct WatchRunView: View {
     private func formatDuration(_ seconds: Int) -> String {
         let h = seconds / 3600, m = (seconds % 3600) / 60, s = seconds % 60
         return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%02d:%02d", m, s)
+    }
+
+    private func formatPace(_ secondsPerKm: Double?) -> String {
+        guard let secondsPerKm, secondsPerKm.isFinite else { return "--'--\"" }
+        let rounded = max(0, Int(secondsPerKm.rounded()))
+        return String(format: "%d'%02d\"", rounded / 60, rounded % 60)
     }
 }
 

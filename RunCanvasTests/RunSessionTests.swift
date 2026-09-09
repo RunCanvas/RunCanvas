@@ -1,10 +1,20 @@
 import XCTest
 import SwiftData
+import CoreLocation
 @testable import RunCanvas
 
 final class RunSessionTests: XCTestCase {
     private var now = Date(timeIntervalSince1970: 1_000_000)
     private let owner = UUID()
+    private let location = LocationService()
+
+    private func addDistance() {
+        let points = [
+            CLLocation(coordinate: .init(latitude: 37, longitude: 127), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date().addingTimeInterval(-9)),
+            CLLocation(coordinate: .init(latitude: 37.0006, longitude: 127), altitude: 0, horizontalAccuracy: 5, verticalAccuracy: 5, timestamp: Date())
+        ]
+        location.locationManager(CLLocationManager(), didUpdateLocations: points)
+    }
 
     private final class HealthSpy: HealthServicing {
         var didStartStream = false
@@ -33,7 +43,7 @@ final class RunSessionTests: XCTestCase {
     }
 
     private func makeSession() -> RunSession {
-        RunSession(location: LocationService(), now: { self.now })
+        RunSession(location: location, now: { self.now })
     }
 
     func testElapsedExcludesPausedTime() {
@@ -103,6 +113,7 @@ final class RunSessionTests: XCTestCase {
         let s = makeSession()
         s.start()
         now += 120
+        addDistance()
         let run = try XCTUnwrap(s.finish(ownerID: owner, weightKg: 60, context: context))
         XCTAssertEqual(s.state, .finished)
         XCTAssertEqual(run.movingSeconds, 120)
@@ -117,10 +128,11 @@ final class RunSessionTests: XCTestCase {
         let health = HealthSpy()
         let workoutSaved = expectation(description: "HealthKit workout saved")
         health.saveExpectation = workoutSaved
-        let s = RunSession(location: LocationService(), health: health, now: { self.now })
+        let s = RunSession(location: location, health: health, now: { self.now })
         s.start()
         health.onSample?(120)
         health.onSample?(180)
+        addDistance()
 
         let run = try XCTUnwrap(s.finish(ownerID: owner, weightKg: 60, context: context))
 
@@ -143,6 +155,7 @@ final class RunSessionTests: XCTestCase {
         s.start()
         s.recordHeartRate(150)
         now += 60
+        addDistance()
         s.finish(ownerID: owner, weightKg: 60, context: context)
 
         s.start()
@@ -151,6 +164,7 @@ final class RunSessionTests: XCTestCase {
         XCTAssertNil(s.heartRate)
         XCTAssertEqual(s.heartRateSamples, [])
         now += 10
+        addDistance()
         let second = try XCTUnwrap(s.finish(ownerID: owner, weightKg: 60, context: context))
         XCTAssertEqual(second.movingSeconds, 10)
         XCTAssertNil(second.averageHeartRate)
@@ -165,6 +179,7 @@ final class RunSessionTests: XCTestCase {
         let s = makeSession()
         XCTAssertNil(s.finish(ownerID: owner, weightKg: 60, context: context))   // 시작 전
         s.start()
+        addDistance()
         XCTAssertNotNil(s.finish(ownerID: owner, weightKg: 60, context: context))
         XCTAssertNil(s.finish(ownerID: owner, weightKg: 60, context: context))   // 이미 끝남
         XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, 1)

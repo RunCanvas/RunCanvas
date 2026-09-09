@@ -14,6 +14,9 @@ final class RunCoordinator {
     var takeoverMessage: String?
     /// 종료된 러닝 — RunView가 떠 있으면 결과 화면을 띄운다 (없어도 저장은 이미 끝났다)
     var finishedRun: Run?
+    var showsWatchRun = false
+    var watchStartError: String?
+    var showsDiscardedRun = false
 
     /// 세션이 만료돼 auth.userID가 사라져도 기록을 잃지 않도록 마지막 계정을 들고 있는다
     var ownerID: UUID? {
@@ -64,6 +67,7 @@ final class RunCoordinator {
                 || session.locationAuthorization == .authorizedAlways else { return false }
         let usesWatchWorkout = sendToWatch ? watch.isReachable : true
         finishedRun = nil
+        showsDiscardedRun = false
         takeoverMessage = nil   // 지난 러닝의 인계 안내가 새 러닝에서 뒤늦게 뜨지 않게
         session.start(sessionID: sessionID, healthManagedExternally: usesWatchWorkout)
         guard session.state == .running else { return false }
@@ -89,8 +93,19 @@ final class RunCoordinator {
     func finish(sendToWatch: Bool) -> Bool {
         guard let ownerID,
               session.state == .running || session.state == .paused else { return false }
-        if sendToWatch { watch.sendCommand(.end, sessionID: session.sessionID) }
-        guard let run = session.finish(ownerID: ownerID, weightKg: weightKg, context: context) else { return false }
+        // 폰과 워치의 GPS/HealthKit 거리는 터널처럼 수신이 불안정한 구간에서 서로 달라질 수 있다.
+        // 함께 기록한 러닝은 폰 저장값을 최종 기준으로 보내 두 화면이 같은 거리·시간으로 끝나게 한다.
+        if sendToWatch {
+            watch.sendCommand(
+                .end,
+                sessionID: session.sessionID,
+                finalDistanceMeters: session.distanceMeters,
+                finalElapsedSeconds: session.elapsedSeconds
+            )
+        }
+        let run = session.finish(ownerID: ownerID, weightKg: weightKg, context: context)
+        guard session.state == .finished else { return false }
+        showsDiscardedRun = run == nil
         finishedRun = run
         watchStartedAt = nil
         lastWatchSnapshotAt = nil
@@ -101,7 +116,9 @@ final class RunCoordinator {
     @discardableResult
     func saveRecovered(_ recovered: RecoveredRun) -> Bool {
         guard let ownerID else { return false }
-        RunSession.save(recovered, ownerID: ownerID, weightKg: weightKg, context: context)
+        if RunSession.save(recovered, ownerID: ownerID, weightKg: weightKg, context: context) == nil {
+            showsDiscardedRun = true
+        }
         return true
     }
 
@@ -124,7 +141,11 @@ final class RunCoordinator {
             // 저장할 계정이 없으면 아예 받지 않는다 — 받아 두면 .end에서 finish가 실패해
             // 세션이 running(GPS 켜진 채)에 갇히고, 알럿은 RunView에서만 뜨니 아무도 모른다.
             guard session.state == .idle || session.state == .finished, ownerID != nil else { return }
-            _ = start(sessionID: remoteSessionID, sendToWatch: false)
+            if start(sessionID: remoteSessionID, sendToWatch: false) {
+                showsWatchRun = true
+            } else {
+                watchStartError = "워치 러닝을 iPhone과 함께 기록하려면 iPhone 설정에서 RunCanvas의 위치 접근을 허용해주세요."
+            }
         case .pause:
             guard remoteSessionID == session.sessionID else { return }
             pause(sendToWatch: false)
@@ -134,6 +155,14 @@ final class RunCoordinator {
         case .end:
             guard remoteSessionID == session.sessionID,
                   session.state == .running || session.state == .paused else { return }
+            // 워치에서 종료한 경우에도 폰이 실제로 저장할 최종 수치를 다시 보내 준다.
+            // 워치는 이 응답을 받는 즉시(또는 지연 배달된 뒤) 종료 화면을 같은 값으로 보정한다.
+            watch.sendCommand(
+                .end,
+                sessionID: session.sessionID,
+                finalDistanceMeters: session.distanceMeters,
+                finalElapsedSeconds: session.elapsedSeconds
+            )
             finish(sendToWatch: false)
         case .discard:
             break   // 폰이 보내기만 하는 명령

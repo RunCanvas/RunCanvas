@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct StickerCanvas: View {
     let background: CanvasBackground
@@ -7,6 +8,10 @@ struct StickerCanvas: View {
     /// 여러 개를 함께 고를 수 있다 (길게 눌러 추가)
     @Binding var selection: Set<UUID>
     var isEditing = true
+    var isRotationMode = false
+    var onDeleteSticker: ((UUID) -> Void)? = nil
+    var onEditTextSticker: ((UUID) -> Void)? = nil
+    var onEditBegan: (() -> Void)? = nil
 
     @State private var stickerSizes: [UUID: CGSize] = [:]
     @State private var alignmentGuides = StickerAlignmentGuides()
@@ -27,6 +32,7 @@ struct StickerCanvas: View {
                         canvasSize: geometry.size,
                         isSelected: selection.contains(sticker.id),
                         isEditing: isEditing,
+                        isRotationMode: isRotationMode,
                         onSelect: { selection = [sticker.id] },
                         onToggleSelect: {
                             if selection.contains(sticker.id) { selection.remove(sticker.id) }
@@ -35,7 +41,10 @@ struct StickerCanvas: View {
                         snap: { position in
                             snapped(position, movingID: sticker.id, canvasSize: geometry.size)
                         },
-                        onDragEnded: { alignmentGuides = StickerAlignmentGuides() }
+                        onDragEnded: { alignmentGuides = StickerAlignmentGuides() },
+                        onDelete: { onDeleteSticker?(sticker.id) },
+                        onEditText: { onEditTextSticker?(sticker.id) },
+                        onEditBegan: { onEditBegan?() }
                     )
                 }
             }
@@ -151,17 +160,26 @@ private struct StickerLayer: View {
     let canvasSize: CGSize
     let isSelected: Bool
     let isEditing: Bool
+    let isRotationMode: Bool
     let onSelect: () -> Void
     /// 길게 누르면 선택에 넣고 뺀다 (여러 개 함께 고르기)
     let onToggleSelect: () -> Void
     /// 드래그 위치를 정렬 가이드에 스냅해서 돌려준다
     let snap: (CGPoint) -> CGPoint
     let onDragEnded: () -> Void
+    let onDelete: () -> Void
+    let onEditText: () -> Void
+    let onEditBegan: () -> Void
 
     @State private var dragStartPosition: CGPoint?
     @State private var resizeStartScale: CGFloat?
     @State private var magnifyStartScale: CGFloat?
     @State private var rotateStartAngle: Angle?
+    @State private var transformStartScale: CGFloat?
+    @State private var transformStartRotation: Angle?
+    @State private var transformStartDistance: CGFloat?
+    @State private var transformLastTouchAngle: Double?
+    @State private var transformAccumulatedRotation: Double = 0
 
     /// 핀치와 모서리 손잡이가 같은 한계를 쓴다 — 따로 두면 핀치로 3.5배 키운 뒤 손잡이를 잡는 순간 3배로 튄다
     private static let scaleRange: ClosedRange<CGFloat> = 0.3...4
@@ -211,8 +229,12 @@ private struct StickerLayer: View {
             .onChanged { value in
                 guard isEditing else { return }
                 onSelect()
+
                 let start = dragStartPosition ?? sticker.position
-                if dragStartPosition == nil { dragStartPosition = start }
+                if dragStartPosition == nil {
+                    onEditBegan()
+                    dragStartPosition = start
+                }
                 let nextPosition = CGPoint(
                     x: min(max(start.x + value.translation.width / canvasSize.width, 0.05), 0.95),
                     y: min(max(start.y + value.translation.height / canvasSize.height, 0.05), 0.95)
@@ -232,7 +254,10 @@ private struct StickerLayer: View {
                 guard isEditing else { return }
                 onSelect()
                 let start = magnifyStartScale ?? sticker.scale
-                if magnifyStartScale == nil { magnifyStartScale = start }
+                if magnifyStartScale == nil {
+                    onEditBegan()
+                    magnifyStartScale = start
+                }
                 sticker.scale = (start * value.magnification).clamped(to: Self.scaleRange)
             }
             .onEnded { _ in magnifyStartScale = nil }
@@ -245,7 +270,10 @@ private struct StickerLayer: View {
                 guard isEditing else { return }
                 onSelect()
                 let start = rotateStartAngle ?? sticker.rotation
-                if rotateStartAngle == nil { rotateStartAngle = start }
+                if rotateStartAngle == nil {
+                    onEditBegan()
+                    rotateStartAngle = start
+                }
                 let next = start + value.rotation
                 // 왜: truncatingRemainder는 부호를 남겨 반대로 한 바퀴 돌린 358°가 -2°로 안 잡히므로 360° 쪽도 함께 본다
                 let remainder = abs(next.degrees.truncatingRemainder(dividingBy: 360))
@@ -255,21 +283,78 @@ private struct StickerLayer: View {
     }
 
     private var resizeOverlay: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(.white, style: StrokeStyle(lineWidth: 1.5, dash: [5]))
 
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.black)
-                .frame(width: 30, height: 30)
-                .background(.white, in: Circle())
-                .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
-                .offset(x: 14, y: 14)
-                .contentShape(Circle())
-                .highPriorityGesture(resizeGesture)
-                .accessibilityLabel("크기 조절")
+            VStack {
+                HStack {
+                    overlayButton("xmark", label: "스티커 삭제", role: .destructive, action: onDelete)
+                    Spacer()
+                    if isTextSticker {
+                        overlayButton("pencil", label: "텍스트 수정", action: onEditText)
+                    }
+                }
+                .offset(y: -16)
+
+                Spacer()
+
+                HStack {
+                    Spacer()
+                    if isRotationMode {
+                        transformHandle
+                    } else {
+                        resizeHandle
+                    }
+                }
+            }
         }
+    }
+
+    private var resizeHandle: some View {
+        handleImage("arrow.up.left.and.arrow.down.right")
+            .highPriorityGesture(resizeGesture)
+            .accessibilityLabel("크기 조절")
+    }
+
+    private var transformHandle: some View {
+        handleImage("rotate.right")
+            .highPriorityGesture(transformGesture)
+            .accessibilityLabel("회전하며 크기 조절")
+    }
+
+    private func handleImage(_ systemImage: String) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.black)
+            .frame(width: 30, height: 30)
+            .background(.white, in: Circle())
+            .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+            .offset(x: 14, y: 14)
+            .contentShape(Circle())
+    }
+
+    private var isTextSticker: Bool {
+        if case .text = sticker.kind { return true }
+        return false
+    }
+
+    private func overlayButton(
+        _ systemImage: String,
+        label: String,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: role, action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(role == .destructive ? .white : .black)
+                .frame(width: 30, height: 30)
+                .background(role == .destructive ? Color.red : Color.white, in: Circle())
+                .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     private var resizeGesture: some Gesture {
@@ -279,13 +364,70 @@ private struct StickerLayer: View {
                 guard isEditing else { return }
                 onSelect()
                 let start = resizeStartScale ?? sticker.scale
-                if resizeStartScale == nil { resizeStartScale = start }
+                if resizeStartScale == nil {
+                    onEditBegan()
+                    resizeStartScale = start
+                }
                 let diagonalDelta = (value.translation.width + value.translation.height) / 2
                 // 기준 350pt 캔버스에서 100pt = 스케일 1 — 기기 폭이 달라도 손맛이 같게
                 sticker.scale = (start + diagonalDelta / (canvasSize.width / 3.5)).clamped(to: Self.scaleRange)
             }
             .onEnded { _ in
                 resizeStartScale = nil
+            }
+    }
+
+    /// 중심에서의 거리와 각도를 함께 반영해 한 번의 드래그로 크기와 회전을 조절한다.
+    /// 짧은 각도 차이를 누적하므로 -180°/180° 경계에서도 회전이 튀지 않는다.
+    private var transformGesture: some Gesture {
+        DragGesture(coordinateSpace: .named("stickerCanvas"))
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+
+                let center = CGPoint(
+                    x: sticker.position.x * canvasSize.width,
+                    y: sticker.position.y * canvasSize.height
+                )
+                let startVector = CGVector(
+                    dx: value.startLocation.x - center.x,
+                    dy: value.startLocation.y - center.y
+                )
+                let currentVector = CGVector(
+                    dx: value.location.x - center.x,
+                    dy: value.location.y - center.y
+                )
+                let currentDistance = hypot(currentVector.dx, currentVector.dy)
+                let currentTouchAngle = atan2(currentVector.dy, currentVector.dx)
+
+                if transformStartScale == nil {
+                    onEditBegan()
+                    transformStartScale = sticker.scale
+                    transformStartRotation = sticker.rotation
+                    transformStartDistance = max(hypot(startVector.dx, startVector.dy), 1)
+                    transformLastTouchAngle = atan2(startVector.dy, startVector.dx)
+                    transformAccumulatedRotation = 0
+                }
+
+                if let lastTouchAngle = transformLastTouchAngle {
+                    let rawDelta = currentTouchAngle - lastTouchAngle
+                    transformAccumulatedRotation += atan2(sin(rawDelta), cos(rawDelta))
+                }
+                transformLastTouchAngle = currentTouchAngle
+
+                let baseScale = transformStartScale ?? sticker.scale
+                let baseDistance = transformStartDistance ?? currentDistance
+                sticker.scale = (baseScale * currentDistance / max(baseDistance, 1))
+                    .clamped(to: Self.scaleRange)
+                sticker.rotation = (transformStartRotation ?? sticker.rotation)
+                    + .radians(transformAccumulatedRotation)
+            }
+            .onEnded { _ in
+                transformStartScale = nil
+                transformStartRotation = nil
+                transformStartDistance = nil
+                transformLastTouchAngle = nil
+                transformAccumulatedRotation = 0
             }
     }
 }
@@ -334,6 +476,11 @@ private struct StickerContent: View {
                     .font(stickerFont(size: 30))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 300)   // 기준 350pt 캔버스를 넘지 않게 줄바꿈
+            case .image(let image):
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: imageStickerSize(image).width, height: imageStickerSize(image).height)
             }
         }
         .fixedSize(horizontal: !isWrappingText, vertical: true)
@@ -360,6 +507,15 @@ private struct StickerContent: View {
 
     private func stickerFont(size: CGFloat) -> Font {
         .system(size: size, weight: sticker.fontStyle.weight, design: fontDesign)
+    }
+
+    private func imageStickerSize(_ image: UIImage) -> CGSize {
+        let maxSide: CGFloat = 180
+        guard image.size.width > 0, image.size.height > 0 else {
+            return CGSize(width: maxSide, height: maxSide)
+        }
+        let ratio = min(maxSide / image.size.width, maxSide / image.size.height)
+        return CGSize(width: image.size.width * ratio, height: image.size.height * ratio)
     }
 }
 

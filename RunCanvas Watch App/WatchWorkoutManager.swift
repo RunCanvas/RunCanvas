@@ -28,6 +28,12 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// 폰 스냅샷이 5초 넘게 안 오면 얼어붙은 값 대신 워치 자체 값을 보여준다
     private static let snapshotStaleAfter: TimeInterval = 5
     private var syncedAt: Date?
+    /// 마지막 폰 스냅샷을 받았을 때 워치 자체 거리. 연결이 끊긴 동안 증가분만 이어 붙이는 기준점이다.
+    private var watchDistanceAtLastPhoneSync: Double?
+    /// 종료 화면과 폰으로 보낼 요약은 마감 순간의 한 값으로 고정한다.
+    private var finishedDistanceMeters: Double?
+    /// 폰이 보낸 명시적인 종료 수치. 평상시 스냅샷과 구분해 HealthKit 마감 중 도착해도 우선한다.
+    private var phoneFinalDistanceMeters: Double?
     /// 시작 중(await)에 온 원격 명령. 세션이 아직 없어 그냥 버려지므로 기억해 뒀다가 start() 끝에서 처리한다
     /// (폰에서 시작하자마자 일시정지하면 워치만 계속 달리던 문제)
     private var pendingCommand: WorkoutSyncAction?
@@ -41,14 +47,24 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         return Date().timeIntervalSince(syncedAt) < Self.snapshotStaleAfter
     }
 
-    /// 거리만 폰 GPS 값을 우선한다 — 워치 단독 거리는 추정치라 덜 정확하다
+    /// 폰 GPS를 기준으로 하되, 연결이 끊기면 마지막 동기화 지점 이후의 워치 이동분을 임시로 잇는다.
+    /// 워치 자체 누적값으로 바로 갈아타면 숫자가 앞뒤로 크게 점프할 수 있다.
     var displayedDistanceMeters: Double {
-        phoneSyncIsFresh ? (syncedDistanceMeters ?? distanceMeters) : distanceMeters
+        if let finishedDistanceMeters { return finishedDistanceMeters }
+        guard let syncedDistanceMeters else { return distanceMeters }
+        guard !phoneSyncIsFresh, let watchDistanceAtLastPhoneSync else { return syncedDistanceMeters }
+        return syncedDistanceMeters + max(0, distanceMeters - watchDistanceAtLastPhoneSync)
     }
 
     /// 시간은 워치 builder.elapsedTime이 진실이다. 폰 값을 우선하면 워치가 먼저 시작했을 때 폰이 늦게 합류하는 순간
     /// 시간이 뒤로 점프했다가 스냅샷이 끊기면 다시 튀어오른다 (pause/resume은 명령으로 동기화되니 폰 값이 필요 없다)
     var displayedElapsedSeconds: Int { elapsedSeconds }
+
+    var displayedPaceSecondsPerKm: Double? {
+        let distance = displayedDistanceMeters
+        guard distance >= 10, displayedElapsedSeconds > 0 else { return nil }
+        return Double(displayedElapsedSeconds) / (distance / 1_000)
+    }
 
     /// 폰이 이만큼 기록 신호를 안 보내면 워치가 직접 GPS 를 켠다.
     /// 워치 GPS 는 배터리를 많이 먹어서, 폰이 기록 중이면(더 정확하다) 켜지 않는다.
@@ -113,6 +129,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             elapsedSeconds = 0
             syncedDistanceMeters = nil
             syncedAt = nil
+            watchDistanceAtLastPhoneSync = nil
+            finishedDistanceMeters = nil
+            phoneFinalDistanceMeters = nil
             routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: .local())
             isRecordingOwnRoute = false
             // 권한은 미리 물어 둔다 — 폰이 끊긴 걸 알아챈 순간(러닝 중)에 시트를 띄우면 이미 늦다
@@ -173,6 +192,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             return
         }
         guard let session = workoutSession, let builder = workoutBuilder else { return }
+        let finalDistance = displayedDistanceMeters
         // 왜: endCollection·finishWorkout을 기다리는 동안 두 번째 end()(손목 두 번 탭, 폰 .end 동시 도착)가
         // 위 guard를 통과해 endCollection을 두 번 부르면 throw→에러 알럿+idle로 튄다. await 전에 비워서 막는다
         workoutSession = nil
@@ -182,13 +202,16 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
         if sendToPhone { connectivity.sendCommand(.end, sessionID: sessionID) }
         session.end()
-        guard !discarding else {
+        let tooShort = !RunSavePolicy.shouldSave(distanceMeters: finalDistance)
+        guard !discarding, !tooShort else {
             // 폰이 이어서 기록 중이다. 여기서 저장하면 건강 앱에 몇 초~몇십 초짜리 조각이 하나 더 남는다.
             builder.discardWorkout()
             stopOwnRoute()
             routeBuilder = nil
             stopTimer()
-            state = .idle
+            finishedDistanceMeters = finalDistance
+            state = discarding ? .idle : .finished
+            if !discarding { sendSnapshot() }
             return
         }
         let collectedRoute = isRecordingOwnRoute
@@ -203,6 +226,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
                 catch { errorMessage = "경로를 저장하지 못했어요. 러닝 기록은 건강 앱에 저장됐어요." }
             }
             routeBuilder = nil
+            let resolvedFinalDistance = phoneFinalDistanceMeters ?? finalDistance
+            finishedDistanceMeters = resolvedFinalDistance
             state = .finished
             sendSnapshot()
             // 폰이 실시간으로 못 받았어도 이 요약으로 기록이 남는다 (transferUserInfo 는 앱이 꺼져 있어도 배달된다)
@@ -212,7 +237,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
                 connectivity.sendFinishedWorkout(
                     sessionID: sessionID, workoutID: workout.uuid,
                     startedAt: workout.startDate, endedAt: workout.endDate,
-                    distanceMeters: distanceMeters, calories: activeEnergy,
+                    distanceMeters: resolvedFinalDistance, calories: activeEnergy,
                     averageHeartRate: heartRates?.averageQuantity()?.doubleValue(for: beatsPerMinute),
                     maxHeartRate: heartRates?.maximumQuantity()?.doubleValue(for: beatsPerMinute)
                 )
@@ -354,8 +379,14 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
     private func applyPhoneSnapshot(_ snapshot: PhoneWorkoutSnapshot) {
         guard snapshot.sessionID == sessionID,
-              state == .running || state == .paused else { return }
+              state == .running || state == .paused || state == .finished else { return }
         syncedDistanceMeters = snapshot.distanceMeters
+        if snapshot.state == "finished" {
+            phoneFinalDistanceMeters = snapshot.distanceMeters
+            finishedDistanceMeters = snapshot.distanceMeters
+            elapsedSeconds = snapshot.elapsedSeconds
+        }
+        watchDistanceAtLastPhoneSync = distanceMeters
         syncedAt = Date()
     }
 }

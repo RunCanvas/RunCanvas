@@ -1,6 +1,7 @@
 import Foundation
 import CoreGraphics
 import SwiftUI
+import UIKit
 
 struct CanvasSticker: Identifiable {
     enum Kind {
@@ -13,6 +14,7 @@ struct CanvasSticker: Identifiable {
         case route
         case badge(Badge)
         case text(String)
+        case image(UIImage)
     }
 
     /// 골격이 서로 다른 세 가지 — 산세리프 / 세리프 / 라운드.
@@ -98,6 +100,7 @@ extension CanvasSticker.Kind {
         case .route: "경로"
         case .badge(let badge): "\(badge.title) 뱃지"
         case .text(let text): text
+        case .image: "추가한 이미지"
         }
     }
 }

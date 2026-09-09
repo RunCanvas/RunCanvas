@@ -61,8 +61,10 @@ final class RunSessionVoiceTests: XCTestCase {
     @MainActor
     func testFinishDoesNotAnnouncePause() throws {
         let container = try ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        let session = RunSession(location: LocationService(), coach: makeCoach())
+        let location = LocationService()
+        let session = RunSession(location: location, coach: makeCoach())
         session.start()
+        location.locationManager(manager, didUpdateLocations: (0..<12).map { loc(37.5445 + Double($0) * 0.0001, at: Double($0) - 9) })
         session.finish(ownerID: UUID(), weightKg: 60, context: ModelContext(container))
 
         XCTAssertFalse(spoken.contains("일시정지"), spoken.description)

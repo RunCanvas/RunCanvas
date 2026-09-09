@@ -39,9 +39,10 @@ final class HealthImportTests: XCTestCase {
     }
 
     /// 잘못 눌러 생긴 조각까지 기록으로 만들면 통계·뱃지가 흐려진다
-    func testSkipsTooShortOrTooCloseWorkouts() {
-        XCTAssertTrue(HealthImport.newWorkouts(from: [workout(minutes: 0.5)], existing: []).isEmpty)
+    func testSkipsAtMost50MetersRegardlessOfDuration() {
+        XCTAssertTrue(HealthImport.newWorkouts(from: [workout(minutes: 0.5, meters: 0)], existing: []).isEmpty)
         XCTAssertTrue(HealthImport.newWorkouts(from: [workout(meters: 50)], existing: []).isEmpty)
+        XCTAssertEqual(HealthImport.newWorkouts(from: [workout(minutes: 0.5, meters: 51)], existing: []).count, 1)
     }
 
     /// 다른 날 뛴 러닝은 서로 다른 기록이다
