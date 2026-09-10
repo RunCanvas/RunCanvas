@@ -27,7 +27,7 @@ struct WatchRunView: View {
 
                 HStack(spacing: 12) {
                     metric(title: "BPM", value: workout.heartRate.map { "\(Int($0))" } ?? "--")
-                    metric(title: "KM", value: String(format: "%.2f", workout.displayedDistanceMeters / 1_000))
+                    metric(title: "KM", value: String(format: "%.2f", workout.distanceMeters / 1_000))
                 }
 
                 Text(formatDuration(workout.displayedElapsedSeconds))

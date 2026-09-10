@@ -7,8 +7,8 @@ enum WorkoutSyncAction: String {
     case pause
     case resume
     case end
-    /// 폰이 기록을 인계했다 — 저장하지 말고 버린다 (폰 쪽 WorkoutSyncAction 과 같은 목록이어야 한다)
-    case discard
+    /// (폰 쪽 WorkoutSyncAction 과 같은 목록이어야 한다. 예전의 .discard 는 뺐다 — 블루투스가 잠깐 끊긴 것만으로
+    ///  워치 워크아웃이 통째로 버려졌다. 워치 기록을 원격으로 지우는 명령은 이제 없다)
     case unavailable
 }
 

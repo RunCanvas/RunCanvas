@@ -26,6 +26,7 @@ echo "기기 ${DEVICE_NAME} (${UDID}) 준비 중 — 위치 권한 허용"
 xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
 xcrun simctl privacy "$UDID" grant location "$BUNDLE_ID" >/dev/null 2>&1 || true
 xcrun simctl privacy "$UDID" grant location-always "$BUNDLE_ID" >/dev/null 2>&1 || true
+xcrun simctl privacy "$UDID" grant motion "$BUNDLE_ID" >/dev/null 2>&1 || true   # 걸음 거리(CMPedometer)
 
 exec xcodebuild test \
   -project "${ROOT}/RunCanvas.xcodeproj" \

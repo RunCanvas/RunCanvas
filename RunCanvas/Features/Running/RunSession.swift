@@ -36,6 +36,12 @@ final class RunSession {
     private var ticker: Timer?
     private var tick = 0                  // 뷰 갱신용 (Observation이 변화를 감지하도록)
     private(set) var healthManagedExternally = false
+    /// 워치가 관리할 땐 워치의 HealthKit 거리(GPS+걸음 융합)가 진실이다 — 폰 GPS 체인은 터널·고가 밑에서
+    /// 정확도가 나빠져 얼어붙고, 건강 앱에 남는 워치 기록과 폰 기록이 수백 m 어긋났다.
+    /// nil 이면 폰 GPS 가 출처.
+    private var watchDistanceMeters: Double?
+    /// 출처(워치↔폰)가 바뀔 때 거리가 뒤로 점프하거나 두 배로 쌓이지 않게, 바뀐 시점의 거리를 이어 주는 기준점
+    private var distanceBase: Double = 0
 
     init(
         location: LocationService = LocationService(),
@@ -55,7 +61,7 @@ final class RunSession {
         location.stop()
     }
 
-    var distanceMeters: Double { location.totalDistance }
+    var distanceMeters: Double { distanceBase + (watchDistanceMeters ?? location.totalDistance) }
     var route: [RoutePoint] { location.route }
     var currentLocation: CLLocation? { location.currentLocation }
     var locationAuthorization: CLAuthorizationStatus { location.authorization }
@@ -86,6 +92,8 @@ final class RunSession {
         heartRateSamples = []
         self.sessionID = sessionID
         self.healthManagedExternally = healthManagedExternally
+        watchDistanceMeters = nil
+        distanceBase = 0
         location.requestPermission()
         location.reset()
         location.start()
@@ -256,11 +264,33 @@ final class RunSession {
         heartRateSamples.append(bpm)
     }
 
-    /// 워치 시작에 실패했거나 러닝 도중 워치가 끊겼을 때 iPhone HealthKit 기록으로 전환한다.
+    /// 워치 스냅샷의 HealthKit 거리. 폰이 인계한 뒤 늦게 오는 값은 무시한다.
+    /// 첫 값에서 기준점을 잡는다 — 워치가 폰보다 늦게 열렸으면 워치 거리엔 앞 구간이 빠져 있으니 폰이 센 거리를
+    /// 지키고 증가분만 잇고, 워치가 먼저 시작해 폰이 늦게 합류했으면 워치 누적을 그대로 쓴다.
+    /// 두 구간은 항상 지금 끝나는 포개진 구간이라 큰 쪽이 맞다 (그냥 갈아타면 거리가 뒤로 점프하고 기록이 준다).
+    func recordWatchDistance(_ meters: Double) {
+        guard healthManagedExternally else { return }
+        if watchDistanceMeters == nil { distanceBase = max(0, distanceMeters - meters) }
+        watchDistanceMeters = meters
+    }
+
+    /// 폰 단독으로 달리다 워치가 같은 세션으로 합류하면(시작 타임아웃 뒤 늦게 열림·손목에서 직접 시작)
+    /// HealthKit 기록을 워치에 넘긴다. 예전엔 워치를 끝내 버려서 시작하자마자 멈추고 워치 기록이 사라졌다.
+    /// 거리는 recordWatchDistance 의 첫 값 규칙대로 잇는다 — 워치 누적을 그냥 더하면 겹치는 구간이 두 번 쌓인다.
+    func joinWatchWorkout(distanceMeters watchMeters: Double) {
+        guard !healthManagedExternally, state == .running || state == .paused else { return }
+        healthManagedExternally = true
+        health?.stopHeartRateStream()   // 워치 스냅샷 심박과 이중으로 쌓이지 않게
+        recordWatchDistance(watchMeters)
+    }
+
+    /// 워치 시작에 실패했거나 시작 타임아웃이 지났을 때 iPhone HealthKit 기록으로 전환한다.
     func takeOverHealthWorkout(since takeoverDate: Date = .now) {
         guard healthManagedExternally,
               state == .running || state == .paused else { return }
         healthManagedExternally = false
+        distanceBase = distanceMeters - location.totalDistance   // 지금 거리에서 폰 GPS 로 이어서 센다
+        watchDistanceMeters = nil
         // 왜: 러닝 시작 시각부터 다시 읽으면 워치 스냅샷으로 이미 담은 심박이 HealthKit에서
         // 다시 와 평균에 두 번 들어간다. 마지막 워치 응답 이후만 폰이 이어받는다.
         health?.startHeartRateStream(since: takeoverDate) { [weak self] bpm in
