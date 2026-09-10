@@ -1694,6 +1694,23 @@
       "fee_min": 50000
     },
     {
+      "name": "이월드 83타워 업힐런 챌린지",
+      "event_date": "2026-10-11",
+      "region": "대구",
+      "place": "이월드 제1주차장 스타트존 (대구광역시 달서구 두류공원로 200)",
+      "courses": [
+        "1.8km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/eworld-83-tower-uphill-run-challenge",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789014812/kormarathon/events/event-images-1789014810818.jpg",
+      "reg_start_date": "2026-09-11",
+      "reg_end_date": "2026-09-30"
+    },
+    {
       "name": "제10회 산불조심한국서울마라톤",
       "event_date": "2026-10-11",
       "region": "서울",
@@ -1735,6 +1752,25 @@
       "reg_start_date": "2026-09-07",
       "reg_end_date": "2026-09-07",
       "fee_min": 30000
+    },
+    {
+      "name": "함께런 러닝 페스티벌",
+      "event_date": "2026-10-11",
+      "region": "경기",
+      "place": "경기도 하남시 미사경정공원",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-run-together",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789013635/kormarathon/events/event-images-1789013634668.jpg",
+      "reg_start_date": "2026-09-04",
+      "reg_end_date": "2026-09-18",
+      "fee_min": 40000
     },
     {
       "name": "프랑스-한국 수교 140주년 기념 달리기 대회",
@@ -1922,7 +1958,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-style-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2274,7 +2310,7 @@
         "10km",
         "Full"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-chuncheon-marathon-1",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2716,6 +2752,25 @@
       "fee_min": 20000
     },
     {
+      "name": "레디, 셋, 공익런",
+      "event_date": "2026-11-07",
+      "region": "충북",
+      "place": "청주 무심천체육공원",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/ready-set-public-interest-run",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789026479/kormarathon/events/event-images-1789026478740.jpg",
+      "reg_start_date": "2026-09-10",
+      "reg_end_date": "2026-10-02",
+      "fee_min": 25000
+    },
+    {
       "name": "제15회 부여 굿뜨레 마라톤",
       "event_date": "2026-11-07",
       "region": "충남",
@@ -2756,6 +2811,25 @@
       "reg_start_date": "2026-09-07",
       "reg_end_date": "2026-10-08",
       "fee_min": 20000
+    },
+    {
+      "name": "제2회 온코런",
+      "event_date": "2026-11-07",
+      "region": "서울",
+      "place": "연세대학교 신촌캠퍼스 대운동장",
+      "courses": [
+        "3.2km",
+        "5km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2nd-oncorun",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789014083/kormarathon/events/event-images-1789014082208.jpg",
+      "reg_start_date": "2026-09-14",
+      "reg_end_date": "2026-10-16",
+      "fee_min": 50000
     },
     {
       "name": "2026 강남하프마라톤",
