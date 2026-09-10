@@ -37,6 +37,7 @@ final class WatchConnectivityServiceTests: XCTestCase {
         let watch = try cases(in: "RunCanvas Watch App/WatchConnectivityService.swift")
         XCTAssertFalse(phone.isEmpty, "폰 쪽 enum 을 못 읽었다")
         XCTAssertEqual(phone, watch, "폰·워치의 명령 목록이 다르다 — 한쪽 명령이 조용히 무시된다")
-        XCTAssertTrue(phone.contains("discard"), "인계 시 워치 기록을 버리는 명령이 빠졌다")
+        XCTAssertFalse(phone.contains("discard"),
+                       "워치 기록을 원격으로 버리는 명령은 다시 넣지 않는다 — 블루투스가 잠깐 끊긴 것만으로 워치 워크아웃이 통째로 사라졌다")
     }
 }
