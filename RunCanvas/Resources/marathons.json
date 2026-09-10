@@ -507,7 +507,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-anyangcheon-half-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -915,7 +915,7 @@
       "courses": [
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/smtown-run-club-26",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1210,7 +1210,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/yangju-globe-amaranth-autumn-festa-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1229,7 +1229,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/teddy-circuit-run-with-inje-bear",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1701,7 +1701,7 @@
       "courses": [
         "1.8km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/eworld-83-tower-uphill-run-challenge",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1958,7 +1958,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-style-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2486,7 +2486,7 @@
       "courses": [
         "5km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-taejongdae-beat-on-zombie-race",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2894,7 +2894,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-national-sasang-eco-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -3369,7 +3369,7 @@
       "courses": [
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/fila-run-and-espresso-10k",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3640,7 +3640,7 @@
       "courses": [
         "14km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/sawe-2026-world-record-international-marathon-festival",
       "source": "kormarathon.com",
       "type": "대회",
