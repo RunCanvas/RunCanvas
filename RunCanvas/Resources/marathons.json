@@ -2614,6 +2614,26 @@
       "fee_min": 20000
     },
     {
+      "name": "2026 서울동행 마라톤 대회",
+      "event_date": "2026-11-01",
+      "region": "서울",
+      "place": "목동종합운동장 주경기장 일원",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-together-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789117357/kormarathon/events/event-images-1789117356030.jpg",
+      "reg_start_date": "2026-08-10",
+      "reg_end_date": "2026-09-30",
+      "fee_min": 40000
+    },
+    {
       "name": "제21회 울산 인권마라톤",
       "event_date": "2026-11-01",
       "region": "울산",
@@ -2789,6 +2809,25 @@
       "reg_start_date": "2026-06-30",
       "reg_end_date": "2026-07-30",
       "fee_min": 20000
+    },
+    {
+      "name": "제19회 진해마라톤",
+      "event_date": "2026-11-07",
+      "region": "경남",
+      "place": "진해공설운동장 및 해군 영내 일원",
+      "courses": [
+        "5km",
+        "11.11km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/19th-jinhae-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789116675/kormarathon/events/event-images-1789116674311.jpg",
+      "reg_start_date": "2026-08-24",
+      "reg_end_date": "2026-09-09",
+      "fee_min": 15000
     },
     {
       "name": "제22회 국방일보 전우마라톤",
@@ -3316,6 +3355,24 @@
       "reg_start_date": "2026-05-06",
       "reg_end_date": "2026-05-28",
       "fee_min": 15000
+    },
+    {
+      "name": "제26회 창원통일마라톤대회",
+      "event_date": "2026-11-15",
+      "region": "경남",
+      "place": "창원종합운동장 보조경기장",
+      "courses": [
+        "5km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/26th-changwon-unification-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789118595/kormarathon/events/event-images-1789118594093.jpg",
+      "reg_start_date": "2026-09-14",
+      "reg_end_date": "2026-10-01",
+      "fee_min": 10000
     },
     {
       "name": "제28회 부산국제마라톤대회",
