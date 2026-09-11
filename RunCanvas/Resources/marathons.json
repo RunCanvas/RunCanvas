@@ -2436,29 +2436,6 @@
       "fee_min": 2000
     },
     {
-      "name": "2026 마블런",
-      "event_date": "2026-10-31",
-      "region": "강원",
-      "place": "인제스피디움",
-      "courses": [
-        "5km",
-        "10km",
-        "Half",
-        "Full"
-      ],
-      "status": null,
-      "signup_url": "https://www.kormarathon.com/ko/races/marvel-run-seoul-2026",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [
-        "풀코스"
-      ],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788958035/kormarathon/events/event-images-1788958034781.jpg",
-      "reg_start_date": "2026-09-22",
-      "reg_end_date": "2026-09-16",
-      "fee_min": 50000
-    },
-    {
       "name": "2026 오티즘 레이스",
       "event_date": "2026-10-31",
       "region": "서울",
@@ -2535,6 +2512,26 @@
       "reg_start_date": "2026-08-25",
       "reg_end_date": "2026-08-27",
       "fee_min": 55000
+    },
+    {
+      "name": "마블런 2026",
+      "event_date": "2026-10-31",
+      "region": "강원",
+      "place": "인제스피디움",
+      "courses": [
+        "2.3km",
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/marvel-run-seoul-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788958035/kormarathon/events/event-images-1788958034781.jpg",
+      "reg_start_date": "2026-09-22",
+      "reg_end_date": "2026-10-12",
+      "fee_min": 40000
     },
     {
       "name": "제7회 중소기업인 氣살리기 마라톤 대회",
@@ -3021,6 +3018,23 @@
       "reg_start_date": "2026-09-01",
       "reg_end_date": "2026-09-30",
       "fee_min": 50000
+    },
+    {
+      "name": "제3회 자유민주 마라톤",
+      "event_date": "2026-11-08",
+      "region": "서울",
+      "place": "서울시청 광장",
+      "courses": [
+        "6.1km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/3rd-liberty-democracy-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789089151/kormarathon/events/event-images-1789089149871.png",
+      "fee_min": 35000
     },
     {
       "name": "2026 영종 하늘길 마라톤",
