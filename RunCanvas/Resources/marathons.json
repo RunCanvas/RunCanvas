@@ -2222,6 +2222,27 @@
       "fee_min": 40000
     },
     {
+      "name": "2026 익산국화축제와 함께하는 기부런 대회",
+      "event_date": "2026-10-24",
+      "region": "전북",
+      "place": "익산시 종합운동장",
+      "courses": [
+        "6.4km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-iksan-give-run",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [
+        "기부·공익"
+      ],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789221606/kormarathon/events/event-images-1789221604676.jpg",
+      "reg_start_date": "2026-07-14",
+      "reg_end_date": "2026-09-15",
+      "fee_min": 35000
+    },
+    {
       "name": "네이버웍스와 함께하는 세종런 26",
       "event_date": "2026-10-24",
       "region": "세종",
@@ -3764,6 +3785,25 @@
       "fee_min": 40000
     },
     {
+      "name": "제14회 안중근 평화 마라톤 대회",
+      "event_date": "2026-11-29",
+      "region": "서울",
+      "place": "여의도공원 문화의마당",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/14th-ahn-jung-geun-peace-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [
+        "기부·공익"
+      ],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789205237/kormarathon/events/event-images-1789205235659.jpg",
+      "fee_min": 50000
+    },
+    {
       "name": "제2회 천안독립기념관 마라톤대회",
       "event_date": "2026-11-29",
       "region": "충남",
@@ -3879,6 +3919,45 @@
       "fee_min": 60000
     },
     {
+      "name": "2026 청춘런",
+      "event_date": "2026-12-06",
+      "region": "서울",
+      "place": "상암동 평화의공원 평화광장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-youth-run",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789204931/kormarathon/events/event-images-1789204930934.jpg",
+      "reg_start_date": "2026-09-01",
+      "reg_end_date": "2026-11-08",
+      "fee_min": 50000
+    },
+    {
+      "name": "제20회 양산전국하프마라톤대회",
+      "event_date": "2026-12-06",
+      "region": "경남",
+      "place": "양산종합운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/20th-yangsan-national-half-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789205302/kormarathon/events/event-images-1789205301180.jpg",
+      "reg_start_date": "2026-10-01",
+      "reg_end_date": "2026-10-20",
+      "fee_min": 30000
+    },
+    {
       "name": "제2회 황영조 로드레이스",
       "event_date": "2026-12-06",
       "region": "인천",
@@ -3937,6 +4016,28 @@
       "reg_start_date": "2026-08-01",
       "reg_end_date": "2026-12-02",
       "fee_min": 50000
+    },
+    {
+      "name": "제36회 진주마라톤대회",
+      "event_date": "2026-12-13",
+      "region": "경남",
+      "place": "진주노을공원(남강댐 물 문화관)",
+      "courses": [
+        "5km",
+        "10km",
+        "Half",
+        "Full"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/36th-jinju-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [
+        "풀코스"
+      ],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789205061/kormarathon/events/event-images-1789205060320.jpg",
+      "reg_start_date": "2026-09-14",
+      "reg_end_date": "2026-10-29"
     },
     {
       "name": "제5회 기장군육상연맹 마라톤대회",
