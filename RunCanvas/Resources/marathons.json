@@ -3794,7 +3794,7 @@
         "Half",
         "Full"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/36th-jinju-marathon",
       "source": "kormarathon.com",
       "type": "대회",
