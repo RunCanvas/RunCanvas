@@ -1050,6 +1050,25 @@
       "fee_min": 30000
     },
     {
+      "name": "2026 연수 꿈이음길 러닝대회",
+      "event_date": "2026-10-10",
+      "region": "인천",
+      "place": "인천광역시 연수구 한마음공원 (연수구 선학동 231-3)",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-yeonsu-dream-link-run",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789363014/kormarathon/events/event-images-1789363013491.jpg",
+      "reg_start_date": "2026-09-14",
+      "reg_end_date": "2026-09-30",
+      "fee_min": 20000
+    },
+    {
       "name": "2026 제5회 무등산권 지오마라톤",
       "event_date": "2026-10-10",
       "region": "광주",
@@ -1832,6 +1851,24 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1781267189/kormarathon/events/event-images-1781267188538.jpg",
       "reg_start_date": "2026-06-10",
       "reg_end_date": "2026-06-15"
+    },
+    {
+      "name": "제28회 시민건강달리기대회",
+      "event_date": "2026-10-18",
+      "region": "경남",
+      "place": "창원종합운동장(보조경기장)",
+      "courses": [
+        "6km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/28th-citizens-health-run",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789362856/kormarathon/events/event-images-1789362855206.jpg",
+      "reg_start_date": "2026-08-05",
+      "reg_end_date": "2026-09-20",
+      "fee_min": 10000
     },
     {
       "name": "하남시 시장기 당정 마라톤 대회",
