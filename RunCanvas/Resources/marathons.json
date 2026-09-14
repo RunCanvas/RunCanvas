@@ -1,161 +1,6 @@
 {
   "events": [
     {
-      "name": "2026 RUN SEOUL RUN",
-      "event_date": "2026-09-13",
-      "region": "서울",
-      "place": "서울 광장",
-      "courses": [
-        "10km",
-        "Half"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/2026-run-seoul-run",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1781698417/kormarathon/events/og-image-1781698416306-km6sqo.jpg",
-      "reg_start_date": "2026-06-29",
-      "reg_end_date": "2026-08-14"
-    },
-    {
-      "name": "2026 강화해변 마리톤",
-      "event_date": "2026-09-13",
-      "region": "인천",
-      "place": "강화함상공원 주차장",
-      "courses": [
-        "5km",
-        "10km",
-        "Half"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/26th-ganghwa-beach-marathon",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1781525318/kormarathon/events/event-images-1781525317360.jpg",
-      "reg_start_date": "2026-06-10",
-      "reg_end_date": "2026-07-24",
-      "fee_min": 35000
-    },
-    {
-      "name": "2026 울진 금강송배 힐링마라톤",
-      "event_date": "2026-09-13",
-      "region": "경북",
-      "place": "울진종합운동장",
-      "courses": [
-        "5km",
-        "10km",
-        "Half"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/2026-uljin-geumgang-pine-healing-marathon",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1768454008/kormarathon/events/event-2026-uljin-geumgang-pine-healing-marathon-main.png",
-      "reg_start_date": "2025-12-08",
-      "reg_end_date": "2026-07-29",
-      "fee_min": 45000
-    },
-    {
-      "name": "2026 포항2차전지 전국마라톤대회",
-      "event_date": "2026-09-13",
-      "region": "경북",
-      "place": "포항운하관 주차장",
-      "courses": [
-        "5km",
-        "10km",
-        "Half"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/2026-pohang-secondary-battery-national-marathon",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1784124072/kormarathon/events/og-image-1784124071175-yi65ya.jpg",
-      "reg_start_date": "2026-06-29",
-      "reg_end_date": "2026-08-13",
-      "fee_min": 35000
-    },
-    {
-      "name": "달리는 세상 10km 런",
-      "event_date": "2026-09-13",
-      "region": "대전",
-      "place": "대전엑스포시민광장",
-      "courses": [
-        "5km",
-        "10km"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/running-world-10km-run",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1786695984/kormarathon/events/event-images-1786695983069.jpg",
-      "reg_start_date": "2026-07-01",
-      "reg_end_date": "2026-08-14",
-      "fee_min": 30000
-    },
-    {
-      "name": "소공인과 히어로가 함께하는 2026 히어로 레이스",
-      "event_date": "2026-09-13",
-      "region": "서울",
-      "place": "여의도공원 문화의마당 일대",
-      "courses": [
-        "7.5km",
-        "15km"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/2026-hero-race-with-small-manufacturers-and-heroes",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1784114730/kormarathon/events/event-images-1784114729689.jpg",
-      "reg_start_date": "2026-07-01",
-      "reg_end_date": "2026-07-30",
-      "fee_min": 60000
-    },
-    {
-      "name": "제16회 스마일런페스티벌",
-      "event_date": "2026-09-13",
-      "region": "서울",
-      "place": "상암동 평화의공원 평화광장",
-      "courses": [
-        "5km",
-        "10km",
-        "Half"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/16th-smile-run-festival",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1780315943/kormarathon/events/event-images-1780315942281.jpg",
-      "reg_start_date": "2026-06-30",
-      "reg_end_date": "2026-08-03",
-      "fee_min": 45000
-    },
-    {
-      "name": "제19회 구로구청장배 안양천 단풍 마라톤대회",
-      "event_date": "2026-09-13",
-      "region": "서울",
-      "place": "구일역 하부 인라인스케이트장",
-      "courses": [
-        "5km",
-        "10km"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/19th-guro-mayors-cup-anyangcheon-fall-foliage-marathon-2026",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788956265/kormarathon/events/event-images-1788956264135.jpg",
-      "reg_start_date": "2026-08-03",
-      "reg_end_date": "2026-08-31",
-      "fee_min": 35000
-    },
-    {
       "name": "중앙대학교 개교 110주년 기념 마라톤",
       "event_date": "2026-09-15",
       "region": "서울",
@@ -1043,6 +888,26 @@
       "reg_end_date": "2026-09-10"
     },
     {
+      "name": "제12회 시흥시 전국하프마라톤대회",
+      "event_date": "2026-10-05",
+      "region": "경기",
+      "place": "한국공학대학교 제2캠퍼스",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/12th-siheung-national-half-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789347989/kormarathon/events/event-images-1789347987920.jpg",
+      "reg_start_date": "2026-07-22",
+      "reg_end_date": "2026-08-02",
+      "fee_min": 20000
+    },
+    {
       "name": "제23회 강남국제평화 마라톤",
       "event_date": "2026-10-05",
       "region": "서울",
@@ -1364,6 +1229,26 @@
       "fee_min": 20000
     },
     {
+      "name": "2026 문경 오미자 하프마라톤",
+      "event_date": "2026-10-11",
+      "region": "경북",
+      "place": "문경시민운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-mungyeong-omija-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789348944/kormarathon/events/event-images-1789348943492.jpg",
+      "reg_start_date": "2026-07-10",
+      "reg_end_date": "2026-09-11",
+      "fee_min": 25000
+    },
+    {
       "name": "2026 서울레이스",
       "event_date": "2026-10-11",
       "region": "서울",
@@ -1419,6 +1304,26 @@
       "reg_start_date": "2026-08-01",
       "reg_end_date": "2026-09-04",
       "fee_min": 45000
+    },
+    {
+      "name": "2026 천안 이봉주 마라톤",
+      "event_date": "2026-10-11",
+      "region": "충남",
+      "place": "천안종합운동장 일원",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/cheonan-lee-bong-ju-marathon-2026",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789350022/kormarathon/events/event-images-1789350020774.jpg",
+      "reg_start_date": "2026-07-31",
+      "reg_end_date": "2026-08-28",
+      "fee_min": 20000
     },
     {
       "name": "2026 평택항마라톤대회",
@@ -1669,6 +1574,25 @@
       "fee_min": 50000
     },
     {
+      "name": "2026 억새노을 마라톤(선셋런)",
+      "event_date": "2026-10-17",
+      "region": "광주",
+      "place": "상무시민공원 출발 · 서창억새축제장 도착",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-silver-grass-sunset-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789350509/kormarathon/events/event-images-1789350508019.jpg",
+      "reg_start_date": "2026-09-09",
+      "reg_end_date": "2026-09-28",
+      "fee_min": 20000
+    },
+    {
       "name": "2026 의정부시 물길 마라톤 전국대회",
       "event_date": "2026-10-17",
       "region": "경기",
@@ -1687,6 +1611,26 @@
       "reg_start_date": "2026-08-11",
       "reg_end_date": "2026-09-11",
       "fee_min": 40000
+    },
+    {
+      "name": "2026 정선동강마라톤대회",
+      "event_date": "2026-10-17",
+      "region": "강원",
+      "place": "정선군 동강변 일원(정선생태체험학습장)",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/jeongseon-donggang-marathon-2026",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789352748/kormarathon/events/event-images-1789352746847.jpg",
+      "reg_start_date": "2026-06-23",
+      "reg_end_date": "2026-07-22",
+      "fee_min": 30000
     },
     {
       "name": "경주마라톤",
@@ -1752,6 +1696,26 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1768532016/kormarathon/events/event-images-1768532016135.png",
       "reg_start_date": "2026-05-11",
       "reg_end_date": "2026-06-30"
+    },
+    {
+      "name": "제7회 문화체육관광부장관배 충청남도 태안 전국어울림마라톤대회",
+      "event_date": "2026-10-17",
+      "region": "충남",
+      "place": "꽃지해안공원주차장(충청남도 태안군 안면읍 꽃지해안로 400)",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/7th-minister-of-culture-sports-and-tourism-cup-chungcheongnam-do-taean-national-inclusive-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789354085/kormarathon/events/event-images-1789354084126.jpg",
+      "reg_start_date": "2026-07-23",
+      "reg_end_date": "2026-09-17",
+      "fee_min": 10000
     },
     {
       "name": "2026 Style Run (스타일 런)",
@@ -1868,6 +1832,25 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1781267189/kormarathon/events/event-images-1781267188538.jpg",
       "reg_start_date": "2026-06-10",
       "reg_end_date": "2026-06-15"
+    },
+    {
+      "name": "하남시 시장기 당정 마라톤 대회",
+      "event_date": "2026-10-18",
+      "region": "경기",
+      "place": "하남시 당정뜰 일원",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-hanam-dangjeong-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789355006/kormarathon/events/event-images-1789355005527.jpg",
+      "reg_start_date": "2026-09-02",
+      "reg_end_date": "2026-09-18",
+      "fee_min": 35000
     },
     {
       "name": "제22회 여주 세종대왕 마라톤",
@@ -2213,7 +2196,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/jurassic-park-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2682,7 +2665,7 @@
         "3.2km",
         "5km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2nd-oncorun",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3250,7 +3233,7 @@
       "courses": [
         "5km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/26th-changwon-unification-marathon",
       "source": "kormarathon.com",
       "type": "대회",
