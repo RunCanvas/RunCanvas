@@ -2162,6 +2162,24 @@
       "fee_min": 35000
     },
     {
+      "name": "🍁프리덤 워크 & 런 2026🧡",
+      "event_date": "2026-10-24",
+      "region": "서울",
+      "place": "반포한강공원 세빛섬 주변 한강변 보행로",
+      "courses": [
+        "6km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/freedom-walk-and-run-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789474001/kormarathon/events/event-images-1789474000497.jpg",
+      "reg_start_date": "2026-09-02",
+      "reg_end_date": "2026-10-20",
+      "fee_min": 50000
+    },
+    {
       "name": "2026 광명평화 마라톤대회",
       "event_date": "2026-10-25",
       "region": "경기",
