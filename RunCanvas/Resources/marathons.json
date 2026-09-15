@@ -305,6 +305,25 @@
       "fee_min": 25000
     },
     {
+      "name": "2026 울산남구육상연맹 회장배 단축마라톤",
+      "event_date": "2026-09-20",
+      "region": "울산",
+      "place": "태화강 국가정원 왕버들 공연장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-ulsan-nam-gu-athletics-federation-presidents-cup-short-distance-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789443749/kormarathon/events/event-images-1789443748272.jpg",
+      "reg_start_date": "2026-07-15",
+      "reg_end_date": "2026-08-06",
+      "fee_min": 20000
+    },
+    {
       "name": "2026 한돈런",
       "event_date": "2026-09-20",
       "region": "경기",
@@ -990,6 +1009,27 @@
       "fee_min": 55000
     },
     {
+      "name": "WYD와 함께하는 2026 생명사랑 마라톤/걷기 대회",
+      "event_date": "2026-10-09",
+      "region": "경기",
+      "place": "경기도 안성시 미리내 성지(103위 성전 앞)",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-love-for-life-marathon-and-walk-with-wyd",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [
+        "기부·공익"
+      ],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789444237/kormarathon/events/event-images-1789444235589.jpg",
+      "reg_start_date": "2026-08-02",
+      "reg_end_date": "2026-08-23",
+      "fee_min": 15000
+    },
+    {
       "name": "빵빵런 2026",
       "event_date": "2026-10-09",
       "region": "대전",
@@ -1482,6 +1522,23 @@
       "fee_min": 30000
     },
     {
+      "name": "제6회 영등포구청장배 육상대회",
+      "event_date": "2026-10-11",
+      "region": "서울",
+      "place": "신정교하부육상트랙구장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/6th-yeongdeungpo-gu-mayors-cup-athletics-meet",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789444607/kormarathon/events/event-images-1789444606012.jpg",
+      "fee_min": 10000
+    },
+    {
       "name": "함께런 러닝 페스티벌",
       "event_date": "2026-10-11",
       "region": "경기",
@@ -1582,7 +1639,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-memorial-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1630,6 +1687,26 @@
       "reg_start_date": "2026-08-11",
       "reg_end_date": "2026-09-11",
       "fee_min": 40000
+    },
+    {
+      "name": "2026 전남광주통합특별시 남구청장배 마라톤",
+      "event_date": "2026-10-17",
+      "region": "광주",
+      "place": "광주공원 앞 광주교 천변 자전거길",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-jeonnam-gwangju-special-integrated-city-nam-gu-mayors-cup-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789445025/kormarathon/events/event-images-1789445024561.jpg",
+      "reg_start_date": "2026-07-10",
+      "reg_end_date": "2026-09-12",
+      "fee_min": 38000
     },
     {
       "name": "2026 정선동강마라톤대회",
