@@ -2062,9 +2062,9 @@
       "tags": [
         "펫"
       ],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1786599058/kormarathon/events/event-images-1786599056883.jpg",
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789536248/kormarathon/events/event-images-1789536246934.jpg",
       "reg_start_date": "2026-08-14",
-      "reg_end_date": "2026-09-18",
+      "reg_end_date": "2026-10-07",
       "fee_min": 40000
     },
     {
@@ -3473,6 +3473,44 @@
       "fee_min": 35000
     },
     {
+      "name": "제12회 창원특례시장배 광려천 마라톤대회",
+      "event_date": "2026-11-15",
+      "region": "경남",
+      "place": "광려천 공원 일원 (창원시 마산회원구 내서읍 신감리)",
+      "courses": [
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/12th-changwon-special-city-mayors-cup-gwangnyeocheon-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789531606/kormarathon/events/event-images-1789531605151.jpg",
+      "reg_start_date": "2026-09-01",
+      "reg_end_date": "2026-09-20",
+      "fee_min": 35000
+    },
+    {
+      "name": "제16회 대전서구청장배 마라톤대회",
+      "event_date": "2026-11-15",
+      "region": "대전",
+      "place": "대전 엑스포 다리 밑 (갑천변)",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/16th-daejeon-seo-gu-mayors-cup-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789531832/kormarathon/events/event-images-1789531831430.jpg",
+      "reg_start_date": "2026-08-28",
+      "reg_end_date": "2026-10-01",
+      "fee_min": 35000
+    },
+    {
       "name": "제24회 고창고인돌마라톤",
       "event_date": "2026-11-15",
       "region": "전북",
@@ -3662,6 +3700,68 @@
       "fee_min": 45000
     },
     {
+      "name": "2026 김대중마라톤대회",
+      "event_date": "2026-11-22",
+      "region": "전남",
+      "place": "목포종합경기장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-kim-dae-jung-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789532418/kormarathon/events/event-images-1789532417033.jpg",
+      "reg_start_date": "2026-09-01",
+      "reg_end_date": "2026-10-15",
+      "fee_min": 20000
+    },
+    {
+      "name": "2026 무주반딧불 평화마라톤대회",
+      "event_date": "2026-11-22",
+      "region": "전북",
+      "place": "무주 등나무운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-muju-firefly-peace-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [
+        "기부·공익"
+      ],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789532764/kormarathon/events/event-images-1789532762718.jpg",
+      "reg_start_date": "2026-09-01",
+      "reg_end_date": "2026-10-25",
+      "fee_min": 25000
+    },
+    {
+      "name": "2026 서울 억새풀 마라톤대회",
+      "event_date": "2026-11-22",
+      "region": "서울",
+      "place": "영등포 영롱이 억새구장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-silver-grass-marathon",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789532914/kormarathon/events/event-images-1789532912883.jpg",
+      "reg_start_date": "2026-08-24",
+      "reg_end_date": "2026-10-12",
+      "fee_min": 40000
+    },
+    {
       "name": "2026 인천마라톤",
       "event_date": "2026-11-22",
       "region": "인천",
@@ -3721,6 +3821,25 @@
       "reg_start_date": "2026-08-31",
       "reg_end_date": "2026-09-30",
       "fee_min": 55000
+    },
+    {
+      "name": "제6회 고용노동부장관배 직장인마라톤대회",
+      "event_date": "2026-11-22",
+      "region": "경기",
+      "place": "하남 미사경정공원 일원",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/6th-minister-of-employment-and-labor-cup-workplace-marathon-1",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789533107/kormarathon/events/event-images-1789533106158.jpg",
+      "reg_start_date": "2026-09-09",
+      "reg_end_date": "2026-10-08",
+      "fee_min": 50000
     },
     {
       "name": "2026 긍정 하프 마라톤",
@@ -3801,6 +3920,41 @@
       "reg_start_date": "2026-08-10",
       "reg_end_date": "2026-08-24",
       "fee_min": 50000
+    },
+    {
+      "name": "2026 새한미디어 마라톤",
+      "event_date": "2026-11-29",
+      "region": "서울",
+      "place": "평화의공원 평화광장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-saehan-media-marathon-1",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789533894/kormarathon/events/event-images-1789533893476.jpg",
+      "fee_min": 45000
+    },
+    {
+      "name": "2026 정읍 공동체 프리마켓 런",
+      "event_date": "2026-11-29",
+      "region": "전북",
+      "place": "정읍천변 어린이전용축구장 (정읍시 벚꽃로 401)",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-jeongeup-community-flea-market-run",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789534095/kormarathon/events/event-images-1789534093938.jpg",
+      "fee_min": 40000
     },
     {
       "name": "가야왕도김해 전국어울림 마라톤대회",
