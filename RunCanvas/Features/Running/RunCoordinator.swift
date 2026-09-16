@@ -25,10 +25,9 @@ final class RunCoordinator {
     }
 
     private static let ownerKey = "lastOwnerID"
-    /// 워치가 .start를 받고도 이 시간 안에 스냅샷을 안 보내면 워크아웃을 못 연 걸로 본다
-    private static let watchStartTimeout: TimeInterval = 15
-    /// 러닝 중 스냅샷이 이만큼 끊기면 워치가 벗겨진 걸로 본다
-    private static let watchDropTimeout: TimeInterval = 30
+    /// 워치가 .start를 받고도 이 시간 안에 스냅샷을 안 보내면 워크아웃을 못 연 걸로 본다.
+    /// transferUserInfo 배달 + HealthKit 권한 시트까지 15초는 모자라서 헛인계가 잦았다
+    private static let watchStartTimeout: TimeInterval = 30
 
     private let watch: WatchConnectivityService
     private let context: ModelContext
@@ -128,14 +127,11 @@ final class RunCoordinator {
         switch action {
         case .start:
             if session.state == .running || session.state == .paused {
-                // 왜: 양쪽에서 따로 시작해 sessionID가 갈리면 이후 pause/end가 모두 버려진다.
-                // 원래 워치가 담당하던 세션이면 폰 ID를 다시 알려 맞추고, 폰이 담당 중이면
-                // 늦게 시작한 워치를 끝내 HealthKit에 워크아웃 두 개가 저장되지 않게 한다.
-                if session.healthManagedExternally {
-                    watch.sendCommand(.start, sessionID: session.sessionID)
-                } else {
-                    watch.sendCommand(.end, sessionID: remoteSessionID)
-                }
+                // 왜: 양쪽에서 따로 시작해 sessionID가 갈리면 이후 pause/end가 모두 버려진다. 폰 ID를 알려 맞춘다.
+                // 폰이 담당 중이어도 워치를 끝내지 않는다 — 예전엔 .end 를 보내서 손목에서 시작한 워치가
+                // 시작하자마자 멈추고 몇 초짜리 워크아웃만 남았다. 첫 스냅샷이 오면 apply 가 기록을 워치에 넘긴다.
+                watch.sendCommand(.start, sessionID: session.sessionID)
+                if session.state == .paused { watch.sendCommand(.pause, sessionID: session.sessionID) }
                 return
             }
             // 저장할 계정이 없으면 아예 받지 않는다 — 받아 두면 .end에서 finish가 실패해
@@ -164,8 +160,6 @@ final class RunCoordinator {
                 finalElapsedSeconds: session.elapsedSeconds
             )
             finish(sendToWatch: false)
-        case .discard:
-            break   // 폰이 보내기만 하는 명령
         case .unavailable:
             guard remoteSessionID == session.sessionID else { return }
             takeOver("Apple Watch에서 운동을 시작하지 못해 iPhone 기록으로 전환했어요.")
@@ -176,13 +170,16 @@ final class RunCoordinator {
         guard snapshot.sessionID == session.sessionID else { return }
         lastWatchSnapshotAt = Date()
         guard session.state == .running || session.state == .paused else { return }
-        // 폰이 인계한 뒤엔 워치 스냅샷을 아예 듣지 않는다. takeOver가 보낸 .end로 워치가 끝나면서
-        // 같은 sessionID로 "finished"를 되쏘는데, 그걸 받으면 아직 달리는 중인 폰 러닝까지 끝나 버린다.
-        // 심박도 폰 스트림과 이중으로 쌓여 평균·최대가 틀어진다.
-        guard session.healthManagedExternally else { return }
-        // 워치의 "finished" 스냅샷은 sendMessage라 .end(transferUserInfo)보다 먼저 온다.
-        // 여기서 바로 끝내야 .end가 30초 넘게 늦어도 checkWatchAlive가 "연결 끊김"으로 오판해
-        // 폰 심박 스트림을 켜고 HealthKit 워크아웃을 한 번 더 저장하는 일이 없다.
+        if !session.healthManagedExternally {
+            // 폰이 기록 중인데 워치가 같은 세션으로 살아 있다 — 시작 타임아웃 뒤 늦게 열렸거나 손목에서 직접 시작했다.
+            // 워치를 끝내는 대신 HealthKit 기록을 워치에 넘긴다. "finished"는 여기서 안 듣는다 —
+            // 인계 뒤 워치가 되쏘는 종료로 달리는 중인 러닝이 끝나면 안 되고, 진짜 종료는 .end 명령으로 온다.
+            guard snapshot.state != "finished" else { return }
+            session.joinWatchWorkout(distanceMeters: snapshot.distanceMeters)
+            takeoverMessage = nil
+        }
+        session.recordWatchDistance(snapshot.distanceMeters)   // finish 전에 — 마지막 거리가 기록에 남게
+        // 워치의 "finished" 스냅샷은 sendMessage라 .end(transferUserInfo)보다 먼저 온다. 여기서 바로 끝낸다.
         if snapshot.state == "finished" {
             finish(sendToWatch: false)
             return
@@ -237,24 +234,18 @@ final class RunCoordinator {
         checkWatchAlive()
     }
 
-    /// 워치가 워크아웃을 못 열었거나(15초 무소식) 러닝 중 끊겼으면(30초 무소식) 폰이 기록을 넘겨받는다.
-    /// sendCommand의 "전달됨"만 믿으면 워치에서 start가 실패했을 때 아무도 심박을 기록하지 않는다.
+    /// 워치가 .start 를 받고도 30초 안에 스냅샷을 안 보내면 워크아웃을 못 연 걸로 보고 폰이 심박 기록을 넘겨받는다.
+    /// 워치를 끝내지는 않는다 — 늦게라도 열려 스냅샷이 오면 apply 가 기록을 다시 워치에 넘긴다.
+    /// 러닝 중 무소식은 더 이상 인계 사유가 아니다. 예전엔 30초 끊기면 .discard 를 보냈는데, 블루투스가
+    /// 잠깐 끊긴 것만으로 워치 워크아웃이 통째로 버려지고(건강 앱 기록 증발) 워치가 저 혼자 멈춰 보였다.
     private func checkWatchAlive() {
-        guard session.healthManagedExternally, let watchStartedAt else { return }
-        let since = lastWatchSnapshotAt ?? watchStartedAt
-        let timeout = lastWatchSnapshotAt == nil ? Self.watchStartTimeout : Self.watchDropTimeout
-        guard Date().timeIntervalSince(since) > timeout else { return }
-        takeOver(lastWatchSnapshotAt == nil
-                 ? "Apple Watch에서 운동이 시작되지 않아 iPhone 기록으로 전환했어요."
-                 : "Apple Watch 연결이 끊겨 iPhone 기록으로 전환했어요.")
+        guard session.healthManagedExternally, lastWatchSnapshotAt == nil, let watchStartedAt,
+              Date().timeIntervalSince(watchStartedAt) > Self.watchStartTimeout else { return }
+        takeOver("Apple Watch에서 운동이 시작되지 않아 iPhone 기록으로 전환했어요.")
     }
 
     private func takeOver(_ message: String) {
         guard session.healthManagedExternally else { return }
-        // 워치 start가 늦게 도착하거나 잠깐 끊긴 뒤에도 둘 다 HealthKit 워크아웃을 저장하지 않게
-        // 같은 sessionID의 종료를 큐에 남긴다. 워치의 start-await 중 유실은 pendingCommand가 막는다.
-        // .end 가 아니라 .discard — 폰이 계속 기록하므로 워치의 몇 초짜리 조각은 건강 앱에 남기지 않는다.
-        watch.sendCommand(.discard, sessionID: session.sessionID)
         session.takeOverHealthWorkout(since: lastWatchSnapshotAt ?? Date())
         watchStartedAt = nil
         takeoverMessage = message

@@ -67,11 +67,14 @@ final class RunFlowUITests: XCTestCase {
         // 홈으로 → 최근 러닝
         app.buttons["홈으로"].tap()
         XCTAssertTrue(app.staticTexts["최근 러닝"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS ' km'")).firstMatch.exists)
+        // 왜 식별자로 찾는가: "' km' 가 들어간 첫 텍스트"로 찾으면 홈 상단 카드의 주간 거리("0.32 / 20 km")가
+        // 먼저 잡혀 프로필 편집으로 넘어간다. 기록 행만 가리키는 식별자를 쓴다.
+        let historyDistance = app.staticTexts["runHistoryDistance"]
+        XCTAssertTrue(historyDistance.waitForExistence(timeout: 5))
         attachScreenshot(app, name: "home_after_run")
 
         // 최근 러닝 → 상세 (지도)
-        app.staticTexts.matching(NSPredicate(format: "label CONTAINS ' km'")).firstMatch.tap()
+        historyDistance.tap()
         XCTAssertTrue(app.navigationBars["러닝 상세"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 2)   // 지도 타일 로딩
         attachScreenshot(app, name: "run_detail")

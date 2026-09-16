@@ -16,16 +16,17 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
     @Published private(set) var state: State = .idle
     @Published private(set) var heartRate: Double?
+    /// 거리는 이 HealthKit 값(GPS+걸음 융합)이 진실이다. 폰 GPS 값을 우선했더니 터널·고가 밑에서 얼어붙었고,
+    /// 건강 앱에 남는 워치 기록과 폰 기록이 어긋났다. 폰도 스냅샷으로 이 값을 받아 같은 거리를 기록한다.
     @Published private(set) var distanceMeters: Double = 0
     @Published private(set) var activeEnergy: Double = 0
     @Published private(set) var elapsedSeconds: Int = 0
-    @Published private(set) var syncedDistanceMeters: Double?
     @Published private(set) var isPhoneReachable = false
     /// start()가 권한·beginCollection을 기다리는 동안 true — 뷰에서 시작 버튼을 잠그는 데 쓴다
     @Published private(set) var isStarting = false
     @Published var errorMessage: String?
 
-    /// 폰 스냅샷이 5초 넘게 안 오면 얼어붙은 값 대신 워치 자체 값을 보여준다
+    /// 폰 스냅샷이 5초 넘게 안 오면 폰이 기록 중이 아닌 걸로 본다 (isPhoneRecording)
     private static let snapshotStaleAfter: TimeInterval = 5
     private var syncedAt: Date?
     /// 마지막 폰 스냅샷을 받았을 때 워치 자체 거리. 연결이 끊긴 동안 증가분만 이어 붙이는 기준점이다.
@@ -80,7 +81,11 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private var workoutSession: HKWorkoutSession?
     private var workoutBuilder: HKLiveWorkoutBuilder?
     private var timer: Timer?
-    private(set) var sessionID = UUID()
+    /// 앱이 죽었다 되살아날 때 폰과 같은 ID 로 이어 가도록 디스크에 남긴다 (복구된 세션은 ID 를 모른다)
+    private(set) var sessionID = UUID() {
+        didSet { UserDefaults.standard.set(sessionID.uuidString, forKey: Self.sessionIDKey) }
+    }
+    private static let sessionIDKey = "activeWorkoutSessionID"
 
     override init() {
         super.init()
@@ -96,6 +101,55 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         locationManager.activityType = .fitness
+        recoverActiveWorkout()
+    }
+
+    /// 러닝 중 앱이 죽으면 watchOS 가 워크아웃 세션을 살려 둔 채 앱을 다시 띄운다. 여기서 다시 붙잡지 않으면
+    /// 그 세션은 영영 저장되지 않는다(기록 증발). 매 실행마다 물어보고, 없으면 nil 이라 아무 일도 없다.
+    private func recoverActiveWorkout() {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        healthStore.recoverActiveWorkoutSession { [weak self] session, _ in
+            guard let session else { return }
+            Task { @MainActor [weak self] in await self?.attach(recovered: session) }
+        }
+    }
+
+    /// 복구된 세션에 델리게이트·데이터소스를 다시 걸고 화면·타이머·폰 동기화를 이어 간다.
+    /// beginCollection 은 다시 부르지 않는다 — 시스템이 죽기 전 수집을 그대로 이어 왔다.
+    private func attach(recovered session: HKWorkoutSession) async {
+        guard state == .idle, !isStarting else { return }
+        let builder = session.associatedWorkoutBuilder()
+        builder.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: session.workoutConfiguration)
+        session.delegate = self
+        builder.delegate = self
+        workoutSession = session
+        workoutBuilder = builder
+        if let stored = UserDefaults.standard.string(forKey: Self.sessionIDKey), let id = UUID(uuidString: stored) {
+            sessionID = id
+        }
+        routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: .local())
+        let checkpointed = Self.checkpointedRoute()
+        if !checkpointed.isEmpty, let routeBuilder {
+            // 죽기 전 워치가 직접 모으던 경로 — 새 빌더에 다시 넣고 이어서 모은다 (지도가 끊기지 않게)
+            try? await routeBuilder.insertRouteData(checkpointed)
+            startOwnRoute()
+        }
+        syncedAt = nil
+        for type in [HKQuantityType(.heartRate), HKQuantityType(.distanceWalkingRunning), HKQuantityType(.activeEnergyBurned)] {
+            if let statistics = builder.statistics(for: type) { updateStatistics(statistics, for: type) }
+        }
+        elapsedSeconds = Int(builder.elapsedTime(at: Date()))
+        switch session.state {
+        case .running, .prepared: state = .running
+        case .paused: state = .paused
+        default:
+            // 끝내던 중에 죽었다 — 저장까지 마저 한다
+            state = .running
+            Task { await end() }
+            return
+        }
+        startTimer()
+        sendSnapshot()
     }
 
     func start(sessionID: UUID = UUID(), sendToPhone: Bool = true) async {
@@ -127,13 +181,13 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             distanceMeters = 0
             activeEnergy = 0
             elapsedSeconds = 0
-            syncedDistanceMeters = nil
             syncedAt = nil
             watchDistanceAtLastPhoneSync = nil
             finishedDistanceMeters = nil
             phoneFinalDistanceMeters = nil
             routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: .local())
             isRecordingOwnRoute = false
+            discardRouteCheckpoint()
             // 권한은 미리 물어 둔다 — 폰이 끊긴 걸 알아챈 순간(러닝 중)에 시트를 띄우면 이미 늦다
             if locationManager.authorizationStatus == .notDetermined {
                 locationManager.requestWhenInUseAuthorization()
@@ -160,7 +214,6 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         pendingCommand = nil
         switch queued {
         case .end: await end(sendToPhone: false)   // 시작이 실패했으면 세션이 없어 guard에서 조용히 빠진다
-        case .discard: await end(sendToPhone: false, discarding: true)
         case .pause: pause(sendToPhone: false)
         default: break
         }
@@ -185,10 +238,10 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         sendSnapshot()
     }
 
-    /// `discarding` 이면 건강 앱에 저장하지 않고 버린다 — 폰이 기록을 인계한 경우.
-    func end(sendToPhone: Bool = true, discarding: Bool = false) async {
+    /// 워크아웃을 끝내고 건강 앱에 저장한다. 버리는 길은 없다 — 폰이 뭐라 하든 워치가 모은 기록은 남긴다.
+    func end(sendToPhone: Bool = true) async {
         if isStarting {
-            pendingCommand = discarding ? .discard : .end
+            pendingCommand = .end
             return
         }
         guard let session = workoutSession, let builder = workoutBuilder else { return }
@@ -226,6 +279,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
                 catch { errorMessage = "경로를 저장하지 못했어요. 러닝 기록은 건강 앱에 저장됐어요." }
             }
             routeBuilder = nil
+            discardRouteCheckpoint()
             let resolvedFinalDistance = phoneFinalDistanceMeters ?? finalDistance
             finishedDistanceMeters = resolvedFinalDistance
             state = .finished
@@ -287,9 +341,50 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         guard !isRecordingOwnRoute, state == .running,
               Double(elapsedSeconds) > Self.ownRouteAfter, !phoneSyncIsFresh else { return }
         guard [.authorizedWhenInUse, .authorizedAlways].contains(locationManager.authorizationStatus) else { return }
+        startOwnRoute()
+    }
+
+    private func startOwnRoute() {
         isRecordingOwnRoute = true
         locationManager.allowsBackgroundLocationUpdates = true   // 손목을 내려도 계속 모은다
         locationManager.startUpdatingLocation()
+    }
+
+    // MARK: - 경로 체크포인트
+
+    /// 워치가 직접 모으는 경로는 파일에도 한 줄씩 덧붙인다. HKWorkoutRouteBuilder 는 프로세스와 함께 죽어서
+    /// 폰 없이 뛴 러닝의 지도가 앱이 죽었다고 사라지면 안 된다 — 복구 때 새 빌더에 다시 넣는다.
+    private static let routeCheckpointURL = FileManager.default
+        .urls(for: .documentDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("own-route-in-progress.csv")
+
+    private func appendRouteCheckpoint(_ locations: [CLLocation]) {
+        let lines = locations.map { l in
+            [l.coordinate.latitude, l.coordinate.longitude, l.altitude, l.horizontalAccuracy, l.verticalAccuracy,
+             l.course, l.speed, l.timestamp.timeIntervalSince1970].map { String($0) }.joined(separator: ",") + "\n"
+        }.joined()
+        if let handle = try? FileHandle(forWritingTo: Self.routeCheckpointURL) {
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: Data(lines.utf8))
+            try? handle.close()
+        } else {
+            try? Data(lines.utf8).write(to: Self.routeCheckpointURL)
+        }
+    }
+
+    private static func checkpointedRoute() -> [CLLocation] {
+        guard let text = try? String(contentsOf: routeCheckpointURL, encoding: .utf8) else { return [] }
+        return text.split(separator: "\n").compactMap { line in
+            let v = line.split(separator: ",").compactMap { Double($0) }
+            guard v.count == 8 else { return nil }
+            return CLLocation(coordinate: .init(latitude: v[0], longitude: v[1]), altitude: v[2],
+                              horizontalAccuracy: v[3], verticalAccuracy: v[4], course: v[5], speed: v[6],
+                              timestamp: Date(timeIntervalSince1970: v[7]))
+        }
+    }
+
+    private func discardRouteCheckpoint() {
+        try? FileManager.default.removeItem(at: Self.routeCheckpointURL)
     }
 
     private func stopOwnRoute() {
@@ -312,6 +407,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         workoutBuilder = nil
         stopOwnRoute()
         routeBuilder = nil
+        discardRouteCheckpoint()
         stopTimer()
         state = .idle
     }
@@ -369,9 +465,6 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         case .end:
             guard sessionID == self.sessionID else { return }
             Task { await end(sendToPhone: false) }
-        case .discard:
-            guard sessionID == self.sessionID else { return }
-            Task { await end(sendToPhone: false, discarding: true) }
         case .unavailable:
             break
         }
@@ -459,6 +552,7 @@ extension WatchWorkoutManager: CLLocationManagerDelegate {
         guard !usable.isEmpty else { return }
         Task { @MainActor [weak self] in
             guard let self, self.isRecordingOwnRoute, let routeBuilder = self.routeBuilder else { return }
+            self.appendRouteCheckpoint(usable)
             try? await routeBuilder.insertRouteData(usable)
         }
     }
