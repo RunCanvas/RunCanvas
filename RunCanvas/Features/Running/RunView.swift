@@ -91,9 +91,7 @@ struct RunView: View {
         isActive ? session.healthManagedExternally : watchConnectivity.isReachable
     }
 
-    var body: some View {
-        @Bindable var runs = runs
-
+    private var runningContent: some View {
         VStack(spacing: 0) {
             if let course {
                 courseStrip(course)
@@ -162,6 +160,11 @@ struct RunView: View {
 
             Spacer().frame(height: 30)
         }
+    }
+
+    var body: some View {
+        @Bindable var runs = runs
+        runningContent
         .navigationTitle("러닝")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -241,6 +244,11 @@ struct RunView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text("로그인 정보를 찾지 못해 기록을 저장할 수 없어요. 다시 로그인한 뒤 저장해 주세요.")
+        }
+        .alert("기록을 저장하지 않았어요", isPresented: $runs.showsDiscardedRun) {
+            Button("확인") { if !isActive { dismiss() } }
+        } message: {
+            Text("이동 거리가 50m 이하인 러닝은 저장하지 않아요.")
         }
         .alert(
             "이전 러닝이 중단됐어요",

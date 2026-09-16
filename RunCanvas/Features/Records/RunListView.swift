@@ -8,6 +8,7 @@ struct RunListView: View {
     private let ownerID: UUID
     @State private var pendingDeletion: [Run] = []
     @State private var deletionError: String?
+    @State private var selectedRun: Run?
 
     init(ownerID: UUID?) {
         let owner = ownerID ?? .noOwner
@@ -18,11 +19,12 @@ struct RunListView: View {
     var body: some View {
         List {
             ForEach(runs) { run in
-                RunHistoryRow(run: run)
-                    .background {
-                        NavigationLink { RunDetailView(run: run) } label: { EmptyView() }
-                            .opacity(0)   // List가 붙이는 꺾쇠 숨김 (행에 이미 있음)
-                    }
+                Button { selectedRun = run } label: {
+                    RunHistoryRow(run: run)
+                        .contentShape(Rectangle())
+                }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("run-history-\(run.id.uuidString)")
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                     // 왜: .onDelete가 그리는 버튼은 앱에 ko 로컬라이즈가 없어 한국어 기기에서도 "Delete"로 뜬다.
@@ -40,6 +42,10 @@ struct RunListView: View {
         }
         .navigationTitle("전체 기록")
         .navigationBarTitleDisplayMode(.inline)
+        // 숨긴 빈 링크 대신 실제 선택이 있을 때만 상세 화면을 만든다.
+        .navigationDestination(item: $selectedRun) { run in
+            RunDetailView(run: run)
+        }
         .confirmationDialog("이 기록을 삭제할까요?", isPresented: Binding(
             get: { !pendingDeletion.isEmpty },
             set: { if !$0 { pendingDeletion = [] } }

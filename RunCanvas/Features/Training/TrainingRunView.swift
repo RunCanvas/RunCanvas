@@ -126,6 +126,11 @@ struct TrainingRunView: View {
         } message: {
             Text("로그인 정보를 찾지 못해 기록을 저장할 수 없어요. 다시 로그인한 뒤 저장해 주세요.")
         }
+        .alert("기록을 저장하지 않았어요", isPresented: $runs.showsDiscardedRun) {
+            Button("확인") { dismiss() }
+        } message: {
+            Text("이동 거리가 50m 이하인 러닝은 저장하지 않아요.")
+        }
         .alert(
             "심박 기능을 사용할 수 없어요",
             isPresented: Binding(

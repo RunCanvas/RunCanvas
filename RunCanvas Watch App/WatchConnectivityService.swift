@@ -39,7 +39,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session?.activate()
     }
 
-    /// 명령은 transferUserInfo — 폰이 잠깐 안 닿아도 큐에 쌓였다가 반드시 배달된다
+    /// 큐로 유실을 막고, 연결 중에는 같은 명령을 즉시 전송한다. 수신 타임스탬프로 중복을 거른다.
     func sendCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
         let message: [String: Any] = [
             "kind": "command",
@@ -49,6 +49,9 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         ]
         guard let session, session.activationState == .activated else { return }
         session.transferUserInfo(message)
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: nil)
+        }
     }
 
     /// 끝난 러닝 요약. 명령과 같은 transferUserInfo — 폰 앱이 꺼져 있어도 큐에 남았다가 배달된다.
@@ -110,6 +113,18 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             // .pause/.resume/.end 는 sessionID 가 걸러 주므로 시작 명령만 신선도를 본다.
             if action == .start, !Self.isFreshStartCommand(timestamp: timestamp) { return }
             latestCommandTimestamp = timestamp
+            // 종료 명령에 폰의 최종 수치가 있으면 먼저 반영한다. 같은 transferUserInfo 한 건에
+            // 수치와 명령을 함께 실어 서로 다른 전송 방식의 도착 순서가 뒤바뀌는 일을 막는다.
+            if action == .end,
+               let distance = message["finalDistanceMeters"] as? Double,
+               let elapsed = message["finalElapsedSeconds"] as? Int {
+                onSnapshot?(PhoneWorkoutSnapshot(
+                    sessionID: sessionID,
+                    state: "finished",
+                    elapsedSeconds: elapsed,
+                    distanceMeters: distance
+                ))
+            }
             onCommand?(action, sessionID)
             return
         }

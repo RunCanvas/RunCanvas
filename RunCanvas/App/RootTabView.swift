@@ -3,9 +3,32 @@ import SwiftData
 
 struct RootTabView: View {
     @Environment(AuthService.self) private var auth
+    @Environment(RunCoordinator.self) private var coordinator
 
     var body: some View {
+        @Bindable var coordinator = coordinator
         LevelThemedTabs(ownerID: auth.userID)
+            .onChange(of: auth.userID, initial: true) { _, id in
+                coordinator.ownerID = id
+            }
+            .fullScreenCover(isPresented: $coordinator.showsWatchRun) {
+                NavigationStack {
+                    RunView(startImmediately: false)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("닫기") { coordinator.showsWatchRun = false }
+                            }
+                        }
+                }
+            }
+            .alert("iPhone 러닝을 시작하지 못했어요", isPresented: Binding(
+                get: { coordinator.watchStartError != nil },
+                set: { if !$0 { coordinator.watchStartError = nil } }
+            )) {
+                Button("확인", role: .cancel) { coordinator.watchStartError = nil }
+            } message: {
+                Text(coordinator.watchStartError ?? "")
+            }
     }
 }
 
@@ -35,7 +58,11 @@ private struct LevelThemedTabs: View {
 }
 
 #Preview {
+    let container = try! ModelContainer(for: Run.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let watch = WatchConnectivityService()
     RootTabView()
         .environment(AuthService())
-        .modelContainer(for: Run.self, inMemory: true)
+        .environmentObject(watch)
+        .environment(RunCoordinator(watch: watch, context: container.mainContext, session: RunSession()))
+        .modelContainer(container)
 }

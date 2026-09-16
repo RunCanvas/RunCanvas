@@ -67,11 +67,24 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session?.activate()
     }
 
-    /// 명령은 transferUserInfo — 워치가 잠깐 안 닿아도 큐에 쌓였다가 반드시 배달된다.
-    /// (sendMessage로 보내면 isReachable false일 때 조용히 사라져서 워치 워크아웃이 안 끝났다)
-    func sendCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
+    /// 큐로 유실을 막고, 연결 중에는 같은 명령을 즉시 전송한다. 수신 타임스탬프로 중복을 거른다.
+    func sendCommand(
+        _ action: WorkoutSyncAction,
+        sessionID: UUID,
+        finalDistanceMeters: Double? = nil,
+        finalElapsedSeconds: Int? = nil
+    ) {
         guard let session, session.activationState == .activated, session.isWatchAppInstalled else { return }
-        session.transferUserInfo(commandMessage(action, sessionID: sessionID))
+        let message = Self.commandMessage(
+            action,
+            sessionID: sessionID,
+            finalDistanceMeters: finalDistanceMeters,
+            finalElapsedSeconds: finalElapsedSeconds
+        )
+        session.transferUserInfo(message)
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: nil)
+        }
     }
 
     func sendSnapshot(
@@ -93,13 +106,22 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         send(message)   // 스냅샷은 유실돼도 다음 주기에 덮어써지니 sendMessage로 충분
     }
 
-    private func commandMessage(_ action: WorkoutSyncAction, sessionID: UUID) -> [String: Any] {
-        [
+    static func commandMessage(
+        _ action: WorkoutSyncAction,
+        sessionID: UUID,
+        finalDistanceMeters: Double? = nil,
+        finalElapsedSeconds: Int? = nil,
+        timestamp: TimeInterval = Date().timeIntervalSince1970
+    ) -> [String: Any] {
+        var message: [String: Any] = [
             "kind": "command",
             "action": action.rawValue,
             "sessionID": sessionID.uuidString,
-            "timestamp": Date().timeIntervalSince1970
+            "timestamp": timestamp
         ]
+        if let finalDistanceMeters { message["finalDistanceMeters"] = finalDistanceMeters }
+        if let finalElapsedSeconds { message["finalElapsedSeconds"] = finalElapsedSeconds }
+        return message
     }
 
     private func send(_ message: [String: Any]) {
@@ -107,7 +129,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session.sendMessage(message, replyHandler: nil, errorHandler: nil)
     }
 
-    private func receive(_ message: [String: Any]) {
+    func receive(_ message: [String: Any]) {
         guard let kind = message["kind"] as? String,
               let idString = message["sessionID"] as? String,
               let sessionID = UUID(uuidString: idString) else { return }

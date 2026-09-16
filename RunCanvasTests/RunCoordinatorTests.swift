@@ -89,7 +89,9 @@ final class RunCoordinatorTests: XCTestCase {
             sessionID: id, state: "finished", elapsedSeconds: 20, distanceMeters: 80, heartRate: 150
         ))
         XCTAssertEqual(session.state, .finished, "워치가 끝냈으면 폰도 끝나야 한다")
-        XCTAssertNotNil(coordinator.finishedRun, "결과 화면에 띄울 기록이 남아야 한다")
+        // 폰이 최종 거리의 기준이다. 이 테스트는 폰 GPS 이동이 없으므로 저장하지 않는다.
+        XCTAssertNil(coordinator.finishedRun)
+        XCTAssertTrue(coordinator.showsDiscardedRun)
     }
 
     /// 거리는 워치의 HealthKit 값(GPS+걸음 융합)이 진실이다. 폰 GPS 체인을 쓰면 터널·고가 밑에서 얼어붙고,
