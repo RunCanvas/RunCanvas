@@ -351,7 +351,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
     private func startOwnRoute() {
         isRecordingOwnRoute = true
-        locationManager.allowsBackgroundLocationUpdates = true   // 손목을 내려도 계속 모은다
+        // watchOS에서는 활성 HKWorkoutSession의 workout-processing이 백그라운드 실행을 유지한다.
+        // iOS용 allowsBackgroundLocationUpdates를 강제하면 워치 시뮬레이터와 일부 기기에서 예외가 발생한다.
         locationManager.startUpdatingLocation()
     }
 
@@ -395,7 +396,6 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private func stopOwnRoute() {
         guard isRecordingOwnRoute else { return }
         locationManager.stopUpdatingLocation()
-        locationManager.allowsBackgroundLocationUpdates = false
         isRecordingOwnRoute = false
     }
 
