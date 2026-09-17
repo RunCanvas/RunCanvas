@@ -33,7 +33,7 @@ struct RouteMapView: View {
         .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
         .mapControlVisibility(.hidden)
         .overlay(alignment: .bottomTrailing) {   // 좌하단은 Apple 로고 자리
-            if showsLegend, coords.count > 1 {
+            if showsLegend, route.count > 1 {
                 PaceLegend()
                     .padding(10)
             }
@@ -43,11 +43,13 @@ struct RouteMapView: View {
             segments = PaceSegment.build(from: route)
         }
         .overlay {
-            if coords.count < 2 {
+            if route.count < 2 {
                 ContentUnavailableView("경로 없음", systemImage: "map", description: Text("GPS 경로가 기록되지 않았어요"))
                     .background(.regularMaterial)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(route.count > 1 ? "러닝 경로 지도, 구간별 페이스 색상" : "경로 없음")
     }
 }
 
@@ -126,6 +128,7 @@ private struct PaceLegend: View {
         .padding(.vertical, 6)
         .background(.regularMaterial)
         .clipShape(Capsule())
+        .accessibilityHidden(true)
     }
 }
 

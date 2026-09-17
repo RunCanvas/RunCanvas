@@ -13,40 +13,91 @@ import UIKit
 /// 세션과 워치 콜백은 RunCoordinator(앱 수명)가 들고 있고 이 화면은 상태만 그린다.
 struct RunView: View {
     let startImmediately: Bool
+    /// 따라뛰기로 들어왔으면 그 코스. 평소 러닝은 nil
+    var course: Course? = nil
 
     @Environment(AuthService.self) private var auth
     @Environment(RunCoordinator.self) private var runs
     @EnvironmentObject private var watchConnectivity: WatchConnectivityService
     @Environment(\.dismiss) private var dismiss
-    @State private var didRequestHealthAuthorization = false
     @State private var healthAuthorizationMessage: String?
     @State private var showsLocationDenied = false
     @State private var showsNoOwner = false
+    @State private var confirmsFinish = false
+    /// 위치 권한 프롬프트에 답하길 기다리는 중 — 허용되면 onChange에서 시작한다
+    @State private var awaitsLocationPermission = false
     @State private var recovered: RecoveredRun?
+    @State private var courseProgress: Double = 0
+    @State private var offCourseMeters: Double = 0
+    @State private var warnedOffCourse = false
+    /// 왕복 코스에서 진행도가 반대편으로 튀지 않게, 직전에 맞춘 지점 주변부터 찾는다
+    @State private var lastCourseIndex: Int?
+    /// 결과 화면을 닫으면 이 화면이 다시 나타난다 — 그때 자동 시작이 또 돌지 않게 한 번만 표시해 둔다
+    @State private var didAutoStart = false
 
     private var session: RunSession { runs.session }
+
+    /// 따라뛰기 상태 표시 — 얼마나 왔는지, 코스에서 벗어났는지
+    private func courseStrip(_ course: Course) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label(course.name, systemImage: "map")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Spacer()
+                Text("\(Int(courseProgress * 100))%")
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+            }
+            ProgressView(value: courseProgress)
+                .tint(.primary)
+            Text(offCourseMeters > 50
+                 ? "코스에서 \(Int(offCourseMeters))m 벗어났어요"
+                 : String(format: "코스 %.2f km 중 %.2f km", course.distanceKm, course.distanceKm * courseProgress))
+                .font(.caption)
+                .foregroundStyle(offCourseMeters > 50 ? .red : .secondary)
+                .monospacedDigit()
+        }
+        .padding(14)
+        .background(Color.card, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// 위치가 갱신될 때만 다시 계산한다 — body가 그려질 때마다 하면 경로 전체를 초당 몇 번씩 훑는다
+    private func updateCourseFollow() {
+        guard let course, let last = session.route.last else { return }
+        let point = CoursePoint(last)
+        let matched = lastCourseIndex.flatMap {
+            CourseGeometry.nearestIndex(to: point, in: course.path, near: $0)
+        } ?? CourseGeometry.nearestIndex(to: point, in: course.path)
+        guard let matched else { return }
+        lastCourseIndex = matched
+        courseProgress = CourseGeometry.progress(through: matched, in: course.path)
+        offCourseMeters = CourseGeometry.distance(point, course.path[matched])
+        if offCourseMeters > 50, !warnedOffCourse {
+            warnedOffCourse = true            // 벗어난 동안 계속 떠들지 않게 한 번만
+            session.announce("코스에서 벗어났어요")
+        } else if offCourseMeters < 25 {
+            warnedOffCourse = false
+        }
+    }
     private var isActive: Bool { session.state == .running || session.state == .paused }
+
+    private var locationDenied: Bool {
+        session.locationAuthorization == .denied || session.locationAuthorization == .restricted
+    }
 
     /// 실제로 누가 기록 중인지 — 러닝 중엔 연결 여부가 아니라 세션 상태를 따른다
     private var recordsOnWatch: Bool {
         isActive ? session.healthManagedExternally : watchConnectivity.isReachable
     }
 
-    var body: some View {
-        @Bindable var runs = runs
-
+    private var runningContent: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("러닝").font(.title2).bold()
-                Spacer()
-                Label(
-                    recordsOnWatch ? "Watch 기록" : "iPhone 기록",
-                    systemImage: recordsOnWatch ? "applewatch.radiowaves.left.and.right" : "iphone"
-                )
-                .font(.caption)
-                .foregroundStyle(recordsOnWatch ? .green : .secondary)
+            if let course {
+                courseStrip(course)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
             }
-                .padding(.horizontal, 24).padding(.top, 20)
 
             Spacer()
 
@@ -54,6 +105,21 @@ struct RunView: View {
                 Text("거리").font(.subheadline).foregroundStyle(.secondary)
                 Text(RunMath.formatKm(session.distanceMeters)).font(.system(size: 64, weight: .bold))
                 Text("km").font(.title3).foregroundStyle(.secondary)
+                // 첫 유효 fix 전엔 0.00에 시간만 흘러 GPS 탓인지 앱 탓인지 알 수 없다 — 경로 점이 들어오면 사라진다
+                if isActive, session.route.isEmpty {
+                    Text(locationDenied ? "위치 권한이 꺼져 있어 거리가 기록되지 않아요" : "GPS 신호를 찾는 중…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                // 왜: 러닝이 시작된 뒤엔 폰이 세션 주인이라, 그때 워치 앱을 열어도 심박이 붙지 않는다
+                // (늦게 시작한 워치 워크아웃은 폰이 .end 로 끝낸다). 그래서 시작 전에만 안내한다
+                if !isActive,
+                   watchConnectivity.isWatchAppInstalled,
+                   !watchConnectivity.isReachable {
+                    Text("워치 앱을 먼저 열면 심박까지 함께 기록돼요")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
@@ -73,37 +139,71 @@ struct RunView: View {
                 systemImage: session.state == .running ? "pause.fill" : "figure.run"
             ) {
                 switch session.state {
-                case .idle: startRun()
+                case .idle, .finished: startRun()
                 case .running: runs.pause()
                 case .paused: runs.resume()
-                case .finished: break
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 20)
 
             if isActive {
-                Button("러닝 종료") { finish() }
-                    .font(.subheadline).foregroundStyle(.red).padding(.top, 16)
+                // 종료는 되돌릴 수 없는데 일시정지 바로 아래에 있다 — 흔들리는 손이 잘못 눌러도 확인 한 번은 거친다
+                Button { confirmsFinish = true } label: {
+                    Text("러닝 종료")
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                        .frame(minWidth: 44, minHeight: 44)   // 글자 높이(약 20pt)만으로는 탭 영역이 너무 작다
+                        .contentShape(Rectangle())
+                }
+                .padding(.top, 4)
             }
 
             Spacer().frame(height: 30)
         }
-        .navigationBarBackButtonHidden(isActive)
-        .task {
-            guard !didRequestHealthAuthorization else { return }
-            didRequestHealthAuthorization = true
-            do {
-                try await session.requestHealthAuthorization()
-            } catch {
-                healthAuthorizationMessage = error.localizedDescription
+    }
+
+    var body: some View {
+        @Bindable var runs = runs
+        runningContent
+        .navigationTitle("러닝")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Label(
+                    recordsOnWatch ? "Watch 기록" : "iPhone 기록",
+                    systemImage: recordsOnWatch ? "applewatch.radiowaves.left.and.right" : "iphone"
+                )
+                .labelStyle(.titleAndIcon)   // 내비바에선 기본이 아이콘만이라 글자가 사라진다
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
-            if startImmediately, session.state == .idle, recovered == nil {
-                startRun()
+        }
+        .navigationBarBackButtonHidden(isActive)
+        .onChange(of: session.route.count) { _, _ in updateCourseFollow() }
+        .onChange(of: session.locationAuthorization) { _, status in
+            switch status {
+            case .authorizedWhenInUse, .authorizedAlways:
+                if awaitsLocationPermission { startRun() }
+            case .denied, .restricted:
+                awaitsLocationPermission = false
+                showsLocationDenied = true
+            default: break
             }
         }
         .onAppear {
             if let id = auth.userID { runs.ownerID = id }
-            if session.state == .idle { recovered = RunSession.recoverable() }
+            if session.state == .idle || session.state == .finished { recovered = RunSession.recoverable() }
+            // 중단 러닝 알럿이 뜰 상황이면 저장/버리기를 고른 뒤에 시작한다
+            if startImmediately, !didAutoStart,
+               session.state == .idle || session.state == .finished,
+               recovered == nil {
+                didAutoStart = true
+                startRun()
+            }
+        }
+        .confirmationDialog("러닝을 종료할까요?", isPresented: $confirmsFinish, titleVisibility: .visible) {
+            Button("종료", role: .destructive) { finish() }
+            Button("취소", role: .cancel) {}
         }
         .alert(
             "심박 기능을 사용할 수 없어요",
@@ -135,12 +235,20 @@ struct RunView: View {
             }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("위치 접근이 꺼져 있어 거리가 기록되지 않아요. 설정에서 위치 권한을 허용한 뒤 다시 시작해 주세요.")
+            // 달리는 중에 권한이 꺼진 경우엔 "다시 시작"이 할 수 있는 답이 아니다 — 지금 기록이 어떻게 되는지를 알린다
+            Text(isActive
+                 ? "위치 접근이 꺼져 있어 지금부터 거리가 쌓이지 않아요. 종료하면 여기까지만 저장돼요."
+                 : "위치 접근이 꺼져 있어 거리가 기록되지 않아요. 설정에서 위치 권한을 허용한 뒤 다시 시작해 주세요.")
         }
         .alert("로그인이 필요해요", isPresented: $showsNoOwner) {
             Button("확인", role: .cancel) {}
         } message: {
             Text("로그인 정보를 찾지 못해 기록을 저장할 수 없어요. 다시 로그인한 뒤 저장해 주세요.")
+        }
+        .alert("기록을 저장하지 않았어요", isPresented: $runs.showsDiscardedRun) {
+            Button("확인") { if !isActive { dismiss() } }
+        } message: {
+            Text("이동 거리가 50m 이하인 러닝은 저장하지 않아요.")
         }
         .alert(
             "이전 러닝이 중단됐어요",
@@ -149,30 +257,76 @@ struct RunView: View {
             Button("저장") {
                 if let recovered, !runs.saveRecovered(recovered) { showsNoOwner = true }
                 recovered = nil
+                // 홈에서 '러닝 시작'을 눌러 왔다 — 알럿에 답한 뒤 같은 버튼을 또 누르게 하지 않는다.
+                // didAutoStart 를 여기서도 찍어야 결과 화면을 닫고 돌아왔을 때 또 시작되지 않는다.
+                if startImmediately, !showsNoOwner, !didAutoStart {
+                    didAutoStart = true
+                    startRun()
+                }
             }
             Button("버리기", role: .destructive) {
                 RunSession.discardRecoverable()
                 recovered = nil
+                if startImmediately, !didAutoStart {
+                    didAutoStart = true
+                    startRun()
+                }
             }
         } message: {
             Text(recoveredMessage)
         }
-        .fullScreenCover(item: $runs.finishedRun, onDismiss: { dismiss() }) { run in
+        // 왜: finishedRun 이 코드로 비워질 때도 onDismiss 가 불린다. 그때 달리는 중이면 화면을 닫으면 안 된다
+        .fullScreenCover(item: $runs.finishedRun, onDismiss: { if !isActive { dismiss() } }) { run in
             RunResultView(run: run)
         }
     }
 
     private var recoveredMessage: String {
         guard let recovered else { return "" }
-        return "\(RunMath.formatKm(recovered.distanceMeters))km를 저장할까요?"
+        // 언제 것인지 모르면 저장할지 판단할 수 없다. 날짜는 기기 로케일에 맡기지 않고 한국어로 고정
+        let startedAt = recovered.startedAt.formatted(
+            .dateTime.month().day().hour().minute().locale(Locale(identifier: "ko_KR"))
+        )
+        return "\(startedAt)에 시작한 \(RunMath.formatKm(recovered.distanceMeters))km를 저장할까요?"
     }
 
     private func startRun() {
+        guard session.state == .idle || session.state == .finished else { return }
         switch session.locationAuthorization {
         case .denied, .restricted:
             showsLocationDenied = true      // 권한이 없으면 시작하지 않는다 — 0.00km를 저장하게 두지 않기 위해
+        case .notDetermined:
+            // 프롬프트를 읽는 동안 타이머가 돌지 않게 허용된 뒤(onChange)에 시작한다.
+            // 거부하면 시작 자체가 안 되니 0.00km 러닝이 생기지 않는다
+            awaitsLocationPermission = true
+            session.requestLocationPermission()
         default:
-            runs.start()
+            awaitsLocationPermission = false
+            guard runs.start() else {
+                showsNoOwner = true
+                return
+            }
+            // 시작이 먼저다. 건강 권한 시트가 떠 있는 동안 GPS 기록이 멈춰 있으면,
+            // 사용자는 "시작을 눌렀는데 아무 일도 안 일어나는" 앱을 보게 된다.
+            // 위치 권한이 결정된 뒤라 첫 러닝에 시스템 알럿 두 개가 겹치지도 않는다.
+            Task { await requestHealthAuthorization() }
+        }
+    }
+
+    /// 러닝을 시작한 화면에서 한 번만 — 화면에 다시 들어올 때마다 스트림을 다시 걸면
+    /// 앵커 없는 쿼리가 시작 이후 심박을 전부 다시 배달해 평균이 앞 구간으로 쏠린다
+    private func requestHealthAuthorization() async {
+        #if DEBUG
+        // UI 테스트에서는 건강 권한 시트를 띄우지 않는다 — 시스템 시트가 러닝 화면을 덮어
+        // 종료 버튼을 누를 수 없고, 시트 자동화는 로케일·OS 버전마다 깨진다.
+        if ProcessInfo.processInfo.arguments.contains("-uiTestSkipHealth") { return }
+        #endif
+        do {
+            try await session.requestHealthAuthorization()
+            session.restartHeartRateStream()   // 권한이 늦게 와도 심박을 놓치지 않게
+        } catch {
+            // 왜: HealthKit 오류는 영어 시스템 문장이라 한국어 알럿에 그대로 노출하면 읽히지 않는다
+            healthAuthorizationMessage = "설정 > 건강 > 데이터 접근 및 기기에서 RunCanvas를 켜면 심박이 기록돼요."
         }
     }
 

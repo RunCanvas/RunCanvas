@@ -11,20 +11,20 @@ import SwiftUI
 struct SplashView: View {
     var body: some View {
         ZStack {
-            Color.white
+            Color(.systemBackground)
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
                 Image(systemName: "figure.run")
                     .font(.system(size: 60))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.primary)
 
                 Text("RunCanvas")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.largeTitle.bold())
 
                 Text("Every Run, A Canvas.")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.gray)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
     }

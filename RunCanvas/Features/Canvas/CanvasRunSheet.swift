@@ -1,14 +1,26 @@
 import SwiftUI
 import SwiftData
 
-struct RunPickerView: View {
+/// 꾸밀 기록 고르기 시트
+struct CanvasRunSheet: View {
     let ownerID: UUID?
     let onSelect: (Run) -> Void
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        CanvasRunList(ownerID: ownerID, onSelect: onSelect)
-            .navigationTitle("런꾸 2/4")
+        NavigationStack {
+            CanvasRunList(ownerID: ownerID) { run in
+                onSelect(run)
+                dismiss()
+            }
+            .navigationTitle("기록 고르기")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { Button("닫기") { dismiss() } }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 

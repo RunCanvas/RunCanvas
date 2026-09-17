@@ -15,8 +15,8 @@ struct ProfileSetupView: View {
     @FocusState private var focus: Field?
 
     private var trimmedNickname: String { nickname.trimmingCharacters(in: .whitespaces) }
-    private var height: Double? { Double(heightText).flatMap { $0 > 0 ? $0 : nil } }
-    private var weight: Double? { Double(weightText).flatMap { $0 > 0 ? $0 : nil } }
+    private var height: Double? { ProfileMeasurement.height(from: heightText) }
+    private var weight: Double? { ProfileMeasurement.weight(from: weightText) }
     private var canSave: Bool { !trimmedNickname.isEmpty && height != nil && weight != nil && !isSaving }
 
     // 입력한 뒤에만 보여주는 필드별 안내 (비어 있을 땐 버튼 비활성으로만)
@@ -24,46 +24,57 @@ struct ProfileSetupView: View {
         nickname.isEmpty || !trimmedNickname.isEmpty ? nil : "공백만으로는 쓸 수 없어요."
     }
     private var heightHint: String? {
-        heightText.isEmpty || height != nil ? nil : "0보다 큰 숫자로 입력해 주세요."
+        heightText.isEmpty || height != nil ? nil : "키는 1~\(Int(ProfileMeasurement.maxHeightCm))cm 사이 숫자로 입력해 주세요."
     }
     private var weightHint: String? {
-        weightText.isEmpty || weight != nil ? nil : "0보다 큰 숫자로 입력해 주세요."
+        weightText.isEmpty || weight != nil ? nil : "체중은 1~\(Int(ProfileMeasurement.maxWeightKg))kg 사이 숫자로 입력해 주세요."
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 40) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("프로필 설정")
-                        .font(.system(size: 28, weight: .bold))
-                    Text("기록과 칼로리 계산에 쓰여요.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 8)
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("프로필 설정")
+                    .font(.largeTitle.bold())
+                Text("기록과 칼로리 계산에 쓰여요.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
 
-                VStack(spacing: 0) {
-                    SetupRow(title: "닉네임", text: $nickname, placeholder: "입력해 주세요", hint: nicknameHint)
-                        .focused($focus, equals: .nickname)
-                        .submitLabel(.next)
-                        .onSubmit { focus = .height }
-                    Divider()
-                    SetupRow(title: "키", text: $heightText, placeholder: "0", unit: "cm", keyboard: .decimalPad, hint: heightHint)
-                        .focused($focus, equals: .height)
-                    Divider()
-                    SetupRow(title: "체중", text: $weightText, placeholder: "0", unit: "kg", keyboard: .decimalPad, hint: weightHint)
-                        .focused($focus, equals: .weight)
+            List {
+                Section {
+                    LabeledContent("닉네임") {
+                        TextField("입력해 주세요", text: $nickname)
+                            .focused($focus, equals: .nickname)
+                            .submitLabel(.next)
+                            .onSubmit { focus = .height }
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .multilineTextAlignment(.trailing)
+                    }
+                    numberRow("키", text: $heightText, unit: "cm", field: .height)
+                    numberRow("체중", text: $weightText, unit: "kg", field: .weight)
+                } header: {
+                    Text("기본 정보")
+                } footer: {
+                    if let hint = nicknameHint ?? heightHint ?? weightHint {
+                        Text(hint).foregroundStyle(.red)
+                    } else {
+                        Text("키와 체중은 칼로리 계산에 쓰여요.")
+                    }
                 }
+                .listRowBackground(Color.card)
 
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
                         .foregroundStyle(.red)
+                        .listRowBackground(Color.clear)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
-            .frame(maxWidth: .infinity)
+            .listStyle(.insetGrouped)
+            .appListTone()
             .contentShape(Rectangle())
             .dismissKeyboardOnTap()
         }
@@ -90,10 +101,9 @@ struct ProfileSetupView: View {
                 Task { await save() }
             }
             .disabled(!canSave)
-            .opacity(canSave ? 1 : 0.3)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .background(.background)
+            .background(Color(.systemBackground))
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -111,6 +121,19 @@ struct ProfileSetupView: View {
         .onAppear { focus = .nickname }
     }
 
+    private func numberRow(_ title: String, text: Binding<String>, unit: String, field: Field) -> some View {
+        LabeledContent(title) {
+            HStack(spacing: 4) {
+                TextField("0", text: text)
+                    .focused($focus, equals: field)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                Text(unit)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private func save() async {
         guard let id = auth.userID else { return }
         isSaving = true
@@ -123,43 +146,6 @@ struct ProfileSetupView: View {
         } catch {
             errorMessage = "저장하지 못했어요. 네트워크를 확인하고 다시 눌러 주세요."
         }
-    }
-}
-
-/// 라벨 · 입력 · 단위 한 줄. 잘못 입력했을 때만 아래에 안내.
-private struct SetupRow: View {
-    let title: String
-    @Binding var text: String
-    var placeholder: String = ""
-    var unit: String = ""
-    var keyboard: UIKeyboardType = .default
-    var hint: String? = nil
-
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            HStack {
-                Text(title)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                TextField(placeholder, text: $text)
-                    .keyboardType(keyboard)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .multilineTextAlignment(.trailing)
-                    .font(.body.weight(.medium))
-                if !unit.isEmpty {
-                    Text(unit)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 28, alignment: .leading)
-                }
-            }
-            if let hint {
-                Text(hint)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        }
-        .padding(.vertical, 16)
     }
 }
 

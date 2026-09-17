@@ -63,7 +63,7 @@ enum Badge: String, CaseIterable, Codable, Identifiable {
 
     var detail: String {
         switch self {
-        case .firstRun: "첫 러닝을 완주했어요"
+        case .firstRun: "첫 러닝 완주"
         case .fiveK: "한 번에 5km 이상"
         case .tenK: "한 번에 10km 이상"
         case .fifteenK: "한 번에 15km 이상"
@@ -74,14 +74,14 @@ enum Badge: String, CaseIterable, Codable, Identifiable {
         case .total250km: "누적 250km"
         case .total500km: "누적 500km"
         case .total1000km: "누적 1,000km"
-        case .streak3: "3일 연속으로 달렸어요"
-        case .streak7: "7일 연속으로 달렸어요"
-        case .streak30: "30일 연속으로 달렸어요"
+        case .streak3: "3일 연속 러닝"
+        case .streak7: "7일 연속 러닝"
+        case .streak30: "30일 연속 러닝"
         case .runs10: "러닝 10회"
         case .runs50: "러닝 50회"
         case .runs100: "러닝 100회"
-        case .earlyBird: "아침 6시 전에 달렸어요"
-        case .nightRunner: "밤 9시 이후에 달렸어요"
+        case .earlyBird: "아침 6시 전 러닝"
+        case .nightRunner: "밤 9시 이후 러닝"
         }
     }
 

@@ -27,3 +27,14 @@ enum RunMath {
         String(format: "%.2f", meters / 1000)
     }
 }
+
+extension Calendar {
+    /// 앱이 쓰는 달력. 기기가 불교력·일본력으로 설정돼 있어도 "2569년 8월" 같은 제목이 나오지 않게
+    /// 그레고리력·한국어로 고정한다. 시간대는 기기 것을 그대로 쓴다 —
+    /// 내 러닝 기록의 날짜는 내가 있는 곳 기준이라야 맞다(대회 일정은 서울 고정, MarathonSchedule 참고).
+    static let appGregorian: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "ko_KR")
+        return calendar
+    }()
+}

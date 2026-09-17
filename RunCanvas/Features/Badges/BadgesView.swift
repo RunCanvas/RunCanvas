@@ -6,12 +6,15 @@ struct BadgesView: View {
     let ownerID: UUID?
     @Query private var storedRuns: [Run]
     @State private var earnedDates: [Badge: Date] = [:]
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// 로그인한 계정의 기록으로 계산
     init(ownerID: UUID?) {
         self.ownerID = ownerID
         let owner = ownerID ?? .noOwner
         _storedRuns = Query(filter: #Predicate<Run> { $0.ownerID == owner })
+        // onAppear에서만 채우면 첫 프레임엔 설명 문구, 다음 프레임엔 날짜로 캡션이 한 번 바뀐다 — 저장된 값으로 시작
+        _earnedDates = State(initialValue: ownerID.map(BadgeStore.earnedDates(for:)) ?? [:])
     }
 
     /// 프리뷰·테스트용: 기록을 직접 넣는다
@@ -24,18 +27,22 @@ struct BadgesView: View {
     private var sampleRuns: [BadgeRun]? = nil
     private var runs: [BadgeRun] { sampleRuns ?? storedRuns.map(\.badgeRun) }
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+    /// 접근성 글자 크기에선 3열이 좁아 제목이 "하프 마라…"로 잘린다 — 2열로
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 12), count: dynamicTypeSize.isAccessibilitySize ? 2 : 3)
+    }
 
     var body: some View {
         // 계산 프로퍼티로 두면 렌더 한 번에 수십 번 다시 돈다 — 여기서 한 번만 계산해 내려보낸다
         let badgeRuns = runs
-        let earned = BadgeEngine.earned(runs: badgeRuns)
+        // BadgeStore가 진실(런꾸 스티커·서버 동기화와 같은 기준) — 기록을 지웠거나 다른 기기에서 딴 뱃지는 현재 기록으론 계산되지 않는다
+        let earned = BadgeEngine.earned(runs: badgeRuns).union(earnedDates.keys)
         let bests = BadgeEngine.personalBests(badgeRuns)
         let level = Level.forTotalDistance(bests.totalMeters)
         let challenges = ChallengeEngine.statuses(runs: badgeRuns)
 
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: 24) {
                 LevelCard(level: level)
 
                 challengeSection(challenges)
@@ -44,7 +51,7 @@ struct BadgesView: View {
 
                 ForEach(Badge.Category.allCases) { category in
                     let inCategory = Badge.allCases.filter { $0.category == category }
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Text(category.rawValue)
                                 .font(.headline)
@@ -84,7 +91,7 @@ struct BadgesView: View {
     // MARK: - 챌린지 (자동 참여, 이번 주·이번 달)
 
     private func challengeSection(_ challenges: [ChallengeEngine.Status]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("챌린지")
                     .font(.headline)
@@ -105,14 +112,17 @@ struct BadgesView: View {
     }
 
     private func personalBestsSection(_ bests: PersonalBests) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("최고 기록")
                 .font(.headline)
             HStack(spacing: 12) {
-                BestTile(title: "최장 거리", value: RunMath.formatKm(bests.longestRunMeters), unit: "km")
-                BestTile(title: "최고 페이스", value: RunMath.formatPace(bests.bestPaceSecondsPerKm), unit: "/km")
-                BestTile(title: "최장 연속", value: "\(bests.longestStreakDays)", unit: "일")
+                StatCard(title: "최장 거리", value: RunMath.formatKm(bests.longestRunMeters), unit: "km")
+                StatCard(title: "최고 페이스", value: RunMath.formatPace(bests.bestPaceSecondsPerKm), unit: "/km")
+                StatCard(title: "최장 연속", value: "\(bests.longestStreakDays)", unit: "일")
             }
+            // 기록 탭(2열) 타일을 3열로 쓰면 "05'30\"" 같은 값이 넘친다 — 환경으로 내려가 StatCard 안 Text에 적용된다
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
         }
     }
 }
@@ -126,12 +136,12 @@ struct LevelCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 Circle()
-                    .fill(level.tier.accent)   // 블랙 레벨이 다크 모드 카드 위에서 안 보이지 않게
+                    .fill(Color.primary)   // 레벨 컬러는 PrimaryButton 전용(Theme.swift) — 카드·진행바는 흑백
                     .frame(width: 56, height: 56)
                     .overlay(
                         Text("\(level.number)")
                             .font(.title2.weight(.bold))
-                            .foregroundStyle(level.tier.onAccent)
+                            .foregroundStyle(Color(.systemBackground))
                     )
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(level.title) 레벨")
@@ -144,7 +154,7 @@ struct LevelCard: View {
             }
 
             ProgressView(value: level.progress)
-                .tint(level.tier.accent)
+                .tint(.primary)
                 .accessibilityLabel("\(level.title) 레벨 진행도")
 
             if let next = level.nextTier, let remaining = level.remainingMeters {
@@ -184,6 +194,7 @@ private struct ChallengeRow: View {
                 .font(.title3)
                 .frame(width: 28)
                 .foregroundStyle(status.isCompleted ? Color.primary : Color.secondary)
+                .accessibilityHidden(true)   // 심볼 이름("Checkmark Seal")이 제목보다 먼저 읽히지 않게
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(status.challenge.title)
@@ -195,42 +206,13 @@ private struct ChallengeRow: View {
                 }
                 ProgressView(value: status.fraction)
                     .tint(.primary)
-                    .accessibilityLabel(status.challenge.title)
                 Text(valueText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .padding(14)
-    }
-}
-
-// MARK: - 최고 기록 타일
-
-private struct BestTile: View {
-    let title: String
-    let value: String
-    let unit: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.title3.weight(.bold))
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
-                Text(unit)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Color.card)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .combine)   // 아이콘·제목·남은 일수·진행바·값이 5번 멈추지 않게 한 요소로
     }
 }
 
@@ -241,6 +223,8 @@ struct BadgeCell: View {
     let isEarned: Bool
     var earnedAt: Date? = nil
     let progress: Double
+    /// 고정 28pt면 큰 글씨에서 2줄 캡션이 프레임 밖으로 넘쳐 아래 행 그림과 겹친다
+    @ScaledMetric(relativeTo: .caption2) private var captionHeight: CGFloat = 28
 
     var body: some View {
         VStack(spacing: 8) {
@@ -254,7 +238,7 @@ struct BadgeCell: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
-                .frame(height: 28, alignment: .top)
+                .frame(height: captionHeight, alignment: .top)
         }
         .frame(maxWidth: .infinity)
         .opacity(isEarned ? 1 : 0.85)
@@ -262,10 +246,11 @@ struct BadgeCell: View {
         .accessibilityValue(isEarned ? "획득" : "잠김")
     }
 
-    /// 획득: "2026.08.27 획득" / 잠김: 진행도 "3/7일", "6.00/50.00 km", "3/10회"
+    /// 획득: "2026. 08. 27. 획득" / 잠김: 진행도 "3/7일", "6.00/50.00 km", "3/10회"
     private var caption: String {
         if isEarned {
-            if let earnedAt { return earnedAt.formatted(.dateTime.year().month(.twoDigits).day(.twoDigits)) + " 획득" }
+            // 기기 언어가 영어면 "08/27/2026"이 된다 — 한국어 전용 앱이라 로케일 고정
+            if let earnedAt { return earnedAt.formatted(.dateTime.year().month(.twoDigits).day(.twoDigits).locale(Locale(identifier: "ko_KR"))) + " 획득" }
             return badge.detail
         }
         switch badge.category {
@@ -291,23 +276,26 @@ struct BadgeArt: View {
     var size: CGFloat = 72
 
     var body: some View {
-        if let ui = UIImage(named: badge.imageName) {
-            Image(uiImage: ui)
-                .resizable()
-                .scaledToFit()
+        Group {
+            if let ui = UIImage(named: badge.imageName) {
+                Image(uiImage: ui)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size, height: size)
+                    .saturation(isEarned ? 1 : 0)
+                    .opacity(isEarned ? 1 : 0.5)
+            } else {
+                ZStack {
+                    Circle()
+                        .fill(isEarned ? Color.primary : Color.gray.opacity(0.15))
+                    Image(systemName: badge.symbolName)
+                        .font(.system(size: size * 0.39, weight: .semibold))
+                        .foregroundStyle(isEarned ? Color(.systemBackground) : Color.gray.opacity(0.6))
+                }
                 .frame(width: size, height: size)
-                .saturation(isEarned ? 1 : 0)
-                .opacity(isEarned ? 1 : 0.5)
-        } else {
-            ZStack {
-                Circle()
-                    .fill(isEarned ? Color.primary : Color.gray.opacity(0.15))
-                Image(systemName: badge.symbolName)
-                    .font(.system(size: size * 0.39, weight: .semibold))
-                    .foregroundStyle(isEarned ? Color(.systemBackground) : Color.gray.opacity(0.6))
             }
-            .frame(width: size, height: size)
         }
+        .accessibilityHidden(true)   // 그림은 옆·아래 제목이 설명한다 — 심볼 이름("Flag Checkered")이 읽히지 않게
     }
 }
 

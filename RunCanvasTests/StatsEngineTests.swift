@@ -100,4 +100,21 @@ final class StatsEngineTests: XCTestCase {
         XCTAssertEqual(y[7].distanceMeters, 22_000)   // 8월
         XCTAssertEqual(y[6].distanceMeters, 6_000)    // 7월
     }
+
+    func testChartAxisLabelsStayReadableAndKeepPeriodEdges() {
+        let month = StatsEngine.buckets(runs: [], period: .month, now: date(9, 15), calendar: calendar)
+        let monthLabels = StatsEngine.axisLabels(buckets: month, period: .month)
+        XCTAssertEqual(monthLabels.count, 5)
+        XCTAssertEqual(monthLabels.first, "1")
+        XCTAssertEqual(monthLabels.last, "30")
+
+        let year = StatsEngine.buckets(runs: [], period: .year, now: date(9, 15), calendar: calendar)
+        let yearLabels = StatsEngine.axisLabels(buckets: year, period: .year)
+        XCTAssertEqual(yearLabels.count, 6)
+        XCTAssertEqual(yearLabels.first, "1월")
+        XCTAssertEqual(yearLabels.last, "12월")
+
+        let week = StatsEngine.buckets(runs: [], period: .week, now: date(9, 15), calendar: calendar)
+        XCTAssertEqual(StatsEngine.axisLabels(buckets: week, period: .week).count, 7)
+    }
 }

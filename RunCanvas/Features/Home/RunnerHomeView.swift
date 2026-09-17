@@ -22,7 +22,6 @@ struct RunnerHomeView: View {
 /// 현재 계정의 기록만 조회 (ownerID 필터)
 private struct HomeContent: View {
     @Query private var runs: [Run]
-    @Environment(\.levelTier) private var tier
     private let ownerID: UUID?
 
     init(ownerID: UUID?) {
@@ -37,95 +36,103 @@ private struct HomeContent: View {
         return runs.prefix { cal.isDateInToday($0.startedAt) }.reduce(0) { $0 + $1.distanceMeters }
     }
 
+    private var totalMeters: Double { runs.reduce(0) { $0 + $1.distanceMeters } }
+
+    private var weekMeters: Double {
+        StatsEngine.summary(runs: runs.map(\.badgeRun), period: .week).totalMeters
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-
-            // 상단 프로필
-            ProfileHeader()
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
+            // 프로필·오늘 지도·시작 버튼은 항상 보이게 두고,
+            // 스크롤은 아래의 최근 기록 영역에서만 일어난다.
+            VStack(spacing: 20) {
+                ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
+                todayRunMap
+                startRunButton
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
 
             ScrollView {
-                VStack(spacing: 28) {
+                recentRunsSection
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+            }
+        }
+    }
 
-                    // 오늘의 러닝 — 현재 위치 지도 위에 (위치 권한은 러닝 화면에서 받고, 허용돼 있으면 내 위치가 보인다)
-                    ZStack(alignment: .bottomLeading) {
-                        Map(position: .constant(.userLocation(fallback: .automatic)), interactionModes: []) {
-                            UserAnnotation()
-                        }
-                        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
-                        .mapControlVisibility(.hidden)
+    private var todayRunMap: some View {
+        ZStack(alignment: .bottomLeading) {
+            Map(position: .constant(.userLocation(fallback: .automatic)), interactionModes: []) {
+                UserAnnotation()
+            }
+            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+            .mapControlVisibility(.hidden)
 
-                        LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
+            LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("오늘의 러닝")
-                                .font(.headline)
-                            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                                Text(RunMath.formatKm(todayMeters))
-                                    .font(.system(size: 52, weight: .bold))
-                                Text("km")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(20)
-                    }
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .padding(.top, 8)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("오늘의 러닝")
+                    .font(.headline)
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(RunMath.formatKm(todayMeters))
+                        .font(.system(size: 52, weight: .bold))
+                    Text("km")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(20)
+        }
+        .frame(height: 220)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
 
-                    // 러닝 시작 버튼
+    private var startRunButton: some View {
+        NavigationLink {
+            RunView(startImmediately: true)
+        } label: {
+            PrimaryButtonLabel(title: "러닝 시작", systemImage: "figure.run")
+        }
+    }
+
+    private var recentRunsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("최근 러닝")
+                    .font(.headline)
+                Spacer()
+                if !runs.isEmpty {
                     NavigationLink {
-                        RunView(startImmediately: true)
+                        RunListView(ownerID: ownerID)
                     } label: {
-                        HStack {
-                            Image(systemName: "figure.run")
-                            Text("러닝 시작")
-                        }
-                        .font(.headline)
-                        .foregroundStyle(tier?.onAccent ?? Color(.systemBackground))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(tier?.accent ?? Color.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-
-                    // 최근 러닝
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("최근 러닝")
-                                .font(.headline)
-                            Spacer()
-                            if !runs.isEmpty {
-                                NavigationLink("전체 보기") {
-                                    RunListView(ownerID: ownerID)
-                                }
-                                .font(.subheadline)
-                            }
-                        }
-
-                        if runs.isEmpty {
-                            Text("아직 기록이 없어요. 첫 러닝을 시작해 보세요.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                                .background(Color.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        } else {
-                            ForEach(runs.prefix(3)) { run in
-                                NavigationLink {
-                                    RunDetailView(run: run)
-                                } label: {
-                                    RunHistoryRow(run: run)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                        Text("전체 보기")
+                            .font(.subheadline)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
+            }
+
+            if runs.isEmpty {
+                Text("아직 기록이 없어요. 첫 러닝을 시작해 보세요.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            } else {
+                ForEach(runs.prefix(3)) { run in
+                    NavigationLink {
+                        RunDetailView(run: run)
+                    } label: {
+                        RunHistoryRow(run: run)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
@@ -142,9 +149,11 @@ struct RunHistoryRow: View {
 
             VStack(alignment: .leading) {
                 Text("\(RunMath.formatKm(run.distanceMeters)) km")
+                    .accessibilityIdentifier("runHistoryDistance")
                     .fontWeight(.semibold)
 
-                Text("\(RunMath.formatDuration(run.movingSeconds)) · \(RunMath.formatPace(run.paceSecondsPerKm)) · \(run.startedAt.formatted(.dateTime.month().day()))")
+                // 기기 언어가 영어여도 "9월 6일" — 한국어 전용 앱이라 로케일을 고정
+                Text("\(RunMath.formatDuration(run.movingSeconds)) · \(RunMath.formatPace(run.paceSecondsPerKm)) · \(run.startedAt.formatted(.dateTime.month().day().locale(Locale(identifier: "ko_KR"))))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -157,7 +166,7 @@ struct RunHistoryRow: View {
         }
         .padding()
         .background(Color.card)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 

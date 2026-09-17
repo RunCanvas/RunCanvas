@@ -16,7 +16,7 @@
 
 - iOS 18.5+, Xcode 26, `SWIFT_VERSION = 5.0`, SwiftUI만 (UIKit은 `ImageRenderer`·`UIImageWriteToSavedPhotosAlbum` 같은 브릿지에만).
 - 외부 의존성은 `supabase-swift` 하나. 구글/카카오 네이티브 SDK 추가 금지 — Supabase OAuth(웹) 플로우 사용.
-- 서명: `DEVELOPMENT_TEAM`·`PRODUCT_BUNDLE_IDENTIFIER`는 gitignore된 `Config/Base.xcconfig`에만. `Base.example.xcconfig`를 복사해 팀원별 값을 설정한다. entitlements·capability에 팀 종속 식별자 하드코딩 금지 → `$(PRODUCT_BUNDLE_IDENTIFIER)` 기반. Xcode Signing 탭에서 Team 변경 금지.
+- 서명: 기본값(`DEVELOPMENT_TEAM`·`APP_BUNDLE_ID`)은 커밋된 `Config/Base.xcconfig`에 있고, 팀원은 gitignore된 `Config/Local.xcconfig`에 두 줄로 덮어쓴다. 앱·워치·테스트 번들 ID는 전부 `APP_BUNDLE_ID` 하나에서 파생. entitlements·capability에 팀 종속 식별자 하드코딩 금지 → `$(PRODUCT_BUNDLE_IDENTIFIER)` 기반. Xcode Signing 탭에서 Team 변경 금지(pbxproj에 개인 값이 박힌다).
 - Supabase Apple 프로바이더 Client IDs에 팀원 번들 ID가 있어야 그 폰에서 Apple 로그인이 됨 (현재 `name.dongharyu.RunCanvas, name.daun.RunCanvas, com.daun1997.RunCanvas`).
 - git-flow: `feature/<기능>` → PR → `develop`. 커밋 메시지에 AI 작성 문구 없음. `main`/`develop` 직접 푸시 금지. Xcode가 pbxproj를 재정렬한 내용 없는 변경은 커밋하지 말고 되돌린다.
 - 빈 폴더에 `.gitkeep` 금지 (Xcode 동기화 폴더가 리소스로 복사해 빌드 깨짐). 폴더는 첫 파일과 함께 생성.
@@ -30,7 +30,7 @@
 
 ### MVP 1.0 기능
 
-| # | 기능 | 와이어프레임 | 상태 (2026-08-27) |
+| # | 기능 | 와이어프레임 | 상태 (2026-09-06) |
 |---|---|---|---|
 | F1 | 회원가입/로그인 — 구글·카카오·애플 | 스플래시 → 로그인 | **완료** — `LoginView`(Apple 기본 버튼 + 구글·카카오), 계정 연결/해제, 탈퇴 |
 | F2 | 마이페이지 — 닉네임·키·체중·프로필 이미지·로그아웃 | 러닝 설정 화면 | **완료** — `SettingsView` + `ProfileEditView`, 첫 로그인 `ProfileSetupView` |
@@ -45,11 +45,16 @@
 | F11 | 기록 이미지 저장 및 공유 | 런꾸 4 | **완료** — 사진 앱 저장 · 공유 · 앱에 저장(`CanvasStorage`) |
 | F12 | 음성 안내 — 러닝 중 거리·시간·페이스 읽어주기 (NRC식, 2026-08-27 추가 결정) | 러닝 중 | **완료** — `VoiceCoach`(내장 TTS 기본 음성, 음악 덕킹), 설정에서 켬/끔·간격 |
 | F13 | 주요 버튼 색 = 사용자 레벨 컬러 (NRC식, 2026-08-28 추가 결정) | 러닝 시작·일시정지·재개 | **완료** — `levelTier` 환경값, `PrimaryButton`·홈 러닝 시작만 (탭·링크·차트는 흑백) |
+| F14 | 마라톤 일정 — 서버에서 받아 포스터 카드로, 종류·거리·지역 필터 (2026-09-06 추가, 원래 2.0) | (신규 화면) | **완료** — `MarathonScheduleView`·`MarathonService`, `scripts/sync_marathons.py` + Actions 6시간 주기 |
+| F15 | 러닝 코스 — 내 기록을 코스로 공유(지역별), 남의 코스 따라뛰기 (2026-09-06 추가, 원래 2.0) | (신규 화면) | **완료** — `CourseListView`·`CourseService`, Supabase `courses` |
+| F16 | 트레이닝 — 내장 프로그램(런데이식 8주 5K 등) + 사용자 제작, 구간 타이머·음성 (2026-09-06 추가, 원래 2.0) | (신규 화면) | **완료** — `TrainingProgramListView`·`TrainingEngine`·`TrainingStore` |
 | — | 서버 동기화 · TestFlight | — | 동기화 **완료**(7.1) · 출시 준비 **남음 → Phase 7.2** |
 
 ### MVP 2.0 (이 플랜 범위 밖, 스키마만 대비)
 
-서버 챌린지(친구·단체, 뱃지 부여), 한국 마라톤 일정 뷰, 런꾸 월말/연말정산, Apple Watch 앱, 다른 기기로 기록 복원(서버→로컬 다운로드).
+서버 챌린지(친구·단체, 뱃지 부여), 뱃지 획득 풀스크린 연출, 음성 목소리 선택, 코스 즐겨찾기·인기순 정렬, 트레이닝 진행 서버 저장.
+
+원래 2.0으로 잡았다가 1.0에 들어온 것: Apple Watch 앱(2026-08-28), 다른 기기로 기록 복원(PR #22), 마라톤 일정 뷰·런꾸 정산·러닝 코스·트레이닝 프로그램(2026-09-06).
 
 ### 확정된 설계 결정
 
@@ -153,6 +158,25 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - `RunSession(coach:)`: 시작·일시정지·재개·종료 한 마디 + 설정 간격(500m/1km/2km)마다 거리·시간·페이스. 매초 틱의 `checkVoiceCue()`.
 - `VoiceSettingsView`(설정 → 러닝 설정 → 음성 안내): 켬/끔, 간격(500m/1km/2km), 미리 듣기. `Info.plist` UIBackgroundModes에 `audio` 추가.
 - 사용자 결정(2026-08-27): 음성은 기본 하나(Yuna). 목소리 선택·다른 언어·녹음 목소리는 2.0.
+
+### 러닝 코스 · 트레이닝 (PR #39, 플랜 외 추가)
+
+- **코스**: 기록 상세 → "코스로 등록"(이름·지역) → Supabase `courses`. 읽기는 전체 공개, 쓰기는 본인만(RLS).
+  올릴 때 경로 앞뒤 150m를 자른다(`CourseGeometry.trimmed`) — 안 자르면 코스가 아니라 집·회사를 공유하는 셈이고,
+  자르고 600m 미만이면 등록을 거부한다. 목록은 지역 칩으로 거르고(`KoreaRegion`), 상세에서 "이 코스로 달리기".
+- **따라뛰기**: `RunView(startImmediately:course:)`. 러닝 화면 위에 진행률 바, 50m 넘게 벗어나면 음성으로 한 번만 알린다.
+  계산은 `CourseGeometry`(nearestIndex/progress/offCourseMeters) 순수 함수 — 위치가 갱신될 때만 다시 돈다.
+- **트레이닝**: 내장 3개(8주 5K 24세션·30분 달리기 12세션·1분 인터벌) + 사용자 제작(`ProgramEditorView`, 30초 단위).
+  실행은 `RunCoordinator`를 그대로 써서 GPS 기록이 평소처럼 남고, 구간 전환은 `VoiceCoach`가 읽는다(`RunSession.announce`).
+  진행 상황은 `TrainingStore`(UserDefaults, 계정별) — 뱃지와 같은 방식.
+
+### 마라톤 일정 (PR #35·#36·#37, 플랜 외 추가)
+
+- 데이터는 서버에 둔다 — 앱에 JSON 을 박으면 일정 하나 바꾸는 데 앱 심사를 다시 받아야 한다.
+- `scripts/sync_marathons.py`: kormarathon 월별 목록 + 대회 상세 페이지(포스터·접수기간·참가비) → Supabase `marathon_events` upsert. GitHub Actions 6시간마다, 끝난 일정은 DB·목록에서 삭제. 상세는 DB에 포스터가 없는 대회만 조회한다.
+- `MarathonService`: 서버 → 로컬 캐시 → 번들 씨앗(`Resources/marathons.json`) 3단 폴백. 왜 옛 목록인지 화면에 알려 준다.
+- `MarathonScheduleView`: 포스터 카드(D-데이·접수 중 배지, 날짜·지역·종목 칩·참가비·신청) + 카테고리 칩 3줄(종류·거리·지역) + 월별 섹션. 톤은 레벨·뱃지 화면과 동일.
+- 주의: PostgREST 벌크 upsert 는 배열 안 객체 키가 전부 같아야 한다(PGRST102). `updated_at` 은 업서트 때 기본값이 다시 붙지 않으므로 직접 넣는다. 공공데이터포털 CSV 는 2024년에서 멈춰 있고 러너에서 타임아웃이라 뺐다.
 
 ### Phase 5 — 레벨/뱃지 (PR #15·#16)
 - `Level`(Tier yellow→volt 7단계, 0/50/250/1000/2500/5000/15000km), `Badge` 19종(거리·누적·연속·횟수·시간대, `imageName`/`symbolName` 폴백), `Challenge.all` 4개(주 3회, 월 50km, 월 8회, 월 10K).
@@ -258,7 +282,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - **앱 아이콘이 비어 있음(iOS·워치 둘 다 슬롯만 있고 이미지 0개) — 제출 블로커.** 1024 + 다크/틴트, 런치 스크린 색, `MARKETING_VERSION`(현재 1.0)·빌드 번호.
 - 권한 문구 재검토: 위치(러닝 중 백그라운드 인디케이터 문구 포함)·건강 읽기/쓰기·사진 추가.
 - **Google OAuth 동의 화면 Testing → Publish**(지금은 테스트 사용자 2명만 로그인 가능), **카카오 앱 아이콘 교체**(임시 PNG), 카카오 비즈 앱 검수 항목 확인.
-- App Store Connect 앱 등록(번들 `name.dongharyu.RunCanvas`, 동하 계정) → Archive → TestFlight 내부 테스트(다은 = 내부 테스터). 업로드는 번들 소유자인 동하만.
+- App Store Connect 앱 등록(번들 `com.daun1997.RunCanvas`, 다은 계정) → Archive → TestFlight 내부 테스트. 업로드와 배포 관리는 공식 소유자인 다은 계정에서 진행한다.
 - 심사 대비 체크: Apple 로그인 ✅, 계정 삭제 ✅(5.1.1(v)), 개인정보 처리방침 URL(위치·건강 데이터 언급) 준비, 건강 데이터는 광고·제3자 공유 없음 명시.
 
 ---
@@ -269,7 +293,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 뱃지 획득 연출 풀스크린(NRC식) + 획득 뱃지 공유 카드, 런꾸 뱃지 스티커(6.3에 일부 선반영).
 - 음성 안내 2.0: 목소리 선택(Azure 한국어 10개·클로바 등으로 조각 음성 팩 생성해 앱에 내장 — 대본은 숫자 0~59·단위·시작/종료 약 150조각), 영어, 가이드 런/코칭, 시간 기준 안내, 목표 페이스 대비 빠름/느림 알림, 워치.
 - 챌린지 트로피: 완료한 챌린지를 월별 트로피로 모아 보기(스트라바식). 서버 챌린지와 같이 설계 — 완료 키는 이미 `BadgeStore.completedChallenges`에 `id@2026-08`로 저장 중.
-- 한국 마라톤 일정: 정적 JSON(`Resources/marathons.json`, 월 1회 갱신) → 목록/캘린더 뷰. 외부 API 없음.
+- (마라톤 일정은 1.0에 들어옴 — 정적 JSON 대신 Supabase `marathon_events` + 6시간 동기화. 2.0 후보: 관심 대회 알림, 캘린더 뷰, 접수 시작 알림)
 - 런꾸 월말/연말정산: `runs` 집계 + 해당 기간 `decoratedImageFilename` 콜라주 → `ImageRenderer`.
 - (Apple Watch 앱은 1.0에 들어옴 — Phase 3 참고)
 - Apple 웹 로그인(.p8) 필요 시. (서버 → 로컬 복원은 1.0에 포함됨)

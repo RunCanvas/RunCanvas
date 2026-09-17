@@ -77,6 +77,18 @@ final class ChallengeEngineTests: XCTestCase {
         XCTAssertEqual(ChallengeEngine.periodKey(.month, now: date(8, 27), calendar: calendar), "2026-08")
         XCTAssertEqual(ChallengeEngine.periodKey(.week, now: date(8, 27), calendar: calendar), "2026-W35")
     }
+
+    func testPeriodKeysUseGregorianYearWithNonGregorianDeviceCalendars() {
+        for identifier in [Calendar.Identifier.japanese, .buddhist] {
+            var deviceCalendar = Calendar(identifier: identifier)
+            deviceCalendar.timeZone = calendar.timeZone
+            deviceCalendar.firstWeekday = calendar.firstWeekday
+            deviceCalendar.minimumDaysInFirstWeek = calendar.minimumDaysInFirstWeek
+
+            XCTAssertEqual(ChallengeEngine.periodKey(.month, now: date(8, 27), calendar: deviceCalendar), "2026-08")
+            XCTAssertEqual(ChallengeEngine.periodKey(.week, now: date(8, 27), calendar: deviceCalendar), "2026-W35")
+        }
+    }
 }
 
 final class BadgeStoreTests: XCTestCase {

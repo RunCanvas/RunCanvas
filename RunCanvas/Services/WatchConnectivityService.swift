@@ -7,7 +7,33 @@ enum WorkoutSyncAction: String {
     case pause
     case resume
     case end
+    /// (워치 쪽 WorkoutSyncAction 과 같은 목록이어야 한다. 예전의 .discard 는 뺐다 — 워치 기록을 원격으로 지우는 명령은 없다)
     case unavailable
+}
+
+/// 워치가 러닝을 끝내며 보내는 요약. 스냅샷과 달리 transferUserInfo 로 가므로
+/// 폰 앱이 꺼져 있어도 큐에 남았다가 배달된다 — 건강 앱 권한이 없어도 기록이 남는 길.
+struct FinishedWatchWorkout {
+    let workoutID: UUID
+    let startedAt: Date
+    let endedAt: Date
+    let distanceMeters: Double
+    let calories: Double
+    let averageHeartRate: Double?
+    let maxHeartRate: Double?
+
+    init?(_ message: [String: Any]) {
+        guard let idString = message["workoutID"] as? String, let workoutID = UUID(uuidString: idString),
+              let start = message["startedAt"] as? TimeInterval,
+              let end = message["endedAt"] as? TimeInterval, end > start else { return nil }
+        self.workoutID = workoutID
+        self.startedAt = Date(timeIntervalSince1970: start)
+        self.endedAt = Date(timeIntervalSince1970: end)
+        self.distanceMeters = message["distanceMeters"] as? Double ?? 0
+        self.calories = message["calories"] as? Double ?? 0
+        self.averageHeartRate = message["averageHeartRate"] as? Double
+        self.maxHeartRate = message["maxHeartRate"] as? Double
+    }
 }
 
 struct WatchWorkoutSnapshot {
@@ -26,9 +52,13 @@ final class WatchConnectivityService: NSObject, ObservableObject {
 
     var onCommand: ((WorkoutSyncAction, UUID) -> Void)?
     var onSnapshot: ((WatchWorkoutSnapshot) -> Void)?
+    /// 워치가 끝낸 러닝 요약 — 폰이 실시간으로 못 받았어도 기록으로 남긴다
+    var onFinishedWorkout: ((FinishedWatchWorkout) -> Void)?
 
     private let session: WCSession?
     private var latestCommandTimestamp: TimeInterval = 0
+    private static let maxStartCommandAge: TimeInterval = 120
+    private static let allowedClockSkew: TimeInterval = 30
 
     override init() {
         session = WCSession.isSupported() ? .default : nil
@@ -37,11 +67,24 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session?.activate()
     }
 
-    /// 명령은 transferUserInfo — 워치가 잠깐 안 닿아도 큐에 쌓였다가 반드시 배달된다.
-    /// (sendMessage로 보내면 isReachable false일 때 조용히 사라져서 워치 워크아웃이 안 끝났다)
-    func sendCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
+    /// 큐로 유실을 막고, 연결 중에는 같은 명령을 즉시 전송한다. 수신 타임스탬프로 중복을 거른다.
+    func sendCommand(
+        _ action: WorkoutSyncAction,
+        sessionID: UUID,
+        finalDistanceMeters: Double? = nil,
+        finalElapsedSeconds: Int? = nil
+    ) {
         guard let session, session.activationState == .activated, session.isWatchAppInstalled else { return }
-        session.transferUserInfo(commandMessage(action, sessionID: sessionID))
+        let message = Self.commandMessage(
+            action,
+            sessionID: sessionID,
+            finalDistanceMeters: finalDistanceMeters,
+            finalElapsedSeconds: finalElapsedSeconds
+        )
+        session.transferUserInfo(message)
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: nil)
+        }
     }
 
     func sendSnapshot(
@@ -63,13 +106,22 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         send(message)   // 스냅샷은 유실돼도 다음 주기에 덮어써지니 sendMessage로 충분
     }
 
-    private func commandMessage(_ action: WorkoutSyncAction, sessionID: UUID) -> [String: Any] {
-        [
+    static func commandMessage(
+        _ action: WorkoutSyncAction,
+        sessionID: UUID,
+        finalDistanceMeters: Double? = nil,
+        finalElapsedSeconds: Int? = nil,
+        timestamp: TimeInterval = Date().timeIntervalSince1970
+    ) -> [String: Any] {
+        var message: [String: Any] = [
             "kind": "command",
             "action": action.rawValue,
             "sessionID": sessionID.uuidString,
-            "timestamp": Date().timeIntervalSince1970
+            "timestamp": timestamp
         ]
+        if let finalDistanceMeters { message["finalDistanceMeters"] = finalDistanceMeters }
+        if let finalElapsedSeconds { message["finalElapsedSeconds"] = finalElapsedSeconds }
+        return message
     }
 
     private func send(_ message: [String: Any]) {
@@ -77,7 +129,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session.sendMessage(message, replyHandler: nil, errorHandler: nil)
     }
 
-    private func receive(_ message: [String: Any]) {
+    func receive(_ message: [String: Any]) {
         guard let kind = message["kind"] as? String,
               let idString = message["sessionID"] as? String,
               let sessionID = UUID(uuidString: idString) else { return }
@@ -86,9 +138,18 @@ final class WatchConnectivityService: NSObject, ObservableObject {
            let rawAction = message["action"] as? String,
            let action = WorkoutSyncAction(rawValue: rawAction) {
             let timestamp = message["timestamp"] as? TimeInterval ?? 0
-            guard timestamp > latestCommandTimestamp else { return }
+            guard timestamp.isFinite, timestamp > latestCommandTimestamp else { return }
+            if action == .start {
+                // transferUserInfo의 오래된 start는 몇 시간 뒤 재생될 수 있다. 타임스탬프 없는 구버전 메시지도 안전하게 버린다.
+                guard Self.isFreshStartCommand(timestamp: timestamp) else { return }
+            }
             latestCommandTimestamp = timestamp
             onCommand?(action, sessionID)
+            return
+        }
+
+        if kind == "finished", let finished = FinishedWatchWorkout(message) {
+            onFinishedWorkout?(finished)
             return
         }
 
@@ -107,6 +168,12 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         isPaired = session.isPaired
         isWatchAppInstalled = session.isWatchAppInstalled
         isReachable = session.isReachable
+    }
+
+    static func isFreshStartCommand(timestamp: TimeInterval, now: TimeInterval = Date().timeIntervalSince1970) -> Bool {
+        guard timestamp.isFinite, timestamp > 0 else { return false }
+        let age = now - timestamp
+        return age >= -allowedClockSkew && age < maxStartCommandAge
     }
 }
 

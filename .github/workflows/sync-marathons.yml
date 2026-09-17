@@ -1,0 +1,53 @@
+name: 마라톤 일정 동기화
+
+# 앱에 일정을 박아 두면 하나 바꿀 때마다 앱 심사를 다시 받아야 한다.
+# 데이터는 Supabase 에 두고 이 작업이 주기적으로 갱신한다.
+on:
+  schedule:
+    - cron: "0 */6 * * *"       # 6시간마다 — 인기 대회는 접수가 열리고 몇 시간 만에 마감된다
+  workflow_dispatch:            # 수동 실행도 가능
+    inputs:
+      months:
+        description: "이번 달부터 몇 달치를 볼지"
+        default: "8"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # 씨앗 JSON 갱신분을 push 한다 (기본 토큰은 읽기 전용일 수 있다)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 파서·업로드 형식이 깨졌으면 남의 사이트를 200번 긁기 전에 여기서 걸린다
+      - name: 스크립트 자체 점검
+        run: python3 scripts/test_sync_marathons.py
+
+      # 출처가 바뀌어 0건이 되면 스크립트가 실패로 끝난다 → 조용히 비는 것을 막는다
+      - name: 일정 수집 후 Supabase 갱신
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 scripts/sync_marathons.py \
+            --months "${{ github.event.inputs.months || '8' }}" \
+            --out RunCanvas/Resources/marathons.json
+
+      # 서버가 안 될 때 앱이 쓰는 씨앗 JSON도 같이 최신으로 유지한다
+      - name: 씨앗 JSON 갱신분 커밋
+        run: |
+          if git diff --quiet -- RunCanvas/Resources/marathons.json; then
+            echo "씨앗 JSON 변경 없음"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add RunCanvas/Resources/marathons.json
+          git commit -m "마라톤 일정 씨앗 JSON 자동 갱신"
+          # 수동 실행에서 고른 브랜치의 커밋을 develop에 잘못 밀지 않고, 동시 갱신도 먼저 흡수한다.
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin HEAD:"$GITHUB_REF_NAME"

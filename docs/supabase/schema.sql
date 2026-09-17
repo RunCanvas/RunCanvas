@@ -36,11 +36,11 @@ alter table public.runs        enable row level security;
 alter table public.user_badges enable row level security;
 
 create policy "own profile" on public.profiles
-  for all using (auth.uid() = id) with check (auth.uid() = id);
+  for all using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 create policy "own runs" on public.runs
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "own badges" on public.user_badges
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true);
 create policy "avatar read" on storage.objects
@@ -75,3 +75,101 @@ create policy "avatar delete own folder" on storage.objects
 
 -- migration "profiles_height_cm" (2026-08-26): 첫 로그인 시 키 입력
 alter table public.profiles add column if not exists height_cm double precision;
+
+-- migration "marathon_events" (2026-09-06): 마라톤·러닝 이벤트 일정 (공개 읽기 전용 데이터)
+-- 앱에 JSON을 박아 두면 일정 하나 바꾸는 데 앱 심사가 필요해서 서버에 둔다.
+-- scripts/sync_marathons.py 가 6시간마다 upsert 하고 지난 일정은 지운다(GitHub Actions).
+create table public.marathon_events (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  name_en text,
+  event_date date,                                  -- 날짜 미정이면 null
+  region text,
+  place text,
+  courses text[] not null default '{}',             -- ["5km","Half","Full"] 등 원본 종목 문자열
+  type text not null default '대회',                -- '대회' | '테마런'
+  tags text[] not null default '{}',                -- 야간 / 기부·공익 / 펫 / 풀코스
+  status text,                                      -- open | closed | scheduled
+  reg_start_date date,
+  reg_end_date date,
+  fee_min integer,
+  image_url text,
+  signup_url text,
+  source text,
+  updated_at timestamptz not null default now()
+);
+-- 동기화 upsert 키. 날짜 미정(null)끼리도 같은 대회로 보도록 NULLS NOT DISTINCT
+create unique index marathon_events_name_date on public.marathon_events (name, event_date) nulls not distinct;
+create index marathon_events_date on public.marathon_events (event_date);
+
+alter table public.marathon_events enable row level security;
+-- 공개 일정이라 로그인 없이 읽는다. 쓰기는 service_role(동기화 스크립트)만.
+create policy "마라톤 일정 읽기" on public.marathon_events
+  for select using (true);
+
+-- migration "courses" (2026-09-06): 사용자가 등록해 공유하는 러닝 코스
+-- 기록 하나를 코스로 올리면 지역별로 누구나 받아서 "따라뛰기" 한다.
+-- 경로 앞뒤는 클라이언트가 잘라서 올린다(집·직장이 그대로 드러나지 않게) — CourseGeometry.trimmed
+create table public.courses (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  owner_nickname text not null default '',        -- 목록에서 조인 없이 보여주려고 복사해 둔다
+  name text not null,
+  region text not null,                           -- '서울' 등 앱의 지역 칩과 같은 문자열
+  distance_m double precision not null,
+  path jsonb not null,                            -- [{"lat":..,"lon":..}]
+  created_at timestamptz not null default now()
+);
+create index courses_region on public.courses (region, created_at desc);
+
+alter table public.courses enable row level security;
+-- 공유가 목적이라 읽기는 열고, 쓰기는 본인 것만
+create policy "코스 읽기" on public.courses
+  for select using (true);
+-- (select auth.uid()) 로 감싸는 이유: 그냥 auth.uid() 를 쓰면 행마다 다시 평가된다(Supabase 린트 0003)
+create policy "본인 코스 등록" on public.courses
+  for insert with check ((select auth.uid()) = owner_id);
+create policy "본인 코스 수정" on public.courses
+  for update using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
+create policy "본인 코스 삭제" on public.courses
+  for delete using ((select auth.uid()) = owner_id);
+
+-- migration "courses_guardrails_and_rls_initplan" (2026-09-07): 공개 목록을 과도한 이름·경로 한 건이 망가뜨리지 않게 제한.
+-- 앱도 같은 값을 알고 있다(CourseGeometry.maxPathPoints, CourseService.CourseError.tooLong) — 여기가 최종 방어선.
+-- 적용 당시 courses 가 0행이라 NOT VALID 없이 바로 검증했다. 기존 데이터가 있는 환경에 옮길 때는
+-- not valid 로 붙이고 위반 행을 정리한 뒤 `alter table public.courses validate constraint ...` 를 실행한다.
+alter table public.courses
+  add constraint courses_name_len check (
+    char_length(name) between 1 and 40 and name ~ '[^[:space:]]'
+  ),
+  add constraint courses_path_size check (
+    case
+      when jsonb_typeof(path) = 'array' then jsonb_array_length(path) between 2 and 5000
+      else false
+    end
+  ),
+  add constraint courses_distance check (distance_m between 300 and 100000);
+
+-- '내 코스만' 필터가 owner_id 로 거른다 — FK 를 덮는 인덱스가 없으면 풀스캔이다
+create index if not exists courses_owner on public.courses (owner_id, created_at desc);
+
+-- 닉네임은 클라이언트가 보낸 값을 믿지 않고 로그인한 사용자의 프로필에서 복사한다.
+create or replace function public.set_course_owner_nickname()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.owner_nickname := coalesce(
+    (select nickname from public.profiles where id = auth.uid()),
+    ''
+  );
+  return new;
+end;
+$$;
+
+drop trigger if exists set_course_owner_nickname on public.courses;
+create trigger set_course_owner_nickname
+  before insert or update on public.courses
+  for each row execute function public.set_course_owner_nickname();

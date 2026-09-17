@@ -7,6 +7,8 @@ enum WorkoutSyncAction: String {
     case pause
     case resume
     case end
+    /// (폰 쪽 WorkoutSyncAction 과 같은 목록이어야 한다. 예전의 .discard 는 뺐다 — 블루투스가 잠깐 끊긴 것만으로
+    ///  워치 워크아웃이 통째로 버려졌다. 워치 기록을 원격으로 지우는 명령은 이제 없다)
     case unavailable
 }
 
@@ -26,6 +28,9 @@ final class WatchConnectivityService: NSObject, ObservableObject {
 
     private let session: WCSession?
     private var latestCommandTimestamp: TimeInterval = 0
+    /// 큐에 오래 남아 있던 시작 명령은 버린다(폰 쪽 WatchConnectivityService 와 같은 값)
+    private static let maxStartCommandAge: TimeInterval = 120
+    private static let allowedClockSkew: TimeInterval = 30
 
     override init() {
         session = WCSession.isSupported() ? .default : nil
@@ -34,7 +39,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
         session?.activate()
     }
 
-    /// 명령은 transferUserInfo — 폰이 잠깐 안 닿아도 큐에 쌓였다가 반드시 배달된다
+    /// 큐로 유실을 막고, 연결 중에는 같은 명령을 즉시 전송한다. 수신 타임스탬프로 중복을 거른다.
     func sendCommand(_ action: WorkoutSyncAction, sessionID: UUID) {
         let message: [String: Any] = [
             "kind": "command",
@@ -42,6 +47,29 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             "sessionID": sessionID.uuidString,
             "timestamp": Date().timeIntervalSince1970
         ]
+        guard let session, session.activationState == .activated else { return }
+        session.transferUserInfo(message)
+        if session.isReachable {
+            session.sendMessage(message, replyHandler: nil, errorHandler: nil)
+        }
+    }
+
+    /// 끝난 러닝 요약. 명령과 같은 transferUserInfo — 폰 앱이 꺼져 있어도 큐에 남았다가 배달된다.
+    /// (스냅샷은 sendMessage 라 폰이 잠들면 사라져서, 워치 단독 러닝이 앱에 안 남았다)
+    func sendFinishedWorkout(sessionID: UUID, workoutID: UUID, startedAt: Date, endedAt: Date,
+                             distanceMeters: Double, calories: Double,
+                             averageHeartRate: Double?, maxHeartRate: Double?) {
+        var message: [String: Any] = [
+            "kind": "finished",
+            "sessionID": sessionID.uuidString,
+            "workoutID": workoutID.uuidString,
+            "startedAt": startedAt.timeIntervalSince1970,
+            "endedAt": endedAt.timeIntervalSince1970,
+            "distanceMeters": distanceMeters,
+            "calories": calories
+        ]
+        if let averageHeartRate { message["averageHeartRate"] = averageHeartRate }
+        if let maxHeartRate { message["maxHeartRate"] = maxHeartRate }
         guard let session, session.activationState == .activated else { return }
         session.transferUserInfo(message)
     }
@@ -80,7 +108,23 @@ final class WatchConnectivityService: NSObject, ObservableObject {
            let action = WorkoutSyncAction(rawValue: rawAction) {
             let timestamp = message["timestamp"] as? TimeInterval ?? 0
             guard timestamp > latestCommandTimestamp else { return }
+            // 왜: transferUserInfo 는 상대가 안 닿아도 큐에 남았다가 다음에 앱이 켜질 때 배달된다.
+            // 몇 시간 전 폰이 보낸 .start 가 그때 도착하면 워치가 갑자기 워크아웃을 시작한다.
+            // .pause/.resume/.end 는 sessionID 가 걸러 주므로 시작 명령만 신선도를 본다.
+            if action == .start, !Self.isFreshStartCommand(timestamp: timestamp) { return }
             latestCommandTimestamp = timestamp
+            // 종료 명령에 폰의 최종 수치가 있으면 먼저 반영한다. 같은 transferUserInfo 한 건에
+            // 수치와 명령을 함께 실어 서로 다른 전송 방식의 도착 순서가 뒤바뀌는 일을 막는다.
+            if action == .end,
+               let distance = message["finalDistanceMeters"] as? Double,
+               let elapsed = message["finalElapsedSeconds"] as? Int {
+                onSnapshot?(PhoneWorkoutSnapshot(
+                    sessionID: sessionID,
+                    state: "finished",
+                    elapsedSeconds: elapsed,
+                    distanceMeters: distance
+                ))
+            }
             onCommand?(action, sessionID)
             return
         }
@@ -92,6 +136,13 @@ final class WatchConnectivityService: NSObject, ObservableObject {
             elapsedSeconds: message["elapsedSeconds"] as? Int ?? 0,
             distanceMeters: message["distanceMeters"] as? Double ?? 0
         ))
+    }
+
+    /// 시작 명령이 "지금 시작하라"는 뜻인지. 폰 쪽 WatchConnectivityService 와 같은 규칙이다.
+    static func isFreshStartCommand(timestamp: TimeInterval, now: TimeInterval = Date().timeIntervalSince1970) -> Bool {
+        guard timestamp.isFinite, timestamp > 0 else { return false }
+        let age = now - timestamp
+        return age >= -allowedClockSkew && age < maxStartCommandAge
     }
 
     private func updateReachability(_ reachable: Bool) {

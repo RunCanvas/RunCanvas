@@ -2,14 +2,39 @@ import XCTest
 
 /// 기록 탭 → 통계·차트 → 전체 기록 목록 스크린샷 (리셋 없이 실행해 이전 러닝 기록이 있으면 실데이터가 보임)
 final class RecordsScreenUITests: XCTestCase {
+    func testAllRecordsOpensDetailAndReturnsRepeatedly() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestSkipLogin", "-uiTestReset", "-uiTestSeedRun"]
+        app.launch()
+        openTab("기록", in: app)
+        XCTAssertTrue(app.navigationBars["러닝 통계"].waitForExistence(timeout: 5))
+
+        let all = app.buttons["전체 보기"]
+        for _ in 0..<5 {
+            if all.exists && all.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(all.waitForExistence(timeout: 5))
+        all.tap()
+        XCTAssertTrue(app.navigationBars["전체 기록"].waitForExistence(timeout: 5))
+
+        for _ in 0..<3 {
+            let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "run-history-")).firstMatch
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+            row.tap()
+            XCTAssertTrue(app.navigationBars["러닝 상세"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["이미지로 저장"].waitForExistence(timeout: 5))
+            app.navigationBars["러닝 상세"].buttons.firstMatch.tap()
+            XCTAssertTrue(app.navigationBars["전체 기록"].waitForExistence(timeout: 5))
+        }
+    }
+
     func testRecordsScreenScreenshots() {
         let app = XCUIApplication()
         app.launchArguments = ["-uiTestSkipLogin"]
         app.launch()
 
-        let recordsTab = app.tabBars.buttons["기록"].exists ? app.tabBars.buttons["기록"] : app.buttons["기록"]
-        XCTAssertTrue(recordsTab.waitForExistence(timeout: 10))
-        recordsTab.tap()
+        openTab("기록", in: app)
         XCTAssertTrue(app.navigationBars["러닝 통계"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 1)
         attach(app, "stats_1")

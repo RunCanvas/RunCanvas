@@ -1,11 +1,17 @@
 import SwiftUI
+import UIKit
 
 struct StickerCanvas: View {
     let background: CanvasBackground
     let run: Run
     @Binding var stickers: [CanvasSticker]
-    @Binding var selectedStickerID: UUID?
+    /// 여러 개를 함께 고를 수 있다 (길게 눌러 추가)
+    @Binding var selection: Set<UUID>
     var isEditing = true
+    var isRotationMode = false
+    var onDeleteSticker: ((UUID) -> Void)? = nil
+    var onEditTextSticker: ((UUID) -> Void)? = nil
+    var onEditBegan: (() -> Void)? = nil
 
     @State private var stickerSizes: [UUID: CGSize] = [:]
     @State private var alignmentGuides = StickerAlignmentGuides()
@@ -13,9 +19,15 @@ struct StickerCanvas: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                CanvasBackgroundView(background: background)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
+                Group {
+                    if background.isTransparent, isEditing {
+                        TransparencyGrid()
+                    } else {
+                        CanvasBackgroundView(background: background)
+                    }
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
 
                 alignmentGuideView(in: geometry.size)
 
@@ -24,20 +36,28 @@ struct StickerCanvas: View {
                         sticker: $sticker,
                         run: run,
                         canvasSize: geometry.size,
-                        isSelected: selectedStickerID == sticker.id,
+                        isSelected: selection.contains(sticker.id),
                         isEditing: isEditing,
-                        onSelect: { selectedStickerID = sticker.id },
+                        isRotationMode: isRotationMode,
+                        onSelect: { selection = [sticker.id] },
+                        onToggleSelect: {
+                            if selection.contains(sticker.id) { selection.remove(sticker.id) }
+                            else { selection.insert(sticker.id) }
+                        },
                         snap: { position in
                             snapped(position, movingID: sticker.id, canvasSize: geometry.size)
                         },
-                        onDragEnded: { alignmentGuides = StickerAlignmentGuides() }
+                        onDragEnded: { alignmentGuides = StickerAlignmentGuides() },
+                        onDelete: { onDeleteSticker?(sticker.id) },
+                        onEditText: { onEditTextSticker?(sticker.id) },
+                        onEditBegan: { onEditBegan?() }
                     )
                 }
             }
             .coordinateSpace(.named("stickerCanvas"))
             .contentShape(Rectangle())
             .onTapGesture {
-                if isEditing { selectedStickerID = nil }
+                if isEditing { selection = [] }
             }
             .onPreferenceChange(StickerSizePreferenceKey.self) { stickerSizes = $0 }
         }
@@ -146,13 +166,29 @@ private struct StickerLayer: View {
     let canvasSize: CGSize
     let isSelected: Bool
     let isEditing: Bool
+    let isRotationMode: Bool
     let onSelect: () -> Void
+    /// 길게 누르면 선택에 넣고 뺀다 (여러 개 함께 고르기)
+    let onToggleSelect: () -> Void
     /// 드래그 위치를 정렬 가이드에 스냅해서 돌려준다
     let snap: (CGPoint) -> CGPoint
     let onDragEnded: () -> Void
+    let onDelete: () -> Void
+    let onEditText: () -> Void
+    let onEditBegan: () -> Void
 
     @State private var dragStartPosition: CGPoint?
     @State private var resizeStartScale: CGFloat?
+    @State private var magnifyStartScale: CGFloat?
+    @State private var rotateStartAngle: Angle?
+    @State private var transformStartScale: CGFloat?
+    @State private var transformStartRotation: Angle?
+    @State private var transformStartDistance: CGFloat?
+    @State private var transformLastTouchAngle: Double?
+    @State private var transformAccumulatedRotation: Double = 0
+
+    /// 핀치와 모서리 손잡이가 같은 한계를 쓴다 — 따로 두면 핀치로 3.5배 키운 뒤 손잡이를 잡는 순간 3배로 튄다
+    private static let scaleRange: ClosedRange<CGFloat> = 0.3...4
 
     private var contentScale: CGFloat {
         canvasSize.width / 350
@@ -182,13 +218,16 @@ private struct StickerLayer: View {
                 }
             }
             .opacity(sticker.opacity)
+            .rotationEffect(sticker.rotation)
             .scaleEffect(sticker.scale * contentScale)
             .position(
                 x: sticker.position.x * canvasSize.width,
                 y: sticker.position.y * canvasSize.height
             )
             .onTapGesture { if isEditing { onSelect() } }
-            .gesture(dragGesture)
+            .onLongPressGesture(minimumDuration: 0.35) { if isEditing { onToggleSelect() } }
+            // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
+            .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
     }
 
     private var dragGesture: some Gesture {
@@ -196,8 +235,12 @@ private struct StickerLayer: View {
             .onChanged { value in
                 guard isEditing else { return }
                 onSelect()
+
                 let start = dragStartPosition ?? sticker.position
-                if dragStartPosition == nil { dragStartPosition = start }
+                if dragStartPosition == nil {
+                    onEditBegan()
+                    dragStartPosition = start
+                }
                 let nextPosition = CGPoint(
                     x: min(max(start.x + value.translation.width / canvasSize.width, 0.05), 0.95),
                     y: min(max(start.y + value.translation.height / canvasSize.height, 0.05), 0.95)
@@ -210,22 +253,114 @@ private struct StickerLayer: View {
             }
     }
 
+    /// 두 손가락 확대·축소. 핸들 드래그보다 이쪽이 주 조작이다.
+    private var magnifyGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+                let start = magnifyStartScale ?? sticker.scale
+                if magnifyStartScale == nil {
+                    onEditBegan()
+                    magnifyStartScale = start
+                }
+                sticker.scale = (start * value.magnification).clamped(to: Self.scaleRange)
+            }
+            .onEnded { _ in magnifyStartScale = nil }
+    }
+
+    /// 두 손가락 회전. 똑바로 세운 각도(0°) 근처에서는 살짝 붙여 준다.
+    private var rotateGesture: some Gesture {
+        RotateGesture()
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+                let start = rotateStartAngle ?? sticker.rotation
+                if rotateStartAngle == nil {
+                    onEditBegan()
+                    rotateStartAngle = start
+                }
+                let next = start + value.rotation
+                // 왜: truncatingRemainder는 부호를 남겨 반대로 한 바퀴 돌린 358°가 -2°로 안 잡히므로 360° 쪽도 함께 본다
+                let remainder = abs(next.degrees.truncatingRemainder(dividingBy: 360))
+                sticker.rotation = (remainder < 4 || remainder > 356) ? .zero : next
+            }
+            .onEnded { _ in rotateStartAngle = nil }
+    }
+
     private var resizeOverlay: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(.white, style: StrokeStyle(lineWidth: 1.5, dash: [5]))
 
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.black)
-                .frame(width: 30, height: 30)
-                .background(.white, in: Circle())
-                .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
-                .offset(x: 14, y: 14)
-                .contentShape(Circle())
-                .highPriorityGesture(resizeGesture)
-                .accessibilityLabel("크기 조절")
+            VStack {
+                HStack {
+                    overlayButton("xmark", label: "스티커 삭제", role: .destructive, action: onDelete)
+                    Spacer()
+                    if isTextSticker {
+                        overlayButton("pencil", label: "텍스트 수정", action: onEditText)
+                    }
+                }
+                .offset(y: -16)
+
+                Spacer()
+
+                HStack {
+                    Spacer()
+                    if isRotationMode {
+                        transformHandle
+                    } else {
+                        resizeHandle
+                    }
+                }
+            }
         }
+    }
+
+    private var resizeHandle: some View {
+        handleImage("arrow.up.left.and.arrow.down.right")
+            .highPriorityGesture(resizeGesture)
+            .accessibilityLabel("크기 조절")
+    }
+
+    private var transformHandle: some View {
+        handleImage("rotate.right")
+            .highPriorityGesture(transformGesture)
+            .accessibilityLabel("회전하며 크기 조절")
+    }
+
+    private func handleImage(_ systemImage: String) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.black)
+            .frame(width: 30, height: 30)
+            .background(.white, in: Circle())
+            .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+            .offset(x: 14, y: 14)
+            .contentShape(Circle())
+    }
+
+    private var isTextSticker: Bool {
+        if case .text = sticker.kind { return true }
+        return false
+    }
+
+    private func overlayButton(
+        _ systemImage: String,
+        label: String,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(role: role, action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(role == .destructive ? .white : .black)
+                .frame(width: 30, height: 30)
+                .background(role == .destructive ? Color.red : Color.white, in: Circle())
+                .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     private var resizeGesture: some Gesture {
@@ -235,13 +370,70 @@ private struct StickerLayer: View {
                 guard isEditing else { return }
                 onSelect()
                 let start = resizeStartScale ?? sticker.scale
-                if resizeStartScale == nil { resizeStartScale = start }
+                if resizeStartScale == nil {
+                    onEditBegan()
+                    resizeStartScale = start
+                }
                 let diagonalDelta = (value.translation.width + value.translation.height) / 2
                 // 기준 350pt 캔버스에서 100pt = 스케일 1 — 기기 폭이 달라도 손맛이 같게
-                sticker.scale = min(max(start + diagonalDelta / (canvasSize.width / 3.5), 0.45), 3)
+                sticker.scale = (start + diagonalDelta / (canvasSize.width / 3.5)).clamped(to: Self.scaleRange)
             }
             .onEnded { _ in
                 resizeStartScale = nil
+            }
+    }
+
+    /// 중심에서의 거리와 각도를 함께 반영해 한 번의 드래그로 크기와 회전을 조절한다.
+    /// 짧은 각도 차이를 누적하므로 -180°/180° 경계에서도 회전이 튀지 않는다.
+    private var transformGesture: some Gesture {
+        DragGesture(coordinateSpace: .named("stickerCanvas"))
+            .onChanged { value in
+                guard isEditing else { return }
+                onSelect()
+
+                let center = CGPoint(
+                    x: sticker.position.x * canvasSize.width,
+                    y: sticker.position.y * canvasSize.height
+                )
+                let startVector = CGVector(
+                    dx: value.startLocation.x - center.x,
+                    dy: value.startLocation.y - center.y
+                )
+                let currentVector = CGVector(
+                    dx: value.location.x - center.x,
+                    dy: value.location.y - center.y
+                )
+                let currentDistance = hypot(currentVector.dx, currentVector.dy)
+                let currentTouchAngle = atan2(currentVector.dy, currentVector.dx)
+
+                if transformStartScale == nil {
+                    onEditBegan()
+                    transformStartScale = sticker.scale
+                    transformStartRotation = sticker.rotation
+                    transformStartDistance = max(hypot(startVector.dx, startVector.dy), 1)
+                    transformLastTouchAngle = atan2(startVector.dy, startVector.dx)
+                    transformAccumulatedRotation = 0
+                }
+
+                if let lastTouchAngle = transformLastTouchAngle {
+                    let rawDelta = currentTouchAngle - lastTouchAngle
+                    transformAccumulatedRotation += atan2(sin(rawDelta), cos(rawDelta))
+                }
+                transformLastTouchAngle = currentTouchAngle
+
+                let baseScale = transformStartScale ?? sticker.scale
+                let baseDistance = transformStartDistance ?? currentDistance
+                sticker.scale = (baseScale * currentDistance / max(baseDistance, 1))
+                    .clamped(to: Self.scaleRange)
+                sticker.rotation = (transformStartRotation ?? sticker.rotation)
+                    + .radians(transformAccumulatedRotation)
+            }
+            .onEnded { _ in
+                transformStartScale = nil
+                transformStartRotation = nil
+                transformStartDistance = nil
+                transformLastTouchAngle = nil
+                transformAccumulatedRotation = 0
             }
     }
 }
@@ -256,7 +448,8 @@ private struct StickerContent: View {
             case .distance:
                 VStack(spacing: -2) {
                     Text(RunMath.formatKm(run.distanceMeters))
-                        .font(.system(size: 46, weight: .black, design: fontDesign))
+                        .font(.system(size: 46, weight: sticker.fontStyle.weight, design: fontDesign))
+                        .tracking(sticker.fontStyle.tracking)
                     Text("KILOMETERS")
                         .font(.system(size: 11, weight: .bold, design: fontDesign))
                         .tracking(2)
@@ -266,7 +459,8 @@ private struct StickerContent: View {
             case .pace:
                 metricLabel("PACE /KM", RunMath.formatPace(run.paceSecondsPerKm))
             case .date:
-                Text(run.startedAt.formatted(.dateTime.year().month(.wide).day()))
+                // 왜: 사진 앱에 저장되는 결과물이라 기기 언어와 상관없이 한국어로 고정한다
+                Text(run.startedAt.formatted(.dateTime.year().month(.wide).day().locale(Locale(identifier: "ko_KR"))))
                     .font(stickerFont(size: 22))
             case .calories:
                 metricLabel("KCAL", "\(Int(run.calories.rounded()))")
@@ -288,6 +482,11 @@ private struct StickerContent: View {
                     .font(stickerFont(size: 30))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 300)   // 기준 350pt 캔버스를 넘지 않게 줄바꿈
+            case .image(let image):
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: imageStickerSize(image).width, height: imageStickerSize(image).height)
             }
         }
         .fixedSize(horizontal: !isWrappingText, vertical: true)
@@ -310,16 +509,19 @@ private struct StickerContent: View {
         }
     }
 
-    private var fontDesign: Font.Design {
-        switch sticker.fontStyle {
-        case .bold: .default
-        case .rounded: .rounded
-        case .mono: .monospaced
-        }
-    }
+    private var fontDesign: Font.Design { sticker.fontStyle.design }
 
     private func stickerFont(size: CGFloat) -> Font {
-        .system(size: size, weight: .bold, design: fontDesign)
+        .system(size: size, weight: sticker.fontStyle.weight, design: fontDesign)
+    }
+
+    private func imageStickerSize(_ image: UIImage) -> CGSize {
+        let maxSide: CGFloat = 180
+        guard image.size.width > 0, image.size.height > 0 else {
+            return CGSize(width: maxSide, height: maxSide)
+        }
+        let ratio = min(maxSide / image.size.width, maxSide / image.size.height)
+        return CGSize(width: image.size.width * ratio, height: image.size.height * ratio)
     }
 }
 
@@ -333,17 +535,27 @@ private struct RouteStickerShape: Shape {
               let minLon = route.map(\.longitude).min(),
               let maxLon = route.map(\.longitude).max() else { return Path() }
 
-        let latSpan = max(maxLat - minLat, 0.000_001)
-        let lonSpan = max(maxLon - minLon, 0.000_001)
+        // 왜: 축마다 따로 늘리면 정사각형 코스가 직사각형이 되고 남북 직선은 경도 잡음이 폭 전체로 커진다.
+        // 경도는 위도에 따라 짧아지므로(cos φ) 보정한 뒤 한 배율로 가운데에 그려 RouteMapView와 같은 모양을 유지한다.
+        let lonScale = cos((minLat + maxLat) / 2 * .pi / 180)
+        let width = (maxLon - minLon) * lonScale
+        let height = maxLat - minLat
         let inset = rect.insetBy(dx: 6, dy: 6)
+        let scale = min(inset.width / max(width, 0.000_001), inset.height / max(height, 0.000_001))
+        let originX = inset.midX - width * scale / 2
+        let originY = inset.midY + height * scale / 2
         var path = Path()
 
         for (index, point) in route.enumerated() {
-            let x = inset.minX + ((point.longitude - minLon) / lonSpan) * inset.width
-            let y = inset.maxY - ((point.latitude - minLat) / latSpan) * inset.height
+            let x = originX + (point.longitude - minLon) * lonScale * scale
+            let y = originY - (point.latitude - minLat) * scale
             if index == 0 { path.move(to: CGPoint(x: x, y: y)) }
             else { path.addLine(to: CGPoint(x: x, y: y)) }
         }
         return path
     }
+}
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self { min(max(self, range.lowerBound), range.upperBound) }
 }

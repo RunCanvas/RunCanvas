@@ -15,6 +15,17 @@ struct Profile: Codable, Identifiable, Equatable {
         case avatarURL = "avatar_url"
     }
 
+    /// 왜: 합성 인코더는 nil 인 칸을 아예 빼 버린다. 그러면 아바타를 지워도 서버 값이 그대로 남는다 —
+    /// 업서트가 NULL 로 덮어쓰도록 옵셔널도 반드시 실어 보낸다.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(nickname, forKey: .nickname)
+        try container.encode(weightKg, forKey: .weightKg)
+        try container.encode(heightCm, forKey: .heightCm)
+        try container.encode(avatarURL, forKey: .avatarURL)
+    }
+
     /// 기존 화면들이 읽는 @AppStorage 키에 복사한다 (오프라인에서도 닉네임·체중·키 사용).
     func cacheLocally() {
         let defaults = UserDefaults.standard
