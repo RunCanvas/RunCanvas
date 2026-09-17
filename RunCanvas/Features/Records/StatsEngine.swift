@@ -75,12 +75,12 @@ enum StatsEngine {
     }
 
     /// 차트 폭에 맞게 x축 라벨을 고르되 첫·마지막 날짜는 항상 보여 준다.
-    /// 월간 28~31개와 연간 12개를 전부 그리면 작은 iPhone에서 글자가 겹친다.
+    /// 월간은 28~31일을 줄이고, 연간은 사용자가 빠진 달이 있다고 오해하지 않게 12개월을 모두 표시한다.
     static func axisLabels(buckets: [Bucket], period: Period) -> [String] {
         let maximumCount = switch period {
         case .week: 7
         case .month: 5
-        case .year: 6
+        case .year: 12
         }
         guard buckets.count > maximumCount, maximumCount > 1 else { return buckets.map(\.label) }
 
