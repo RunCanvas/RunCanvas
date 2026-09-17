@@ -29,6 +29,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     /// 폰 스냅샷이 5초 넘게 안 오면 폰이 기록 중이 아닌 걸로 본다 (isPhoneRecording)
     private static let snapshotStaleAfter: TimeInterval = 5
     private var syncedAt: Date?
+    /// 폰에서 마지막으로 전달받은 거리. 아직 받은 값이 없으면 nil.
+    private var syncedDistanceMeters: Double?
     /// 마지막 폰 스냅샷을 받았을 때 워치 자체 거리. 연결이 끊긴 동안 증가분만 이어 붙이는 기준점이다.
     private var watchDistanceAtLastPhoneSync: Double?
     /// 종료 화면과 폰으로 보낼 요약은 마감 순간의 한 값으로 고정한다.
@@ -135,6 +137,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             startOwnRoute()
         }
         syncedAt = nil
+        syncedDistanceMeters = nil
         for type in [HKQuantityType(.heartRate), HKQuantityType(.distanceWalkingRunning), HKQuantityType(.activeEnergyBurned)] {
             if let statistics = builder.statistics(for: type) { updateStatistics(statistics, for: type) }
         }
@@ -182,6 +185,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             activeEnergy = 0
             elapsedSeconds = 0
             syncedAt = nil
+            syncedDistanceMeters = nil
             watchDistanceAtLastPhoneSync = nil
             finishedDistanceMeters = nil
             phoneFinalDistanceMeters = nil
@@ -238,7 +242,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         sendSnapshot()
     }
 
-    /// 워크아웃을 끝내고 건강 앱에 저장한다. 버리는 길은 없다 — 폰이 뭐라 하든 워치가 모은 기록은 남긴다.
+    /// 워크아웃을 끝내고 건강 앱에 저장한다. 단, 50m 이하 기록은 저장하지 않는다.
     func end(sendToPhone: Bool = true) async {
         if isStarting {
             pendingCommand = .end
@@ -256,15 +260,16 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         if sendToPhone { connectivity.sendCommand(.end, sessionID: sessionID) }
         session.end()
         let tooShort = !RunSavePolicy.shouldSave(distanceMeters: finalDistance)
-        guard !discarding, !tooShort else {
-            // 폰이 이어서 기록 중이다. 여기서 저장하면 건강 앱에 몇 초~몇십 초짜리 조각이 하나 더 남는다.
+        guard !tooShort else {
+            // 테스트·오작동으로 생긴 짧은 기록은 건강 앱과 복구 파일에 남기지 않는다.
             builder.discardWorkout()
             stopOwnRoute()
             routeBuilder = nil
+            discardRouteCheckpoint()
             stopTimer()
             finishedDistanceMeters = finalDistance
-            state = discarding ? .idle : .finished
-            if !discarding { sendSnapshot() }
+            state = .finished
+            sendSnapshot()
             return
         }
         let collectedRoute = isRecordingOwnRoute
@@ -346,7 +351,8 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
     private func startOwnRoute() {
         isRecordingOwnRoute = true
-        locationManager.allowsBackgroundLocationUpdates = true   // 손목을 내려도 계속 모은다
+        // watchOS에서는 활성 HKWorkoutSession의 workout-processing이 백그라운드 실행을 유지한다.
+        // iOS용 allowsBackgroundLocationUpdates를 강제하면 워치 시뮬레이터와 일부 기기에서 예외가 발생한다.
         locationManager.startUpdatingLocation()
     }
 
@@ -390,7 +396,6 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
     private func stopOwnRoute() {
         guard isRecordingOwnRoute else { return }
         locationManager.stopUpdatingLocation()
-        locationManager.allowsBackgroundLocationUpdates = false
         isRecordingOwnRoute = false
     }
 

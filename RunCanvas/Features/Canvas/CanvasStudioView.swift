@@ -19,7 +19,7 @@ struct CanvasStudioView: View {
     /// 설정에서 미리 정해 둔 기록 기본 색 (빈 값이면 "배경에 맞춤")
     @AppStorage(CanvasTheme.storageKey) private var stickerColorHex = ""
 
-    @State private var background: CanvasBackground = .preset(.midnight)
+    @State private var background: CanvasBackground = .transparent
     @State private var selectedRun: Run?
     @State private var stickers: [CanvasSticker] = []
     @State private var selection: Set<UUID> = []
@@ -563,14 +563,16 @@ struct CanvasStudioView: View {
     }
 
     static func defaultStickers(for run: Run, color: Color) -> [CanvasSticker] {
+        // 4:5 캔버스에서 하나의 중앙축과 일정한 세로 간격을 쓴다.
+        // 시간·페이스는 같은 기준선에 대칭으로 두고, 크기가 큰 경로와 날짜가 겹치지 않게 한다.
         var defaults = [
-            CanvasSticker(kind: .distance, position: CGPoint(x: 0.5, y: 0.28), color: color),
-            CanvasSticker(kind: .time, position: CGPoint(x: 0.31, y: 0.48), scale: 0.85, color: color),
-            CanvasSticker(kind: .pace, position: CGPoint(x: 0.69, y: 0.48), scale: 0.85, color: color),
-            CanvasSticker(kind: .date, position: CGPoint(x: 0.5, y: 0.72), scale: 0.8, color: color)
+            CanvasSticker(kind: .distance, position: CGPoint(x: 0.5, y: 0.22), color: color),
+            CanvasSticker(kind: .time, position: CGPoint(x: 0.30, y: 0.43), scale: 0.82, color: color),
+            CanvasSticker(kind: .pace, position: CGPoint(x: 0.70, y: 0.43), scale: 0.82, color: color),
+            CanvasSticker(kind: .date, position: CGPoint(x: 0.5, y: 0.84), scale: 0.72, color: color)
         ]
         if run.route.count > 1 {
-            defaults.append(CanvasSticker(kind: .route, position: CGPoint(x: 0.5, y: 0.60), scale: 0.75, color: color))
+            defaults.append(CanvasSticker(kind: .route, position: CGPoint(x: 0.5, y: 0.64), scale: 0.72, color: color))
         }
         return defaults
     }

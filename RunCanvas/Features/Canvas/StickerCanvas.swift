@@ -19,9 +19,15 @@ struct StickerCanvas: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                CanvasBackgroundView(background: background)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
+                Group {
+                    if background.isTransparent, isEditing {
+                        TransparencyGrid()
+                    } else {
+                        CanvasBackgroundView(background: background)
+                    }
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
 
                 alignmentGuideView(in: geometry.size)
 

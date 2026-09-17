@@ -41,6 +41,8 @@ enum CanvasTheme {
     /// (사진 위에는 지금도 흰 글씨를 기본으로 쓴다)
     static func luminance(of background: CanvasBackground) -> Double {
         switch background {
+        case .transparent:
+            0
         case .preset(let preset):
             preset.colors.map { luminance($0) }.reduce(0, +) / Double(preset.colors.count)
         case .photo:
