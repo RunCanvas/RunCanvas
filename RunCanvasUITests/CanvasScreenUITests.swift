@@ -65,9 +65,9 @@ final class CanvasScreenUITests: XCTestCase {
         app.navigationBars.buttons["닫기"].tap()          // 저장 시트 닫기
 
         // 저장하지 않고 나가면 한 번 물어본다
-        let cancel = app.buttons["취소"]
-        XCTAssertTrue(cancel.waitForExistence(timeout: 3), "취소 버튼이 없음")
-        cancel.tap()
+        let back = app.buttons["뒤로"]
+        XCTAssertTrue(back.waitForExistence(timeout: 3), "뒤로 버튼이 없음")
+        back.tap()
         let discard = app.buttons["버리고 나가기"]
         XCTAssertTrue(discard.waitForExistence(timeout: 3), "나가기 확인이 안 뜸")
         discard.tap()
