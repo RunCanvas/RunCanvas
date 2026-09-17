@@ -110,9 +110,7 @@ final class StatsEngineTests: XCTestCase {
 
         let year = StatsEngine.buckets(runs: [], period: .year, now: date(9, 15), calendar: calendar)
         let yearLabels = StatsEngine.axisLabels(buckets: year, period: .year)
-        XCTAssertEqual(yearLabels.count, 6)
-        XCTAssertEqual(yearLabels.first, "1월")
-        XCTAssertEqual(yearLabels.last, "12월")
+        XCTAssertEqual(yearLabels, (1...12).map { "\($0)월" })
 
         let week = StatsEngine.buckets(runs: [], period: .week, now: date(9, 15), calendar: calendar)
         XCTAssertEqual(StatsEngine.axisLabels(buckets: week, period: .week).count, 7)

@@ -136,12 +136,12 @@ struct LevelCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 Circle()
-                    .fill(Color.primary)   // 레벨 컬러는 PrimaryButton 전용(Theme.swift) — 카드·진행바는 흑백
+                    .fill(level.tier.color)
                     .frame(width: 56, height: 56)
                     .overlay(
-                        Text("\(level.number)")
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(Color(.systemBackground))
+                        Text("LV.\(level.number)")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(level.tier.foreground)
                     )
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(level.title) 레벨")
@@ -154,7 +154,7 @@ struct LevelCard: View {
             }
 
             ProgressView(value: level.progress)
-                .tint(.primary)
+                .tint(level.tier.accent)
                 .accessibilityLabel("\(level.title) 레벨 진행도")
 
             if let next = level.nextTier, let remaining = level.remainingMeters {

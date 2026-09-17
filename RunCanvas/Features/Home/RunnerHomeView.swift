@@ -52,7 +52,6 @@ private struct HomeContent: View {
                 startRunButton
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
             .padding(.bottom, 12)
 
             ScrollView {

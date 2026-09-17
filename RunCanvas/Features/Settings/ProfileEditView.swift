@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 /// 내가 누구인가: 사진 · 닉네임 · 키 · 체중. 저장 버튼 하나로 로컬(@AppStorage) + 서버(profiles) 동기화.
 struct ProfileEditView: View {
@@ -16,8 +17,10 @@ struct ProfileEditView: View {
     @State private var heightText = ""
 
     @State private var pickedAvatar: PhotosPickerItem?
-    @State private var isUploadingAvatar = false
-    @State private var isRemovingAvatar = false
+    @State private var pendingAvatarJPEG: Data?
+    @State private var pendingAvatarImage: UIImage?
+    @State private var removesAvatarOnSave = false
+    @State private var isLoadingAvatar = false
     @State private var isSaving = false
     @State private var statusMessage: String?
 
@@ -26,7 +29,7 @@ struct ProfileEditView: View {
     private var weight: Double? { ProfileMeasurement.weight(from: weightText) }
     private var canSave: Bool {
         !trimmedNickname.isEmpty && height != nil && weight != nil
-            && !isSaving && !isUploadingAvatar && !isRemovingAvatar
+            && !isSaving && !isLoadingAvatar
     }
 
     /// 입력한 뒤에만 보여주는 범위 안내 (비어 있을 땐 버튼 비활성으로만)
@@ -92,8 +95,8 @@ struct ProfileEditView: View {
             heightText = formatted(userHeight)
         }
         .onChange(of: pickedAvatar) { _, item in
-            guard let item, !isUploadingAvatar else { return }   // PhotosPicker가 선택을 두 번 알리는 경우 중복 업로드 방지
-            Task { await uploadAvatar(item) }
+            guard let item, !isLoadingAvatar else { return }   // PhotosPicker가 선택을 두 번 알리는 경우 중복 로드 방지
+            Task { await prepareAvatar(item) }
         }
     }
 
@@ -104,7 +107,7 @@ struct ProfileEditView: View {
             PhotosPicker(selection: $pickedAvatar, matching: .images, preferredItemEncoding: .compatible) {
                 VStack(spacing: 10) {
                     ZStack(alignment: .bottomTrailing) {
-                        AvatarView(urlString: avatarURL, size: 96)
+                        avatarPreview
                         Image(systemName: "camera.fill")
                             .font(.caption)
                             .foregroundStyle(Color(.systemBackground))   // 앱의 반전 칩 어휘 — 다크에서도 배지가 보이게
@@ -113,20 +116,24 @@ struct ProfileEditView: View {
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
                     }
-                    Text(isUploadingAvatar ? "업로드 중…" : "사진 변경")
+                    Text(isLoadingAvatar ? "사진 준비 중…" : "사진 변경")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.top, 8)
             }
-            .disabled(isUploadingAvatar || isRemovingAvatar)
+            .disabled(isLoadingAvatar || isSaving)
 
-            if !avatarURL.isEmpty {
-                Button("사진 삭제", role: .destructive) {
-                    Task { await removeAvatar() }
+            if pendingAvatarImage != nil || !avatarURL.isEmpty {
+                Button(removesAvatarOnSave ? "사진 삭제 예정" : "사진 삭제", role: .destructive) {
+                    pendingAvatarJPEG = nil
+                    pendingAvatarImage = nil
+                    pickedAvatar = nil
+                    removesAvatarOnSave = true
+                    statusMessage = "저장을 누르면 프로필 사진을 삭제해요."
                 }
                 .font(.subheadline.weight(.semibold))
-                .disabled(isUploadingAvatar || isRemovingAvatar)
+                .disabled(isLoadingAvatar || isSaving || removesAvatarOnSave)
             }
         }
         .padding(.bottom, 8)
@@ -148,25 +155,56 @@ struct ProfileEditView: View {
     private func save() async {
         isSaving = true
         defer { isSaving = false }
-        userNickname = trimmedNickname
-        if let weight { userWeight = weight }
-        if let height { userHeight = height }
-
-        guard let id = auth.userID else { dismiss(); return }
+        guard let weight, let height else { return }
+        guard let id = auth.userID else {
+            userNickname = trimmedNickname
+            userWeight = weight
+            userHeight = height
+            dismiss()
+            return
+        }
         do {
+            var savedAvatarURL: String? = avatarURL.isEmpty ? nil : avatarURL
+            if let pendingAvatarJPEG {
+                savedAvatarURL = try await ProfileService.uploadAvatar(userID: id, jpeg: pendingAvatarJPEG)
+            } else if removesAvatarOnSave {
+                // 공개 버킷의 원본을 먼저 지워야 URL만 빈 채로 남지 않는다.
+                try await ProfileService.removeAvatar(userID: id)
+                savedAvatarURL = nil
+            }
+
             try await ProfileService.upsert(
-                Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: avatarURL.isEmpty ? nil : avatarURL)
+                Profile(id: id, nickname: trimmedNickname, weightKg: weight, heightCm: height, avatarURL: savedAvatarURL)
             )
+
+            // 서버 저장이 끝난 뒤에만 홈이 보는 로컬 캐시를 바꿔 '자동 저장'처럼 보이지 않게 한다.
+            userNickname = trimmedNickname
+            userWeight = weight
+            userHeight = height
+            avatarURL = savedAvatarURL ?? ""
             dismiss()
         } catch {
-            statusMessage = "기기에는 저장됐지만 서버 동기화에 실패했어요."
+            statusMessage = "저장하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 
-    private func uploadAvatar(_ item: PhotosPickerItem) async {
-        guard let id = auth.userID else { return }
-        isUploadingAvatar = true
-        defer { isUploadingAvatar = false; pickedAvatar = nil }
+    @ViewBuilder
+    private var avatarPreview: some View {
+        if let pendingAvatarImage {
+            Image(uiImage: pendingAvatarImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 96, height: 96)
+                .clipShape(Circle())
+        } else {
+            AvatarView(urlString: removesAvatarOnSave ? "" : avatarURL, size: 96)
+        }
+    }
+
+    /// 사진을 선택해도 서버로 보내지 않고, 화면 미리보기와 저장용 JPEG만 준비한다.
+    private func prepareAvatar(_ item: PhotosPickerItem) async {
+        isLoadingAvatar = true
+        defer { isLoadingAvatar = false }
         do {
             // 시뮬레이터/일부 HEIC에서 loadTransferable이 영영 안 끝나는 경우가 있어 타임아웃을 건다
             guard let data = try await withTimeoutValue(seconds: 20, { try await item.loadTransferable(type: Data.self) }),
@@ -176,32 +214,14 @@ struct ProfileEditView: View {
                 statusMessage = "이미지를 읽을 수 없어요."
                 return
             }
-            let url = try await ProfileService.uploadAvatar(userID: id, jpeg: jpeg)
-            avatarURL = url
-            try await ProfileService.upsert(Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: url))
-            statusMessage = "프로필 사진을 바꿨어요."
+            pendingAvatarJPEG = jpeg
+            pendingAvatarImage = thumb
+            removesAvatarOnSave = false
+            statusMessage = "저장을 누르면 프로필 사진을 바꿔요."
         } catch is CancellationError {
             statusMessage = "사진을 불러오지 못했어요. 다른 사진으로 시도해 주세요."
         } catch {
-            statusMessage = "사진 업로드에 실패했어요."
-        }
-    }
-
-    private func removeAvatar() async {
-        guard let id = auth.userID else { return }
-        isRemovingAvatar = true
-        defer { isRemovingAvatar = false }
-        do {
-            // 왜: URL만 nil로 바꾸면 공개 버킷의 얼굴 사진 원본은 계속 접근할 수 있다.
-            try await ProfileService.removeAvatar(userID: id)
-            try await ProfileService.upsert(
-                Profile(id: id, nickname: userNickname, weightKg: userWeight, heightCm: userHeight, avatarURL: nil)
-            )
-            avatarURL = ""
-            statusMessage = "프로필 사진을 삭제했어요."
-        } catch {
-            // 스토리지 삭제 뒤 DB 반영만 실패해도 버튼을 남겨 재시도할 수 있게 로컬 URL은 유지한다.
-            statusMessage = "사진을 삭제하지 못했어요. 다시 시도해 주세요."
+            statusMessage = "사진을 준비하지 못했어요."
         }
     }
 
