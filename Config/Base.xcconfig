@@ -1,7 +1,7 @@
-// 서명 기본값 (동하 팀). 다른 팀 계정으로 빌드하려면 같은 폴더에 Local.xcconfig(gitignore)를 만들어
+// 공식 배포 서명 기본값 (다은 팀). 다른 팀 계정으로 개발 빌드하려면 같은 폴더에 Local.xcconfig(gitignore)를 만들어
 // DEVELOPMENT_TEAM 과 APP_BUNDLE_ID 두 줄만 덮어쓴다. 이 파일과 Xcode Signing 탭은 건드리지 말 것.
-DEVELOPMENT_TEAM = 322PTHJ258
-APP_BUNDLE_ID = name.dongharyu.RunCanvas
+DEVELOPMENT_TEAM = 35VCHAAS2Q
+APP_BUNDLE_ID = com.daun1997.RunCanvas
 
 #include? "Local.xcconfig"
 

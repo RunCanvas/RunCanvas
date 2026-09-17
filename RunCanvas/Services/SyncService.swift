@@ -7,7 +7,7 @@ import OSLog
 /// - 업로드: `syncedAt == nil`인 기록·획득 뱃지
 /// - 다운로드: 서버에는 있는데 이 기기에 없는 기록·뱃지 (다른 기기·재설치 복원)
 enum SyncService {
-    private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "sync")
+    private static let log = Logger(subsystem: "com.daun1997.RunCanvas", category: "sync")
     /// 한 요청에 담는 최대 건수 — 한 건이 서버에 거부돼도 나머지가 막히지 않도록 쪼갠다.
     private static let chunkSize = 20
     /// PostgREST가 한 응답에 돌려주는 최대 행 수(Supabase 기본 max-rows). 넘으면 에러 없이 잘리므로 이 단위로 페이지를 넘긴다.

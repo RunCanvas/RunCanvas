@@ -18,7 +18,7 @@ enum CourseSort: String, CaseIterable, Identifiable, Hashable {
 
 @Observable
 final class CourseService {
-    private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "course")
+    private static let log = Logger(subsystem: "com.daun1997.RunCanvas", category: "course")
     private static let pageSize = 50
 
     private struct Filter: Equatable {

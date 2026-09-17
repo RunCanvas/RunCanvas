@@ -64,7 +64,7 @@ scripts/uitest.sh "iPhone 17 Pro" -only-testing:RunCanvasUITests    # 화면 흐
 
 ## 다른 Apple 계정으로 실기기 빌드 (팀원용)
 
-서명 Team·Bundle ID의 기본값(동하)은 `Config/Base.xcconfig`에 있고, 같은 폴더에 `Local.xcconfig`(gitignore)를 만들면 그 값으로 덮어씁니다. 앱·워치·테스트 번들 ID는 전부 `APP_BUNDLE_ID` 하나에서 파생됩니다. **`Base.xcconfig`와 Xcode의 Signing & Capabilities Team은 건드리지 마세요** — pbxproj에 팀 ID가 박혀 상대방 빌드가 깨집니다.
+공식 배포 서명 Team·Bundle ID(다은)는 `Config/Base.xcconfig`에 있고, 같은 폴더에 `Local.xcconfig`(gitignore)를 만들면 개발자별 값으로 덮어씁니다. 앱·워치·테스트 번들 ID는 전부 `APP_BUNDLE_ID` 하나에서 파생됩니다. **`Base.xcconfig`와 Xcode의 Signing & Capabilities Team은 건드리지 마세요** — pbxproj에 개인 팀 ID가 박혀 상대방 빌드가 깨집니다.
 
 1. Xcode → Settings → Accounts → `+` → 본인 Apple ID 추가
 2. 팀 ID 확인: developer.apple.com → Membership details의 Team ID(10자리)
@@ -74,7 +74,7 @@ scripts/uitest.sh "iPhone 17 Pro" -only-testing:RunCanvasUITests    # 화면 흐
    APP_BUNDLE_ID = com.<본인이름>.RunCanvas
    ```
 4. 아이폰 개발자 모드 켜고 연결 → ⌘R → 설정 → 일반 → VPN 및 기기 관리 → 개발자 앱 신뢰
-5. Apple 로그인을 쓰려면 본인 번들 ID를 Supabase Apple 프로바이더 Client IDs에 추가해야 합니다 (동하에게 요청)
+5. Apple 로그인을 쓰려면 본인 번들 ID를 Supabase Apple 프로바이더 Client IDs에 추가해야 합니다 (프로젝트 관리자에게 요청)
 
 무료 Personal Team은 앱이 7일마다 만료되므로 다시 ⌘R 하면 됩니다. HealthKit은 되지만 App Groups·iCloud·푸시는 유료 계정이 필요합니다.
 
