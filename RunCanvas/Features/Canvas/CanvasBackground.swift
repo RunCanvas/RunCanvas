@@ -37,11 +37,18 @@ enum CanvasPreset: Int, CaseIterable, Identifiable {
 }
 
 enum CanvasBackground {
+    case transparent
     case preset(CanvasPreset)
     case photo(UIImage)
 
+    var isTransparent: Bool {
+        if case .transparent = self { return true }
+        return false
+    }
+
     var foregroundColor: Color {
         switch self {
+        case .transparent: .white
         case .preset(let preset): preset.foregroundColor
         case .photo: .white
         }
@@ -53,6 +60,8 @@ struct CanvasBackgroundView: View {
 
     var body: some View {
         switch background {
+        case .transparent:
+            Color.clear
         case .preset(let preset):
             LinearGradient(colors: preset.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
         case .photo(let image):

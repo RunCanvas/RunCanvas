@@ -13,6 +13,7 @@ struct RunDetailView: View {
     @State private var courseMessage: String?
     @State private var isSavingCard = false
     @State private var saveMessage: String?
+    @State private var showsCanvasStudio = false
 
     var body: some View {
         ScrollView {
@@ -28,6 +29,9 @@ struct RunDetailView: View {
                         Image(uiImage: decoratedImage)
                             .resizable()
                             .scaledToFit()
+                            .background {
+                                if run.decoratedImageFilename?.hasSuffix(".png") == true { TransparencyGrid() }
+                            }
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                 }
@@ -48,6 +52,14 @@ struct RunDetailView: View {
                 Text(run.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened, locale: Locale(identifier: "ko_KR"))))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+
+                PrimaryButton(
+                    title: run.decoratedImageFilename == nil ? "런꾸하기" : "런꾸 수정하기",
+                    systemImage: "wand.and.stars"
+                ) {
+                    showsCanvasStudio = true
+                }
+                .accessibilityIdentifier("decorate-run")
 
                 // 꾸미기를 거치지 않고 기본 배치 그대로 한 장
                 SecondaryButton(title: isSavingCard ? "저장하는 중…" : "이미지로 저장",
@@ -71,6 +83,11 @@ struct RunDetailView: View {
                 courseMessage = "‘\(course.name)’ 코스를 올렸어요. 기록 탭 → 더보기 → 러닝 코스에서 볼 수 있어요."
             }
         }
+        .fullScreenCover(isPresented: $showsCanvasStudio, onDismiss: {
+            Task { await loadDecoratedImage() }
+        }) {
+            CanvasStudioView(run: run)
+        }
         .alert("코스로 등록했어요", isPresented: Binding(
             get: { courseMessage != nil },
             set: { if !$0 { courseMessage = nil } }
@@ -88,14 +105,7 @@ struct RunDetailView: View {
         } message: {
             Text(saveMessage ?? "")
         }
-        .task(id: run.decoratedImageFilename) {
-            let filename = run.decoratedImageFilename
-            decoratedImage = await Task.detached(priority: .userInitiated) { () -> UIImage? in
-                // 왜: 원본은 1080×1350이라 화면 폭에 맞춰 줄여 읽는다(갤러리와 같은 방식)
-                guard let image = CanvasStorage.image(filename: filename) else { return nil }
-                return await image.byPreparingThumbnail(ofSize: CGSize(width: 810, height: 1013))
-            }.value
-        }
+        .task(id: run.decoratedImageFilename) { await loadDecoratedImage() }
     }
 
     @MainActor
@@ -112,5 +122,14 @@ struct RunDetailView: View {
         } catch {
             saveMessage = error.localizedDescription
         }
+    }
+
+    private func loadDecoratedImage() async {
+        let filename = run.decoratedImageFilename
+        decoratedImage = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+            // 같은 파일명에 덮어써도 편집기를 닫는 순간 다시 읽는다.
+            guard let image = CanvasStorage.image(filename: filename) else { return nil }
+            return await image.byPreparingThumbnail(ofSize: CGSize(width: 810, height: 1013))
+        }.value
     }
 }

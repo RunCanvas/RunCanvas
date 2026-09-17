@@ -34,6 +34,7 @@ enum CanvasExporter {
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = 1
+        renderer.isOpaque = false
         return renderer.uiImage
     }
 
@@ -50,8 +51,7 @@ enum CanvasExporter {
 
     /// 편집을 거치지 않고 기본 배치 그대로 한 장 만든다 ("기록에서 바로 저장")
     @MainActor
-    static func quickCard(for run: Run, preset: CanvasPreset = .midnight) -> UIImage? {
-        let background = CanvasBackground.preset(preset)
+    static func quickCard(for run: Run, background: CanvasBackground = .transparent) -> UIImage? {
         return render(
             background: background,
             run: run,

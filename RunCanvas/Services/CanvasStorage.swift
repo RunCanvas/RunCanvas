@@ -4,16 +4,17 @@ import UIKit
 enum CanvasStorage {
     enum StorageError: LocalizedError {
         case jpegEncodingFailed
+        case pngEncodingFailed
 
-        var errorDescription: String? { "꾸민 이미지를 JPEG로 만들지 못했어요." }
+        var errorDescription: String? { "꾸민 이미지 파일을 만들지 못했어요." }
     }
 
-    static func save(image: UIImage, runID: UUID, fileManager: FileManager = .default) throws -> String {
-        guard let data = image.jpegData(compressionQuality: 0.92) else {
-            throw StorageError.jpegEncodingFailed
+    static func save(image: UIImage, runID: UUID, fileManager: FileManager = .default, preservesTransparency: Bool = false) throws -> String {
+        guard let data = preservesTransparency ? image.pngData() : image.jpegData(compressionQuality: 0.92) else {
+            throw preservesTransparency ? StorageError.pngEncodingFailed : StorageError.jpegEncodingFailed
         }
         let directory = try canvasDirectory(fileManager: fileManager)
-        let filename = "\(runID.uuidString.lowercased()).jpg"
+        let filename = "\(runID.uuidString.lowercased()).\(preservesTransparency ? "png" : "jpg")"
         try data.write(to: directory.appendingPathComponent(filename), options: .atomic)
         return "canvas/\(filename)"
     }

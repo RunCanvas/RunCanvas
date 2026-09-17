@@ -34,6 +34,23 @@ struct CanvasBackgroundSheet: View {
                     }
 
                     LazyVGrid(columns: columns, spacing: 12) {
+                        Button {
+                            onSelect(.transparent)
+                            dismiss()
+                        } label: {
+                            ZStack(alignment: .bottomLeading) {
+                                TransparencyGrid()
+                                Text("배경 없음")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .padding(14)
+                                    .shadow(color: .black.opacity(0.7), radius: 3)
+                            }
+                            .aspectRatio(4 / 5, contentMode: .fit)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
+                        .buttonStyle(.plain)
+
                         ForEach(CanvasPreset.allCases) { preset in
                             Button {
                                 onSelect(.preset(preset))

@@ -25,6 +25,12 @@ struct CanvasExportSheet: View {
             VStack(spacing: 18) {
                 preview
 
+                if background.isTransparent {
+                    Text("체크무늬는 미리보기용이며 저장되지 않아요.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 VStack(spacing: 10) {
                     PrimaryButton(title: "사진 앱에 저장", systemImage: "square.and.arrow.down") {
                         Task { await saveToPhotos() }
@@ -84,6 +90,9 @@ struct CanvasExportSheet: View {
             Image(uiImage: renderedImage)
                 .resizable()
                 .scaledToFit()
+                .background {
+                    if background.isTransparent { TransparencyGrid() }
+                }
                 .shadow(color: .black.opacity(0.2), radius: 12, y: 5)
                 .padding(.horizontal, 20)
         } else if renderFailed {
@@ -133,7 +142,7 @@ struct CanvasExportSheet: View {
     private func saveToApp() {
         guard let renderedImage else { return }
         do {
-            run.decoratedImageFilename = try CanvasStorage.save(image: renderedImage, runID: run.id)
+            run.decoratedImageFilename = try CanvasStorage.save(image: renderedImage, runID: run.id, preservesTransparency: background.isTransparent)
             try context.save()
             onSaved()
             message = ExportMessage(text: "이 러닝의 상세 화면에 저장했어요.", isSuccess: true, finishesFlow: true)
