@@ -14,7 +14,7 @@ extension View {
     }
 }
 
-// MARK: - 레벨 컬러 (NRC 팔레트) — 주요 버튼(러닝 시작·일시정지·재개 등)에만 쓴다
+// MARK: - 레벨 컬러 (NRC 팔레트) — 주요 버튼과 레벨 카드에 쓴다
 
 extension Level.Tier {
     var color: Color {
