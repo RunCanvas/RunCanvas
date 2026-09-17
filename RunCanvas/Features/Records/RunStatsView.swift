@@ -121,8 +121,10 @@ private struct StatsContent: View {
                         .cornerRadius(3)
                 }
                 .chartXAxis {
-                    AxisMarks(values: axisLabels(buckets)) { _ in
+                    AxisMarks(values: StatsEngine.axisLabels(buckets: buckets, period: period)) { _ in
+                        AxisTick(length: 3)
                         AxisValueLabel()
+                            .font(.caption2)
                     }
                 }
                 .chartYAxis {
@@ -153,11 +155,6 @@ private struct StatsContent: View {
         case .month: "\(parts.month ?? 1)월"
         case .year: "\(parts.year ?? 0)년"
         }
-    }
-
-    /// 월은 31개라 1·5·10·…·30일만 표시 (id는 0부터라 +1 해서 달력 날짜 기준으로 거른다)
-    private func axisLabels(_ buckets: [StatsEngine.Bucket]) -> [String] {
-        period == .month ? buckets.filter { $0.id == 0 || ($0.id + 1) % 5 == 0 }.map(\.label) : buckets.map(\.label)
     }
 
     // MARK: - 이번 주 목표 (설정의 주간 목표 거리)
