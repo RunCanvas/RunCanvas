@@ -44,87 +44,95 @@ private struct HomeContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // 프로필·오늘 지도·시작 버튼은 항상 보이게 두고,
+            // 스크롤은 아래의 최근 기록 영역에서만 일어난다.
+            VStack(spacing: 20) {
+                ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
+                todayRunMap
+                startRunButton
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
             ScrollView {
-                VStack(spacing: 24) {
+                recentRunsSection
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+            }
+        }
+    }
 
-                    // 상단 프로필 — 누적·이번 주 거리는 홈이 이미 들고 있어 그대로 넘긴다.
-                    // 왜 ScrollView 안인가: 카드가 되면서 150pt 가 됐다. 밖에 고정해 두면 그만큼을
-                    // 화면에서 영구히 잡아먹어 지도·버튼이 밀리고, 첫 항목이 어정쩡하게 잘린다.
-                    ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
+    private var todayRunMap: some View {
+        ZStack(alignment: .bottomLeading) {
+            Map(position: .constant(.userLocation(fallback: .automatic)), interactionModes: []) {
+                UserAnnotation()
+            }
+            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+            .mapControlVisibility(.hidden)
 
-                    // 오늘의 러닝 — 현재 위치 지도 위에 (위치 권한은 러닝 화면에서 받고, 허용돼 있으면 내 위치가 보인다)
-                    ZStack(alignment: .bottomLeading) {
-                        Map(position: .constant(.userLocation(fallback: .automatic)), interactionModes: []) {
-                            UserAnnotation()
-                        }
-                        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
-                        .mapControlVisibility(.hidden)
+            LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
 
-                        LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("오늘의 러닝")
+                    .font(.headline)
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(RunMath.formatKm(todayMeters))
+                        .font(.system(size: 52, weight: .bold))
+                    Text("km")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(20)
+        }
+        .frame(height: 220)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("오늘의 러닝")
-                                .font(.headline)
-                            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                                Text(RunMath.formatKm(todayMeters))
-                                    .font(.system(size: 52, weight: .bold))
-                                Text("km")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(20)
-                    }
-                    .frame(height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+    private var startRunButton: some View {
+        NavigationLink {
+            RunView(startImmediately: true)
+        } label: {
+            PrimaryButtonLabel(title: "러닝 시작", systemImage: "figure.run")
+        }
+    }
 
-                    // 러닝 시작 버튼
+    private var recentRunsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("최근 러닝")
+                    .font(.headline)
+                Spacer()
+                if !runs.isEmpty {
                     NavigationLink {
-                        RunView(startImmediately: true)
+                        RunListView(ownerID: ownerID)
                     } label: {
-                        PrimaryButtonLabel(title: "러닝 시작", systemImage: "figure.run")
-                    }
-
-                    // 최근 러닝
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("최근 러닝")
-                                .font(.headline)
-                            Spacer()
-                            if !runs.isEmpty {
-                                NavigationLink {
-                                    RunListView(ownerID: ownerID)
-                                } label: {
-                                    Text("전체 보기")
-                                        .font(.subheadline)
-                                        .frame(minHeight: 44)
-                                        .contentShape(Rectangle())
-                                }
-                            }
-                        }
-
-                        if runs.isEmpty {
-                            Text("아직 기록이 없어요. 첫 러닝을 시작해 보세요.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                                .background(Color.card)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                        } else {
-                            ForEach(runs.prefix(3)) { run in
-                                NavigationLink {
-                                    RunDetailView(run: run)
-                                } label: {
-                                    RunHistoryRow(run: run)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                        Text("전체 보기")
+                            .font(.subheadline)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 20)
+            }
+
+            if runs.isEmpty {
+                Text("아직 기록이 없어요. 첫 러닝을 시작해 보세요.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            } else {
+                ForEach(runs.prefix(3)) { run in
+                    NavigationLink {
+                        RunDetailView(run: run)
+                    } label: {
+                        RunHistoryRow(run: run)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
