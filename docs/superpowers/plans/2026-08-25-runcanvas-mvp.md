@@ -282,7 +282,7 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - **앱 아이콘이 비어 있음(iOS·워치 둘 다 슬롯만 있고 이미지 0개) — 제출 블로커.** 1024 + 다크/틴트, 런치 스크린 색, `MARKETING_VERSION`(현재 1.0)·빌드 번호.
 - 권한 문구 재검토: 위치(러닝 중 백그라운드 인디케이터 문구 포함)·건강 읽기/쓰기·사진 추가.
 - **Google OAuth 동의 화면 Testing → Publish**(지금은 테스트 사용자 2명만 로그인 가능), **카카오 앱 아이콘 교체**(임시 PNG), 카카오 비즈 앱 검수 항목 확인.
-- App Store Connect 앱 등록(번들 `name.dongharyu.RunCanvas`, 동하 계정) → Archive → TestFlight 내부 테스트(다은 = 내부 테스터). 업로드는 번들 소유자인 동하만.
+- App Store Connect 앱 등록(번들 `com.daun1997.RunCanvas`, 다은 계정) → Archive → TestFlight 내부 테스트. 업로드와 배포 관리는 공식 소유자인 다은 계정에서 진행한다.
 - 심사 대비 체크: Apple 로그인 ✅, 계정 삭제 ✅(5.1.1(v)), 개인정보 처리방침 URL(위치·건강 데이터 언급) 준비, 건강 데이터는 광고·제3자 공유 없음 명시.
 
 ---

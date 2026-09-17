@@ -33,7 +33,7 @@ final class RunFlowUITests: XCTestCase {
         // 테스트가 되돌릴 수 없는 상태라, 원인을 바로 알려 주고 끝낸다.
         if app.alerts["위치 권한이 필요해요"].waitForExistence(timeout: 2) {
             XCTFail("시뮬레이터 위치 권한이 거부돼 있습니다. scripts/uitest.sh 로 실행하거나 "
-                    + "`xcrun simctl privacy <UDID> grant location name.dongharyu.RunCanvas` 를 먼저 실행하세요.")
+                    + "`xcrun simctl privacy <UDID> grant location com.daun1997.RunCanvas` 를 먼저 실행하세요.")
             return
         }
 

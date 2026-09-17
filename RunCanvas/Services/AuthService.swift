@@ -7,7 +7,7 @@ import Supabase
 @MainActor
 @Observable
 final class AuthService {
-    private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "auth")
+    private static let log = Logger(subsystem: "com.daun1997.RunCanvas", category: "auth")
     private(set) var session: Session?
     /// 현재 계정에 연결된 로그인 방법들 (provider: "apple" / "google" / "kakao")
     private(set) var identities: [UserIdentity] = []

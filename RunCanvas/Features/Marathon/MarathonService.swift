@@ -9,7 +9,7 @@ import OSLog
 /// 서버 → 로컬 캐시 → 번들 씨앗 순으로 물러나므로 비행기 모드에서도 목록이 빈 채로 남지 않는다.
 @Observable
 final class MarathonService {
-    private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "marathon")
+    private static let log = Logger(subsystem: "com.daun1997.RunCanvas", category: "marathon")
     private static let cacheName = "marathon-cache.json"
 
     @ObservationIgnored private let fetchEvents: () async throws -> [MarathonEvent]

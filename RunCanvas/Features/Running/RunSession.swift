@@ -18,7 +18,7 @@ struct RecoveredRun: Codable {
 final class RunSession {
     enum State { case idle, running, paused, finished }
 
-    private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "run")
+    private static let log = Logger(subsystem: "com.daun1997.RunCanvas", category: "run")
 
     private(set) var state: State = .idle
     private(set) var sessionID = UUID()

@@ -11,7 +11,7 @@
 set -euo pipefail
 
 DEVICE_NAME="${1:-iPhone 17 Pro Max}"
-BUNDLE_ID="${APP_BUNDLE_ID:-name.dongharyu.RunCanvas}"   # 팀원은 Local.xcconfig 의 값으로 덮어쓰면 된다
+BUNDLE_ID="${APP_BUNDLE_ID:-com.daun1997.RunCanvas}"   # 팀원은 Local.xcconfig 의 값으로 덮어쓰면 된다
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 UDID="$(xcrun simctl list devices available | grep -m1 "${DEVICE_NAME} (" | grep -oE '[0-9A-F-]{36}' || true)"

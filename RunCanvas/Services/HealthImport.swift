@@ -85,7 +85,7 @@ enum HealthImport {
 // MARK: - 실제 가져오기 (건강 앱 ↔ SwiftData)
 
 extension HealthImport {
-    private static let log = Logger(subsystem: "name.dongharyu.RunCanvas", category: "healthImport")
+    private static let log = Logger(subsystem: "com.daun1997.RunCanvas", category: "healthImport")
     /// 앱을 열 때마다 훑는 구간. 워치로만 뛴 러닝은 폰이 며칠 뒤에야 열릴 수 있다.
     private static let lookbackDays = 90
 
