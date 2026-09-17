@@ -4,6 +4,7 @@ struct WatchRunView: View {
     @StateObject private var workout = WatchWorkoutManager()
     @State private var showsEndConfirm = false
     @State private var didPhoneRecord = false
+    @State private var activePage: ActiveRunPage = .data
 
     var body: some View {
         ZStack {
@@ -23,7 +24,10 @@ struct WatchRunView: View {
             if recording { didPhoneRecord = true }
         }
         .onChange(of: workout.state) { _, state in
-            if state == .running, workout.displayedElapsedSeconds < 3 { didPhoneRecord = false }
+            if state == .running, workout.displayedElapsedSeconds < 3 {
+                didPhoneRecord = false
+                activePage = .data
+            }
         }
         .alert("러닝을 처리할 수 없어요", isPresented: Binding(
             get: { workout.errorMessage != nil },
@@ -84,12 +88,28 @@ struct WatchRunView: View {
 
     // MARK: - 러닝 중
 
-    /// 첫 페이지는 수치, 둘째 페이지는 조작에 집중한다.
-    /// 40mm Series 5에서도 숫자를 크게 유지하면서 오탭을 줄이기 위한 구조다.
+    /// 좌우 스와이프로 수치·조작을 분리하고, 수치 화면에서 아래로 넘기면 심박 존을 본다.
+    /// 축을 나눠 두어 40mm Series 5에서도 버튼 오탭 없이 바로 전환할 수 있다.
     private var activeRunView: some View {
+        ZStack {
+            switch activePage {
+            case .data:
+                dataPages
+                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
+            case .controls:
+                controlsPage
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+            }
+        }
+        .contentShape(Rectangle())
+        .simultaneousGesture(horizontalPageGesture)
+        .animation(.snappy(duration: 0.22), value: activePage)
+    }
+
+    private var dataPages: some View {
         TabView {
             metricsPage
-            controlsPage
+            heartRateZonesPage
         }
         .tabViewStyle(.verticalPage)
     }
@@ -137,14 +157,69 @@ struct WatchRunView: View {
                 statCard(title: "BPM", value: workout.heartRate.map { "\(Int($0))" } ?? "--", accent: WatchPalette.coral)
             }
 
-            HStack(spacing: 3) {
-                Spacer()
-                Image(systemName: "chevron.down")
-                Text("컨트롤")
-                Spacer()
+            HStack(spacing: 4) {
+                Label("심박 존", systemImage: "chevron.down")
+                Spacer(minLength: 4)
+                Label("컨트롤", systemImage: "chevron.left")
             }
             .font(.system(size: 8, weight: .semibold, design: .rounded))
             .foregroundStyle(.white.opacity(0.45))
+        }
+        .padding(.horizontal, 7)
+    }
+
+    private var heartRateZonesPage: some View {
+        let bpm = workout.heartRate.map { Int($0.rounded()) }
+        let currentZone = bpm.map(heartRateZone(for:))
+
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text("HEART RATE ZONES")
+                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .tracking(1.1)
+                    .foregroundStyle(.white.opacity(0.68))
+                Spacer()
+                connectionIcon
+            }
+
+            HStack(alignment: .lastTextBaseline, spacing: 5) {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(currentZone.map(zoneColor) ?? .white.opacity(0.35))
+                Text(bpm.map(String.init) ?? "--")
+                    .font(.system(size: 39, weight: .black, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text("BPM")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
+                Spacer(minLength: 2)
+                Text(currentZone.map { "ZONE \($0)" } ?? "ZONE --")
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .foregroundStyle(currentZone.map(zoneColor) ?? .white.opacity(0.4))
+            }
+
+            HStack(spacing: 4) {
+                ForEach(1...5, id: \.self) { zone in
+                    zoneTile(zone, isActive: currentZone == zone)
+                }
+            }
+
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(WatchPalette.zone2)
+                    .frame(width: 6, height: 6)
+                Text(zoneTwoMessage(currentZone: currentZone))
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Spacer(minLength: 2)
+            }
+            .foregroundStyle(currentZone == 2 ? WatchPalette.zone2 : .white.opacity(0.62))
+
+            Text("기본 최대 심박 \(defaultMaxHeartRate) BPM 기준")
+                .font(.system(size: 7, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.32))
         }
         .padding(.horizontal, 7)
     }
@@ -176,7 +251,7 @@ struct WatchRunView: View {
                 }
             }
 
-            Label("위로 넘겨 기록 보기", systemImage: "chevron.up")
+            Label("오른쪽으로 넘겨 기록 보기", systemImage: "chevron.right")
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.45))
         }
@@ -301,6 +376,85 @@ struct WatchRunView: View {
         .buttonStyle(.plain)
     }
 
+    private var horizontalPageGesture: some Gesture {
+        DragGesture(minimumDistance: 20)
+            .onEnded { value in
+                let horizontal = value.translation.width
+                let vertical = value.translation.height
+                guard abs(horizontal) > abs(vertical) * 1.2, abs(horizontal) > 34 else { return }
+                if horizontal < 0, activePage == .data {
+                    activePage = .controls
+                } else if horizontal > 0, activePage == .controls {
+                    activePage = .data
+                }
+            }
+    }
+
+    // 사용자 최대 심박 설정을 추가하기 전의 기본값. 존 계산을 분리해 나중에 값만 교체할 수 있다.
+    private var defaultMaxHeartRate: Int { 190 }
+
+    private func heartRateZone(for bpm: Int) -> Int {
+        let ratio = Double(bpm) / Double(defaultMaxHeartRate)
+        return switch ratio {
+        case ..<0.60: 1
+        case ..<0.70: 2
+        case ..<0.80: 3
+        case ..<0.90: 4
+        default: 5
+        }
+    }
+
+    private func zoneRange(_ zone: Int) -> ClosedRange<Int> {
+        let lowerPercent = 0.5 + Double(zone - 1) * 0.1
+        let upperPercent = lowerPercent + 0.1
+        let lower = Int((Double(defaultMaxHeartRate) * lowerPercent).rounded(.up))
+        let upper = zone == 5
+            ? defaultMaxHeartRate
+            : Int((Double(defaultMaxHeartRate) * upperPercent).rounded(.up)) - 1
+        return lower...upper
+    }
+
+    private func zoneTile(_ zone: Int, isActive: Bool) -> some View {
+        let range = zoneRange(zone)
+        return VStack(spacing: 2) {
+            Text("Z\(zone)")
+                .font(.system(size: 9, weight: .black, design: .rounded))
+            Text("\(range.lowerBound)-\(range.upperBound)")
+                .font(.system(size: 6.5, weight: .bold, design: .rounded))
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+        }
+        .foregroundStyle(isActive ? .black : .white.opacity(0.66))
+        .frame(maxWidth: .infinity, minHeight: 31)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isActive ? zoneColor(zone) : zoneColor(zone).opacity(zone == 2 ? 0.30 : 0.16))
+        )
+        .overlay {
+            if zone == 2, !isActive {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(WatchPalette.zone2.opacity(0.65), lineWidth: 1)
+            }
+        }
+    }
+
+    private func zoneColor(_ zone: Int) -> Color {
+        switch zone {
+        case 1: WatchPalette.zone1
+        case 2: WatchPalette.zone2
+        case 3: WatchPalette.zone3
+        case 4: WatchPalette.zone4
+        default: WatchPalette.zone5
+        }
+    }
+
+    private func zoneTwoMessage(currentZone: Int?) -> String {
+        let range = zoneRange(2)
+        return currentZone == 2
+            ? "ZONE 2 유지 중 · 가볍게 대화할 수 있는 강도"
+            : "ZONE 2 목표 \(range.lowerBound)-\(range.upperBound) BPM"
+    }
+
     /// RunMath.formatDuration과 같은 규칙 — RunMath.swift가 워치 타깃에 없어 복사했다.
     private func formatDuration(_ seconds: Int) -> String {
         let h = seconds / 3600, m = (seconds % 3600) / 60, s = seconds % 60
@@ -327,6 +481,16 @@ private enum WatchPalette {
     static let lime = Color(red: 0.76, green: 1.0, blue: 0.12)
     static let orange = Color(red: 1.0, green: 0.66, blue: 0.12)
     static let coral = Color(red: 1.0, green: 0.30, blue: 0.27)
+    static let zone1 = Color(red: 0.30, green: 0.72, blue: 1.0)
+    static let zone2 = lime
+    static let zone3 = Color(red: 1.0, green: 0.86, blue: 0.20)
+    static let zone4 = orange
+    static let zone5 = coral
+}
+
+private enum ActiveRunPage {
+    case data
+    case controls
 }
 
 #Preview {
