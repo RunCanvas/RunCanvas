@@ -49,12 +49,13 @@ private struct HomeContent: View {
         VStack(spacing: 0) {
             // 프로필·오늘 지도·시작 버튼은 항상 보이게 두고,
             // 스크롤은 아래의 최근 기록 영역에서만 일어난다.
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
                 todayRunMap
                 startRunButton
             }
             .padding(.horizontal, 20)
+            .padding(.top, 8)
             .padding(.bottom, 12)
 
             ScrollView {
@@ -91,7 +92,7 @@ private struct HomeContent: View {
             }
             .padding(20)
         }
-        .frame(height: 220)
+        .frame(height: 196)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
