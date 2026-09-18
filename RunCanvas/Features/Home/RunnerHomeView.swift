@@ -32,6 +32,9 @@ private struct HomeContent: View {
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var locationManager = CLLocationManager()
 
+    /// 내 위치 점을 레벨 색으로. RootTabView가 넣어 준다.
+    @Environment(\.levelTier) private var tier
+
     init(ownerID: UUID?) {
         self.ownerID = ownerID
         let owner = ownerID ?? .noOwner
@@ -56,8 +59,7 @@ private struct HomeContent: View {
             // 스크롤은 아래의 최근 기록 영역에서만 일어난다.
             VStack(spacing: 24) {
                 ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
-                todayRunMap
-                startRunButton
+                heroCard
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -75,8 +77,51 @@ private struct HomeContent: View {
         }
     }
 
-    private var todayRunMap: some View {
-        ZStack(alignment: .bottomLeading) {
+    /// 오늘 기록의 경로. 오늘 안 뛰었으면 빈 배열이라 지도는 현재 위치를 보여준다.
+    /// runs 는 최신순이라 맨 앞만 보면 된다.
+    private var todayRoute: [RoutePoint] {
+        guard let latest = runs.first, Calendar.current.isDateInToday(latest.startedAt) else { return [] }
+        return latest.route
+    }
+
+    /// 지도·오늘 거리·시작 버튼을 한 덩어리로. 따로 두면 상자가 세 개라 화면이 빽빽해 보인다.
+    /// 버튼을 지도 위에 얹지 않는 이유: 좌하단 Apple 지도 표기를 가리면 안 된다.
+    /// 높이는 예전(지도 196 + 간격 24 + 버튼 56)과 같게 맞춰 최근 러닝 3개가 그대로 다 보인다.
+    private var heroCard: some View {
+        VStack(spacing: 0) {
+            ZStack(alignment: .bottomLeading) {
+                mapLayer
+
+                LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("오늘의 러닝")
+                        .font(.headline)
+                    HStack(alignment: .lastTextBaseline, spacing: 6) {
+                        Text(RunMath.formatKm(todayMeters))
+                            .font(.system(size: 52, weight: .bold))
+                            .monospacedDigit()
+                        Text("km")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(20)
+            }
+            .frame(height: 196)
+
+            startRunButton
+                .padding(12)
+        }
+        .background(Color.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// 오늘 뛴 경로가 있으면 그 경로를, 없으면 현재 위치를.
+    @ViewBuilder
+    private var mapLayer: some View {
+        if todayRoute.count > 1 {
+            RouteMapView(route: todayRoute, showsLegend: false)
+        } else {
             Map(position: $camera, interactionModes: []) {
                 UserAnnotation()
             }
@@ -89,23 +134,10 @@ private struct HomeContent: View {
             }
             .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
             .mapControlVisibility(.hidden)
-
-            LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("오늘의 러닝")
-                    .font(.headline)
-                HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(RunMath.formatKm(todayMeters))
-                        .font(.system(size: 52, weight: .bold))
-                    Text("km")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(20)
+            // 탭 틴트가 primary라 내 위치 점이 검게 나온다. 여기서만 레벨 색으로 되돌린다.
+            // 블랙 레벨은 accent가 primary라 다크 모드에서도 묻히지 않는다.
+            .tint(tier?.accent ?? .primary)
         }
-        .frame(height: 196)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private var startRunButton: some View {
