@@ -84,16 +84,18 @@ private struct HomeContent: View {
         return latest.route
     }
 
-    /// 지도·오늘 거리·시작 버튼을 한 덩어리로. 따로 두면 상자가 세 개라 화면이 빽빽해 보인다.
-    /// 버튼을 지도 위에 얹지 않는 이유: 좌하단 Apple 지도 표기를 가리면 안 된다.
-    /// 높이는 예전(지도 196 + 간격 24 + 버튼 56)과 같게 맞춰 최근 러닝 3개가 그대로 다 보인다.
+    /// 지도가 카드 전체를 채우고 그 위에 오늘 거리와 시작 버튼만 얹는다.
+    /// 상자를 셋(지도·버튼·기록) 두면 화면이 빽빽해 보여서 하나로 합쳤다.
+    /// 높이는 예전(지도 196 + 간격 24 + 버튼 56)과 같아 최근 러닝 3개가 그대로 다 보인다.
     private var heroCard: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .bottomLeading) {
-                mapLayer
+        ZStack(alignment: .bottomLeading) {
+            mapLayer
+                // 좌하단 Apple 지도 표기를 가리면 안 된다 — 버튼 높이만큼 안전 영역을 줘서 위로 올린다.
+                .safeAreaPadding(.bottom, Self.mapOrnamentInset)
 
-                LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
+            LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
 
+            VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("오늘의 러닝")
                         .font(.headline)
@@ -105,16 +107,16 @@ private struct HomeContent: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .padding(20)
+                startRunButton
             }
-            .frame(height: 196)
-
-            startRunButton
-                .padding(12)
+            .padding(16)
         }
-        .background(Color.card)
+        .frame(height: 276)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
+
+    /// 버튼(56) + 아래 패딩(16) + 여유(4)
+    private static let mapOrnamentInset: CGFloat = 76
 
     /// 오늘 뛴 경로가 있으면 그 경로를, 없으면 현재 위치를.
     @ViewBuilder
