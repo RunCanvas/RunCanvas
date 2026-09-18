@@ -15,6 +15,9 @@ struct RunnerHomeView: View {
     var body: some View {
         NavigationStack {
             HomeContent(ownerID: auth.userID)
+                // 홈엔 타이틀이 없는데도 빈 내비게이션 바가 상단을 차지한다.
+                // 숨기면 그만큼 최근 러닝 스크롤 영역이 늘어난다. 푸시된 화면은 자기 바를 그대로 쓴다.
+                .toolbar(.hidden, for: .navigationBar)
         }
     }
 }
