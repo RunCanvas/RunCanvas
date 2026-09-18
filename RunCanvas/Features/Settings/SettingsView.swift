@@ -37,6 +37,7 @@ struct SettingsView: View {
                     canvasSection
                     linkedAccountsSection
                     accountSection
+                    policySection
                     versionFooter
                 }
                 .listRowBackground(Color.card)
@@ -275,6 +276,29 @@ struct SettingsView: View {
             .disabled(isDeleting)
         }
     }
+
+    /// 심사 지침 5.1.1(i)은 처리방침 링크를 App Store Connect 메타데이터와 **앱 안** 양쪽에 요구한다.
+    /// 본문을 앱에 담는 건 대체가 되지 않는다 — 공개 URL로 열어야 한다.
+    private var policySection: some View {
+        Section {
+            Link(destination: Self.privacyPolicyURL) {
+                HStack {
+                    Text("개인정보 처리방침")
+                    Spacer()
+                    // chevron.right(앱 안 이동)와 구별해 바깥으로 나간다는 걸 보인다
+                    Image(systemName: "arrow.up.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .foregroundStyle(.primary)   // 링크 틴트가 글자색을 바꾸지 않게
+            .accessibilityLabel("개인정보 처리방침, 브라우저에서 열기")
+        }
+    }
+
+    private static let privacyPolicyURL = URL(string: "https://runcanvas.github.io/RunCanvas/privacy.html")!
 
     private var versionFooter: some View {
         Section {
