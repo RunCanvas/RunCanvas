@@ -27,6 +27,11 @@ private struct HomeContent: View {
     @Query private var runs: [Run]
     private let ownerID: UUID?
 
+    // 상수 바인딩이면 첫 렌더에 위치가 없을 때 .automatic(전국 지도)에 고정되고 되돌아오지 못한다.
+    // 상태로 들고 있어야 위치를 잡은 뒤 카메라가 따라간다.
+    @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var locationManager = CLLocationManager()
+
     init(ownerID: UUID?) {
         self.ownerID = ownerID
         let owner = ownerID ?? .noOwner
@@ -72,8 +77,15 @@ private struct HomeContent: View {
 
     private var todayRunMap: some View {
         ZStack(alignment: .bottomLeading) {
-            Map(position: .constant(.userLocation(fallback: .automatic)), interactionModes: []) {
+            Map(position: $camera, interactionModes: []) {
                 UserAnnotation()
+            }
+            .task {
+                // 권한을 러닝 시작 때만 물어서, 한 번도 안 뛴 계정은 홈 지도가 권한 없이 뜬다.
+                // 그러면 .userLocation 이 해석되지 못하고 .automatic(전국 지도)으로 떨어진다.
+                if locationManager.authorizationStatus == .notDetermined {
+                    locationManager.requestWhenInUseAuthorization()
+                }
             }
             .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
             .mapControlVisibility(.hidden)
