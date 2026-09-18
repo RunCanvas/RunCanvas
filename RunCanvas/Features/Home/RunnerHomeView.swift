@@ -62,7 +62,7 @@ private struct HomeContent: View {
                 heroCard
             }
             .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.top, 16)
             .padding(.bottom, 12)
 
             ScrollView {
