@@ -63,6 +63,9 @@ private struct HomeContent: View {
                 .padding(.top, 12)
                 .padding(.bottom, 20)
             }
+            // 3개 고정이라 보통은 다 보이지만, 작은 기기(SE)나 큰 글씨에선 넘친다.
+            // 스크롤은 남기되 다 보일 때는 튕기지 않게 한다.
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 
