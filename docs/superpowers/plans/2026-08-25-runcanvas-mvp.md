@@ -279,11 +279,13 @@ Config/             Base.xcconfig (+ Local.xcconfig gitignore)
 - 완료 조건: 비행기 모드로 러닝 종료 → 네트워크 켜고 홈 복귀 → 대시보드 `runs`에 행 생성, 두 번 실행해도 중복 없음. 테스트: `RunDTOTests`(인코딩 키·route 변환).
 
 ### Task 7.2: 출시 준비
-- **앱 아이콘이 비어 있음(iOS·워치 둘 다 슬롯만 있고 이미지 0개) — 제출 블로커.** 1024 + 다크/틴트, 런치 스크린 색, `MARKETING_VERSION`(현재 1.0)·빌드 번호.
+- ✅ 앱 아이콘 — iOS·워치 둘 다 1024×1024 들어감(2026-09-18 확인). 다크/틴트 변형은 비어 있으나 iOS 18 선택사항. 남은 것: 런치 스크린 색, 빌드 번호(`MARKETING_VERSION` 1.0 / `CURRENT_PROJECT_VERSION` 2).
 - 권한 문구 재검토: 위치(러닝 중 백그라운드 인디케이터 문구 포함)·건강 읽기/쓰기·사진 추가.
-- **Google OAuth 동의 화면 Testing → Publish**(지금은 테스트 사용자 2명만 로그인 가능), **카카오 앱 아이콘 교체**(임시 PNG), 카카오 비즈 앱 검수 항목 확인.
+- ✅ Google OAuth 동의 화면 **In production**(2026-09-18) — Branding 의 Application home page 가 비어 있어 막혀 있었다. 검증 심사 면제(로고 없음·도메인 2개·기본 스코프). ✅ 카카오 앱 아이콘 교체(2026-09-18). 남은 것: 카카오 비즈 앱 검수 항목 확인.
 - App Store Connect 앱 등록(번들 `com.daun1997.RunCanvas`, 다은 계정) → Archive → TestFlight 내부 테스트. 업로드와 배포 관리는 공식 소유자인 다은 계정에서 진행한다.
-- 심사 대비 체크: Apple 로그인 ✅, 계정 삭제 ✅(5.1.1(v)), 개인정보 처리방침 URL(위치·건강 데이터 언급) 준비, 건강 데이터는 광고·제3자 공유 없음 명시.
+- 심사 대비 체크: Apple 로그인 ✅, 계정 삭제 ✅(5.1.1(v)), 개인정보 처리방침 URL ✅ https://runcanvas.github.io/RunCanvas/privacy.html (위치·건강·계정·사진 수집 항목과 광고·제3자 공유 없음 명시), `PrivacyInfo.xcprivacy` ✅ 폰·워치 양쪽.
+- 남은 심사 항목: **앱 안에도 처리방침 링크가 있어야 한다**(5.1.1(i)는 ASC 메타데이터와 앱 양쪽을 요구) — 설정 화면에 한 줄 추가 필요.
+- 공개 사이트는 `gh-pages` 브랜치(`docs/site/` 가 원본). develop 의 `docs/` 로 Pages 를 켜면 내부 플랜과 `schema.sql` 까지 공개되므로 그렇게 하지 않는다.
 
 ---
 
