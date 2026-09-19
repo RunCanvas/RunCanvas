@@ -45,6 +45,7 @@ create policy "own badges" on public.user_badges
 insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true);
 create policy "avatar read" on storage.objects
   for select using (bucket_id = 'avatars');
+-- ↑ 이 정책은 아래 "avatars_lock_down" 마이그레이션에서 교체됐다. 원문은 이력으로만 남긴다.
 create policy "avatar write own folder" on storage.objects
   for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
 create policy "avatar update own folder" on storage.objects
@@ -173,3 +174,32 @@ drop trigger if exists set_course_owner_nickname on public.courses;
 create trigger set_course_owner_nickname
   before insert or update on public.courses
   for each row execute function public.set_course_owner_nickname();
+
+-- migration "avatars_lock_down" (2026-09-19): 아바타 버킷 잠그기
+--
+-- 왜: 기존 "avatar read" 정책은 `for select using (bucket_id = 'avatars')` 뿐이라
+-- `to` 절이 없어 anon 을 포함한 모든 역할에 버킷 전체 SELECT 를 허용했다. Storage 의
+-- list() 가 이 정책을 타므로, 공개 저장소에 박힌 publishable 키만으로 로그인 없이
+--   1) 폴더명 = 전 사용자 auth uid 목록을 열거하고
+--   2) 각 uid 의 공개 URL 로 프로필 사진을 일괄 수집
+-- 할 수 있었다. "아바타 공개"의 의도는 'URL 을 아는 사람이 한 장을 본다'였지 명부 공개가 아니다.
+--
+-- 공개 버킷의 표시 경로(/object/public/...)는 RLS 를 타지 않으므로 이 정책은 표시에 필요 없다.
+-- 본인 폴더만 남기는 이유: 업로드 전 기존 파일 정리(list→remove)에 본인 행 조회가 필요하다.
+drop policy if exists "avatar read" on storage.objects;
+create policy "avatar read own" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'avatars' and (select auth.uid())::text = (storage.foldername(name))[1]);
+
+-- 용량·형식 제한. 앱은 JPEG 한 장만 올리지만 클라이언트는 방어선이 아니다 —
+-- 제한이 없으면 로그인 한 번으로 text/html 을 올려 프로젝트 도메인에서 피싱 페이지를
+-- 서빙하거나, 대용량 파일을 반복 업로드해 스토리지·대역폭 과금을 늘릴 수 있다.
+update storage.buckets
+   set file_size_limit = 2097152,          -- 2MB
+       allowed_mime_types = array['image/jpeg']
+ where id = 'avatars';
+
+-- 남은 노출(설계 판단 필요): public.courses 는 `for select using (true)` 라 owner_id 가
+-- 공개다. 아바타 경로가 uid 에서 유도되면 코스를 올린 사용자의 사진이 계산으로 도출된다.
+-- → 앱이 아바타 파일명을 난수로 바꿨다(ProfileService.uploadAvatar). 기존 <uid>/avatar.jpg
+--   파일은 사용자가 사진을 바꿀 때 정리된다. 전수 정리가 필요하면 별도 스크립트로.

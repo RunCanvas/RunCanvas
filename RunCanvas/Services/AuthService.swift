@@ -135,7 +135,13 @@ final class AuthService {
         // 계정 삭제는 이미 확정됐다. SDK 로그아웃의 후속 네트워크 실패가 로컬 정리를 막아서는 안 된다.
         try? await supabase.auth.signOut(scope: .local)
         Profile.clearLocalCache()
-        if let id { BadgeStore.reset(for: id) }   // 같은 폰에서 새 계정을 만들 때 옛 뱃지·챌린지 캐시가 남지 않도록
+        if let id {
+            // 같은 폰에서 새 계정을 만들 때 옛 캐시가 남지 않도록. 계정별 키를 쓰는 저장소는 전부 정리한다.
+            BadgeStore.reset(for: id)
+            TrainingStore.reset(for: id)
+            // 그 계정으로 다시 로그인할 일이 없어 deleteRemote 가 영영 안 돌고 목록만 쌓인다
+            SyncService.pendingDeletes.removeAll { $0.ownerID == id }
+        }
         didDeleteAccount = true
     }
 }
