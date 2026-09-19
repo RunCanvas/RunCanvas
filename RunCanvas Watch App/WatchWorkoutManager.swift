@@ -28,6 +28,9 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
     /// 폰 스냅샷이 5초 넘게 안 오면 폰이 기록 중이 아닌 걸로 본다 (isPhoneRecording)
     private static let snapshotStaleAfter: TimeInterval = 5
+    /// 이 시간 안에 온 폰 .start 는 "양쪽에서 거의 동시에 시작"으로 보고 세션 ID를 맞춘다.
+    /// 그보다 오래 달리고 있었다면 진행 중인 러닝이므로 폰 ID를 받지 않는다.
+    private static let concurrentStartWindow = 10
     private var syncedAt: Date?
     /// 폰에서 마지막으로 전달받은 거리. 아직 받은 값이 없으면 nil.
     private var syncedDistanceMeters: Double?
@@ -209,7 +212,7 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
             }
             sendSnapshot()
         } catch {
-            errorMessage = error.localizedDescription
+            show(error)
             connectivity.sendCommand(.unavailable, sessionID: sessionID)
             resetSession()
         }
@@ -259,7 +262,10 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
 
         if sendToPhone { connectivity.sendCommand(.end, sessionID: sessionID) }
         session.end()
-        let tooShort = !RunSavePolicy.shouldSave(distanceMeters: finalDistance)
+        // 폐기 판단은 양쪽 중 큰 값으로 한다. finalDistance 는 폰이 .end 에 실어 보낸 숫자로도 덮이는데,
+        // 블루투스가 끊겨 폰이 20m 만 쟀으면 워치가 실제로 뛴 5km 워크아웃을 버리게 된다.
+        // distanceMeters 는 워치 자신의 HealthKit 누적이라 폰이 뭘 보내든 실제 거리는 지켜진다.
+        let tooShort = !RunSavePolicy.shouldSave(distanceMeters: max(finalDistance, distanceMeters))
         guard !tooShort else {
             // 테스트·오작동으로 생긴 짧은 기록은 건강 앱과 복구 파일에 남기지 않는다.
             builder.discardWorkout()
@@ -302,9 +308,19 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
                 )
             }
         } catch {
-            errorMessage = error.localizedDescription
+            show(error)
+            // 여기까지 왔으면 workoutBuilder 는 이미 nil 이라 resetSession 이 정리하지 못한다.
+            // 명시적으로 버리지 않으면 HealthKit 이 끝나지 않은 빌더를 계속 들고 있는다.
+            builder.discardWorkout()
             resetSession()
         }
+    }
+
+    /// HealthKit 이 던지는 HKError 는 영문 시스템 문장이라 알럿에 그대로 쓰면 안 된다.
+    /// 우리가 만든 문구만 통과시키고 나머지는 한국어 기본 문장으로 바꾼다 (폰 RunView 와 같은 규칙).
+    private func show(_ error: Error) {
+        errorMessage = (error as? WatchWorkoutError)?.errorDescription
+            ?? "러닝을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요."
     }
 
     private func requestAuthorization() async throws {
@@ -455,6 +471,13 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         switch action {
         case .start:
             guard state == .idle || state == .finished, !isStarting else {
+                // 이미 한참 달리는 중이면 폰 ID를 받지 않는다. 받으면 워치의 누적 거리가 폰 세션의
+                // 첫 값으로 들어가 "8km를 3초에" 같은 기록이 되고, 이어서 폰이 보낸 .end 가
+                // 진행 중이던 진짜 러닝을 끝낸다. 폰이 자기 HealthKit 으로 기록하게 돌려보낸다.
+                if elapsedSeconds > Self.concurrentStartWindow {
+                    connectivity.sendCommand(.unavailable, sessionID: sessionID)
+                    return
+                }
                 // 양쪽에서 거의 동시에 시작한 경우 — 폰을 마스터로 보고 세션 ID를 맞춘다.
                 // (안 맞추면 이후 pause/resume/end가 전부 ID 불일치로 무시된다)
                 self.sessionID = sessionID
@@ -498,13 +521,12 @@ extension WatchWorkoutManager: HKWorkoutSessionDelegate {
     ) {}
 
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        let message = error.localizedDescription
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
                 // 왜: 버려진 옛 세션이 errorAnotherWorkoutSessionStarted로 실패한 콜백이
                 // 방금 만든 현재 세션의 상태·타이머를 지우면 안 된다 (HKWorkoutSession은 Sendable)
                 guard let self, self.workoutSession === workoutSession else { return }
-                self.errorMessage = message
+                self.show(error)
                 // 안 알리면 폰은 스냅샷이 30초 끊길 때까지 워치가 기록 중인 줄 안다
                 self.connectivity.sendCommand(.unavailable, sessionID: self.sessionID)
                 self.resetSession()

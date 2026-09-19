@@ -144,6 +144,9 @@ extension HealthImport {
         for run in runs where run.route.isEmpty {
             guard let id = run.healthWorkoutID, let workout = byWorkoutID[id], !workout.route.isEmpty else { continue }
             run.route = workout.route
+            // 이미 올라간 기록을 고쳤으므로 다시 올려야 한다. 안 비우면 pushPending(syncedAt == nil)이
+            // 건너뛰어 서버 사본이 경로 없이 영구 고정되고, 기기를 바꿔 복원하면 지도가 빈 채로 남는다.
+            run.syncedAt = nil
             filledRoutes += 1
         }
 

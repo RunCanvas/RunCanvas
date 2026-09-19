@@ -8,6 +8,8 @@ struct AppRouter: View {
     @State private var isLoading = true
     @State private var didShowSplash = false
     @State private var loadedUserID: UUID?
+    /// 진행 중인 동기화. 포그라운드 전환이 겹쳤을 때 두 번 도는 걸 막는다 (syncIfPossible 주석 참고)
+    @State private var syncTask: Task<Void, Never>?
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
@@ -44,9 +46,17 @@ struct AppRouter: View {
     private static let profiledUserKey = "profiledUserID"
 
     /// 안 올라간 기록·뱃지를 서버로 (로그인 상태에서만, 실패는 조용히)
+    ///
+    /// 왜 진행 중이면 건너뛰는가: importMissingRuns 는 로컬 스냅샷을 읽고 **그다음에** 긴 await(90일치
+    /// 건강 앱 쿼리)를 탄다. 포그라운드 전환이 겹쳐 두 번 들어오면 둘 다 같은 스냅샷을 보고 중복 판정을
+    /// 통과해, 같은 워크아웃이 서로 다른 Run.id 로 두 번 저장된다(@Attribute(.unique) 가 막지 못한다).
+    /// 설치 직후 첫 실행이 가장 위험하다 — 그때 쿼리가 제일 길다.
+    /// SyncService 는 내부에 syncTail 이 있지만 그 앞의 importMissingRuns 는 보호받지 못한다.
     private func syncIfPossible() {
         guard auth.canSync, hasProfile, let id = auth.userID else { return }
-        Task {
+        guard syncTask == nil else { return }
+        syncTask = Task {
+            defer { syncTask = nil }
             // 왜 가져오기가 먼저: 폰 앱이 꺼진 채 워치로 뛴 러닝은 건강 앱에만 있다.
             // 여기서 기록으로 만들어 둬야 이어지는 sync 가 그것까지 서버에 올린다.
             await HealthImport.importMissingRuns(context: context, ownerID: id, health: HealthService())
