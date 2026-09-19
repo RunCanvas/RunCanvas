@@ -148,6 +148,8 @@ final class CourseService {
     func register(path: [CoursePoint], name: String, region: String,
                   ownerID: UUID, ownerNickname: String) async throws -> Course {
         guard path.count >= 2 else { throw CourseError.tooShort }   // 서버 courses_path_size 하한과 같게
+        // 데모 모드는 서버 계정이 없어 insert 가 RLS 에 막힌다 — "연결을 확인해 주세요"로 보이기 전에 이유를 말해 준다
+        guard supabase.auth.currentSession != nil else { throw CourseError.demoMode }
         // 서버 제약과 같은 기준(점 5000개·100km). 여기서 막지 않으면 업로드가 400 으로 튕겨
         // 사용자에게는 "연결을 확인해 주세요"로 보인다
         let distance = CourseGeometry.length(path)
@@ -184,6 +186,7 @@ final class CourseService {
     enum CourseError: LocalizedError {
         case tooShort
         case tooLong
+        case demoMode
 
         var errorDescription: String? {
             switch self {
@@ -193,6 +196,8 @@ final class CourseService {
             case .tooLong:
                 // 서버가 courses_distance·courses_path_size 로 막는다 — 그 전에 이유를 알려 준다
                 "코스로 올리기엔 기록이 길어요. 100km 이하 기록을 골라 주세요."
+            case .demoMode:
+                "둘러보기 중에는 코스를 공유할 수 없어요. 로그인 후 이용해 주세요."
             }
         }
     }
