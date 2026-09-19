@@ -10,6 +10,13 @@ final class RunSavePolicyTests: XCTestCase {
         XCTAssertTrue(RunSavePolicy.shouldSave(distanceMeters: 50.01))
     }
 
+    /// 거리는 워치에서 한 번에 들어올 수 있어 "거리는 있는데 시간이 0"이 실제로 만들어진다.
+    /// 그대로 저장하면 페이스가 00'00"으로 찍힌다.
+    func testZeroDurationIsDiscardedEvenWithDistance() {
+        XCTAssertFalse(RunSavePolicy.shouldSave(distanceMeters: 8_000, seconds: 0))
+        XCTAssertTrue(RunSavePolicy.shouldSave(distanceMeters: 8_000, seconds: 1))
+    }
+
     func testPhoneAndWatchUseIdenticalPolicy() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         XCTAssertEqual(

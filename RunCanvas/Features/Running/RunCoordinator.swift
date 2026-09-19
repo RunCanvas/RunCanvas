@@ -18,10 +18,14 @@ final class RunCoordinator {
     var watchStartError: String?
     var showsDiscardedRun = false
 
-    /// 세션이 만료돼 auth.userID가 사라져도 기록을 잃지 않도록 마지막 계정을 들고 있는다
+    /// 세션이 만료돼 auth.userID가 사라져도 기록을 잃지 않도록 마지막 계정을 들고 있는다.
+    /// nil 은 무시한다 — RootTabView 가 auth.userID 를 그대로 흘려보내므로, 러닝 중 토큰 갱신이
+    /// 실패해 잠깐 nil 이 되면 이 값이 지워지고 finish() 가 저장하지 못한다(워치 종료 경로는
+    /// 반환값을 버려서 아무 표시도 안 난다). 남아 있어도 해롭지 않다 — start() 가 세션을 따로
+    /// 확인하고, 로그아웃하면 AppRouter 가 로그인 화면으로 보낸다.
     var ownerID: UUID? {
         get { UserDefaults.standard.string(forKey: Self.ownerKey).flatMap(UUID.init(uuidString:)) }
-        set { UserDefaults.standard.set(newValue?.uuidString, forKey: Self.ownerKey) }
+        set { if let newValue { UserDefaults.standard.set(newValue.uuidString, forKey: Self.ownerKey) } }
     }
 
     private static let ownerKey = "lastOwnerID"

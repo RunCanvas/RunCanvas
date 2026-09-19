@@ -214,7 +214,8 @@ struct RunView: View {
         ) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text(healthAuthorizationMessage ?? "러닝 기록은 계속 사용할 수 있어요.")
+            // 두 문장을 이어 붙인다 — ?? 로 두면 오류 문구가 있을 때 안심 문구가 절대 안 보인다
+            Text((healthAuthorizationMessage.map { $0 + " " } ?? "") + "러닝 기록은 계속 사용할 수 있어요.")
         }
         .alert(
             "기록 방식이 바뀌었어요",
