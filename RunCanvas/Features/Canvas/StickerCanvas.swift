@@ -39,7 +39,10 @@ struct StickerCanvas: View {
                         isSelected: selection.contains(sticker.id),
                         isEditing: isEditing,
                         isRotationMode: isRotationMode,
-                        onSelect: { selection = [sticker.id] },
+                        // 이미 골라 둔 것이면 유지한다 — 제스처가 매 onChanged 마다 이걸 부르므로,
+                        // 통째로 갈아치우면 여러 개 선택해 둔 상태에서 하나만 건드려도 선택이 하나로 줄어
+                        // "함께 바꾸기"가 사라진다.
+                        onSelect: { if !selection.contains(sticker.id) { selection = [sticker.id] } },
                         onToggleSelect: {
                             if selection.contains(sticker.id) { selection.remove(sticker.id) }
                             else { selection.insert(sticker.id) }
@@ -177,6 +180,8 @@ private struct StickerLayer: View {
     let onEditText: () -> Void
     let onEditBegan: () -> Void
 
+    /// 한 제스처 동작에 실행취소 스냅샷을 한 번만 남기기 위한 표시 (recordUndoOnce 참고)
+    @State private var didRecordThisGesture = false
     @State private var dragStartPosition: CGPoint?
     @State private var resizeStartScale: CGFloat?
     @State private var magnifyStartScale: CGFloat?
@@ -225,7 +230,10 @@ private struct StickerLayer: View {
                 y: sticker.position.y * canvasSize.height
             )
             .onTapGesture { if isEditing { onSelect() } }
-            .onLongPressGesture(minimumDuration: 0.35) { if isEditing { onToggleSelect() } }
+            // maximumDistance 기본값 10pt 는 DragGesture 의 minimumDistance 와 같아서,
+            // 손가락을 얹고 잠깐 멈췄다 끄는 흔한 동작에서 롱프레스가 먼저 발동해 선택이 풀렸다가
+            // 드래그가 시작되며 다시 켜진다(인스펙터 깜빡임, 회전 모드가 저절로 꺼짐).
+            .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 2) { if isEditing { onToggleSelect() } }
             // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
             .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
     }
@@ -238,7 +246,7 @@ private struct StickerLayer: View {
 
                 let start = dragStartPosition ?? sticker.position
                 if dragStartPosition == nil {
-                    onEditBegan()
+                    recordUndoOnce()
                     dragStartPosition = start
                 }
                 let nextPosition = CGPoint(
@@ -249,8 +257,25 @@ private struct StickerLayer: View {
             }
             .onEnded { _ in
                 dragStartPosition = nil
+                endGesture()
                 onDragEnded()
             }
+    }
+
+    /// 세 제스처(드래그·확대·회전)는 동시 인식이라 두 손가락으로 확대하며 살짝 돌리면 전부 시작된다.
+    /// 각자 onEditBegan 을 부르면 한 동작에 실행취소 스냅샷이 2~3칸 쌓여, 되돌리기를 눌러도
+    /// 화면이 안 바뀌다가 갑자기 두 편집 전으로 점프한다. 한 동작에 한 번만 기록한다.
+    private func recordUndoOnce() {
+        guard !didRecordThisGesture else { return }
+        didRecordThisGesture = true
+        onEditBegan()
+    }
+
+    /// 세 제스처가 모두 끝났을 때만 다음 동작을 위해 연다
+    private func endGesture() {
+        if dragStartPosition == nil, magnifyStartScale == nil, rotateStartAngle == nil {
+            didRecordThisGesture = false
+        }
     }
 
     /// 두 손가락 확대·축소. 핸들 드래그보다 이쪽이 주 조작이다.
@@ -261,12 +286,15 @@ private struct StickerLayer: View {
                 onSelect()
                 let start = magnifyStartScale ?? sticker.scale
                 if magnifyStartScale == nil {
-                    onEditBegan()
+                    recordUndoOnce()
                     magnifyStartScale = start
                 }
                 sticker.scale = (start * value.magnification).clamped(to: Self.scaleRange)
             }
-            .onEnded { _ in magnifyStartScale = nil }
+            .onEnded { _ in
+                magnifyStartScale = nil
+                endGesture()
+            }
     }
 
     /// 두 손가락 회전. 똑바로 세운 각도(0°) 근처에서는 살짝 붙여 준다.
@@ -277,7 +305,7 @@ private struct StickerLayer: View {
                 onSelect()
                 let start = rotateStartAngle ?? sticker.rotation
                 if rotateStartAngle == nil {
-                    onEditBegan()
+                    recordUndoOnce()
                     rotateStartAngle = start
                 }
                 let next = start + value.rotation
@@ -285,7 +313,10 @@ private struct StickerLayer: View {
                 let remainder = abs(next.degrees.truncatingRemainder(dividingBy: 360))
                 sticker.rotation = (remainder < 4 || remainder > 356) ? .zero : next
             }
-            .onEnded { _ in rotateStartAngle = nil }
+            .onEnded { _ in
+                rotateStartAngle = nil
+                endGesture()
+            }
     }
 
     private var resizeOverlay: some View {
@@ -329,6 +360,11 @@ private struct StickerLayer: View {
             .accessibilityLabel("회전하며 크기 조절")
     }
 
+    /// 손잡이는 `.overlay` 라 아래의 `.scaleEffect(sticker.scale * contentScale)` 를 같이 탄다.
+    /// 역보정하지 않으면 기본 배치(scale 0.72)에서도 22pt, 하한 0.3 까지 줄이면 9pt 가 돼
+    /// 캔버스 위에서 삭제·텍스트 수정이 사실상 불가능하다.
+    private var handleScale: CGFloat { 1 / max(sticker.scale * contentScale, 0.001) }
+
     private func handleImage(_ systemImage: String) -> some View {
         Image(systemName: systemImage)
             .font(.system(size: 12, weight: .bold))
@@ -336,8 +372,10 @@ private struct StickerLayer: View {
             .frame(width: 30, height: 30)
             .background(.white, in: Circle())
             .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
-            .offset(x: 14, y: 14)
+            .frame(width: 44, height: 44)   // 보이는 크기는 30 그대로, 터치 영역만 hit-target 44
             .contentShape(Circle())
+            .scaleEffect(handleScale)
+            .offset(x: 14, y: 14)
     }
 
     private var isTextSticker: Bool {
@@ -358,8 +396,11 @@ private struct StickerLayer: View {
                 .frame(width: 30, height: 30)
                 .background(role == .destructive ? Color.red : Color.white, in: Circle())
                 .shadow(color: .black.opacity(0.3), radius: 3, y: 1)
+                .frame(width: 44, height: 44)   // 보이는 크기는 30 그대로, 터치 영역만 hit-target 44
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .scaleEffect(handleScale)               // handleImage 와 같은 이유 — 스티커 배율을 되돌린다
         .accessibilityLabel(label)
     }
 

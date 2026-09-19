@@ -439,7 +439,17 @@ struct CanvasStudioView: View {
         selectedRun = run
         if stickers.isEmpty {
             stickers = Self.defaultStickers(for: run, color: defaultStickerColor)
+            return
         }
+        // 꾸미던 중 기록을 바꿨다 — 새 기록에 없는 데이터의 스티커는 내용 없이 테두리만 남아
+        // 결과 이미지에 빈 자리가 생긴다. 도구 메뉴·defaultStickers 와 같은 가드로 걸러낸다.
+        if run.route.count <= 1 {
+            stickers.removeAll { if case .route = $0.kind { return true } else { return false } }
+        }
+        if run.averageHeartRate == nil {
+            stickers.removeAll { if case .heartRate = $0.kind { return true } else { return false } }
+        }
+        selection = selection.filter { id in stickers.contains { $0.id == id } }
     }
 
     private func add(_ kind: CanvasSticker.Kind) {
