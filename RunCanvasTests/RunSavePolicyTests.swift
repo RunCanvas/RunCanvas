@@ -11,10 +11,13 @@ final class RunSavePolicyTests: XCTestCase {
     }
 
     /// 거리는 워치에서 한 번에 들어올 수 있어 "거리는 있는데 시간이 0"이 실제로 만들어진다.
-    /// 그대로 저장하면 페이스가 00'00"으로 찍힌다.
-    func testZeroDurationIsDiscardedEvenWithDistance() {
-        XCTAssertFalse(RunSavePolicy.shouldSave(distanceMeters: 8_000, seconds: 0))
-        XCTAssertTrue(RunSavePolicy.shouldSave(distanceMeters: 8_000, seconds: 1))
+    /// 그 기록을 **버리지는 않는다** — 실제로 뛴 거리를 잃는 쪽이 더 나쁘다.
+    /// 대신 페이스가 00'00"으로 찍히지 않게 nil 을 낸다.
+    func testZeroDurationKeepsRunButHasNoPace() {
+        XCTAssertTrue(RunSavePolicy.shouldSave(distanceMeters: 8_000))
+        XCTAssertNil(RunMath.paceSecondsPerKm(distanceMeters: 8_000, seconds: 0))
+        XCTAssertEqual(RunMath.formatPace(RunMath.paceSecondsPerKm(distanceMeters: 8_000, seconds: 0)), "--'--\"")
+        XCTAssertNotNil(RunMath.paceSecondsPerKm(distanceMeters: 8_000, seconds: 1))
     }
 
     func testPhoneAndWatchUseIdenticalPolicy() throws {

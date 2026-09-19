@@ -138,7 +138,7 @@ final class RunSession {
             location.stop()
         }
         ticker?.invalidate()
-        if !RunSavePolicy.shouldSave(distanceMeters: distanceMeters, seconds: elapsedSeconds) {
+        if !RunSavePolicy.shouldSave(distanceMeters: distanceMeters) {
             health?.stopHeartRateStream()
             Self.discardRecoverable()
             state = .finished
@@ -207,8 +207,7 @@ final class RunSession {
     /// 중단된 러닝을 그대로 기록으로 저장한다 (이어달리기는 없음 — 저장 아니면 버리기)
     @discardableResult
     static func save(_ recovered: RecoveredRun, ownerID: UUID, weightKg: Double, context: ModelContext) -> Run? {
-        guard RunSavePolicy.shouldSave(distanceMeters: recovered.distanceMeters,
-                                       seconds: Int(recovered.accumulated.rounded(.down))) else {
+        guard RunSavePolicy.shouldSave(distanceMeters: recovered.distanceMeters) else {
             discardRecoverable()
             return nil
         }
