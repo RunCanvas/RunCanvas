@@ -40,6 +40,10 @@ struct BadgesView: View {
         let bests = BadgeEngine.personalBests(badgeRuns)
         let level = Level.forTotalDistance(bests.totalMeters)
         let challenges = ChallengeEngine.statuses(runs: badgeRuns)
+        // 뱃지 19개마다 전체 기록을 다시 훑으면 O(19×N) — 기록이 쌓인 계정에서 스크롤이 무거워진다
+        let progresses = Dictionary(uniqueKeysWithValues: Badge.allCases.map {
+            ($0, BadgeEngine.progressValue(for: $0, runs: badgeRuns))
+        })
 
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -66,7 +70,7 @@ struct BadgesView: View {
                                     badge: badge,
                                     isEarned: earned.contains(badge),
                                     earnedAt: earnedDates[badge],
-                                    progress: BadgeEngine.progressValue(for: badge, runs: badgeRuns)
+                                    progress: progresses[badge] ?? 0
                                 )
                             }
                         }

@@ -41,7 +41,7 @@ struct RecapView: View {
         }
         .navigationTitle("정산 카드")
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: recap) { render(recap) }
+        .task(id: recap) { rendered = nil; await Task.yield(); render(recap) }   // 스피너가 먼저 그려지게 한 프레임 양보
         .alert(
             didSucceed ? "저장 완료" : "저장할 수 없어요",
             isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })
@@ -72,8 +72,8 @@ struct RecapView: View {
             Image(uiImage: rendered)
                 .resizable()
                 .scaledToFit()
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .shadow(color: .black.opacity(0.2), radius: 12, y: 5)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                
         } else {
             ProgressView("카드 만드는 중…")
                 .frame(maxWidth: .infinity)

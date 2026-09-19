@@ -58,7 +58,7 @@ struct CanvasExportSheet: View {
             }
         }
         .presentationDetents([.large])
-        .task { render() }
+        .task { await Task.yield(); render() }   // 한 프레임 양보 — 안 그러면 스피너가 그려질 틈 없이 멈춘다
         .sheet(isPresented: $showsShareSheet) {
             if let renderedImage { ShareSheet(items: [renderedImage]) }
         }
@@ -93,7 +93,6 @@ struct CanvasExportSheet: View {
                 .background {
                     if background.isTransparent { TransparencyGrid() }
                 }
-                .shadow(color: .black.opacity(0.2), radius: 12, y: 5)
                 .padding(.horizontal, 20)
         } else if renderFailed {
             VStack(spacing: 12) {

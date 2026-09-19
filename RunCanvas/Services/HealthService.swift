@@ -87,7 +87,10 @@ final class HealthService: HealthServicing {
         )
         let unit = HKUnit.count().unitDivided(by: .minute())
 
-        let deliver: ([HKSample]?) -> Void = { samples in
+        // [weak self]: deliver 를 쥔 query 를 self.heartRateQuery 에 저장하므로 순환이 생긴다.
+        // 러닝이 정상 종료되지 않으면 쿼리가 계속 살아 배터리를 쓴다.
+        let deliver: ([HKSample]?) -> Void = { [weak self] samples in
+            guard let self else { return }
             let quantitySamples = (samples as? [HKQuantitySample])?.sorted { $0.startDate < $1.startDate } ?? []
             self.streamLock.lock()
             guard self.queryID == activeQueryID else {

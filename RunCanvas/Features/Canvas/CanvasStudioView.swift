@@ -306,7 +306,7 @@ struct CanvasStudioView: View {
                         Text("Aa")
                             .font(style.sampleFont)
                             .frame(width: 42, height: 32)
-                            .background(isOn ? Color.white : Studio.surface, in: RoundedRectangle(cornerRadius: 9))
+                            .background(isOn ? Color.white : Studio.surface, in: RoundedRectangle(cornerRadius: 14))
                             .foregroundStyle(isOn ? .black : .white)
                             .hitTarget()
                     }
