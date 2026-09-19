@@ -97,6 +97,7 @@ struct CourseListView: View {
                             .foregroundStyle(.secondary)
                         Button("다시 시도") { Task { await reload() } }
                             .font(.footnote.weight(.semibold))
+                            .frame(minHeight: 44).contentShape(Rectangle())   // 위와 같은 이유
                     }
                         .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)

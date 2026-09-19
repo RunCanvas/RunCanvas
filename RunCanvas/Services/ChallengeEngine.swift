@@ -29,7 +29,13 @@ enum ChallengeEngine {
 
     static func periodRange(_ period: Challenge.Period, now: Date, calendar: Calendar = .current) -> Range<Date> {
         let component: Calendar.Component = period == .month ? .month : .weekOfYear
-        let interval = calendar.dateInterval(of: component, for: now)!
+        // periodKey 와 같은 달력이어야 한다 — 기기가 이슬람력이면 '이번 달' 범위와 저장 키("2026-09")가
+        // 어긋나 진행도가 0인데 이미 완료 처리돼 있거나, 한 그레고리 월에 같은 챌린지를 두 번 딴다.
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        gregorian.firstWeekday = calendar.firstWeekday
+        gregorian.minimumDaysInFirstWeek = calendar.minimumDaysInFirstWeek
+        guard let interval = gregorian.dateInterval(of: component, for: now) else { return now..<now }
         return interval.start..<interval.end
     }
 

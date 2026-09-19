@@ -120,7 +120,7 @@ struct RecapView: View {
             message = "사진 앱에 PNG로 저장했어요."
         } catch {
             didSucceed = false
-            message = error.localizedDescription
+            message = (error as? LocalizedError)?.errorDescription ?? "이미지를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 }

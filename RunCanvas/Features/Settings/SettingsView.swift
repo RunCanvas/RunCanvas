@@ -211,6 +211,10 @@ struct SettingsView: View {
                         .buttonBorderShape(.capsule)
                         .controlSize(.small)
                         .tint(.red)
+                        // small 캡슐은 높이가 28pt 대다 — 보이는 크기는 두고 영역만 넓힌다.
+                        // "연결됨" 바로 옆이라 오탭하면 로그인 수단이 해제된다.
+                        .frame(minHeight: 44)
+                        .contentShape(Capsule())
                         .padding(.leading, 8)
                 }
             } else {
@@ -219,6 +223,9 @@ struct SettingsView: View {
                     .buttonBorderShape(.capsule)
                     .controlSize(.small)
                     .fontWeight(.semibold)
+                    // "해제"와 같은 이유 — 오탭하면 OAuth 웹뷰가 뜬다
+                    .frame(minHeight: 44)
+                    .contentShape(Capsule())
             }
         }
         .disabled(isLinking)

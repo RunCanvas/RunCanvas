@@ -19,6 +19,9 @@ final class RunSavePolicyTests: XCTestCase {
 
     func testPhoneAndWatchUseIdenticalPolicy() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        // 소스 파일을 직접 읽으므로 맥 파일시스템이 필요하다 — 실기기에서는 그 경로가 없다.
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: root.path),
+                          "소스 대조 테스트는 시뮬레이터에서만 의미가 있다")
         XCTAssertEqual(
             try String(contentsOf: root.appendingPathComponent("RunCanvas/Models/RunSavePolicy.swift"), encoding: .utf8),
             try String(contentsOf: root.appendingPathComponent("RunCanvas Watch App/RunSavePolicy.swift"), encoding: .utf8)

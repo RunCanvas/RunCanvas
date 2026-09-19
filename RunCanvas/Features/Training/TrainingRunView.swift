@@ -122,7 +122,9 @@ struct TrainingRunView: View {
             Text("위치 접근이 꺼져 있어 거리가 기록되지 않아요. 설정에서 위치 권한을 허용한 뒤 다시 시작해 주세요.")
         }
         .alert("로그인이 필요해요", isPresented: $showsNoOwner) {
-            Button("확인", role: .cancel) {}
+            // 나가야 한다 — 훈련 중에는 뒤로가기가 숨겨져 있고 finish() 는 계속 false 라,
+            // 여기서 닫지 않으면 알럿만 다시 뜨는 막다른 길이 된다(앱을 강제 종료해야 한다).
+            Button("확인", role: .cancel) { dismiss() }
         } message: {
             Text("로그인 정보를 찾지 못해 기록을 저장할 수 없어요. 다시 로그인한 뒤 저장해 주세요.")
         }
