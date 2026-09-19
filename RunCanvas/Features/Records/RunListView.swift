@@ -79,7 +79,7 @@ struct RunListView: View {
             Task { await SyncService.deleteRemote(runIDs: ids, ownerID: ownerID) }
         } catch {
             context.rollback()
-            deletionError = error.localizedDescription
+            deletionError = (error as? LocalizedError)?.errorDescription ?? "기록을 지우지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 }

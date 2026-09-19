@@ -63,6 +63,9 @@ final class WatchConnectivityServiceTests: XCTestCase {
     func testPhoneAndWatchShareTheSameCommandList() throws {
         let root = URL(fileURLWithPath: #filePath)     // .../RunCanvasTests/WatchConnectivityServiceTests.swift
             .deletingLastPathComponent().deletingLastPathComponent()
+        // 소스 파일을 직접 읽으므로 맥 파일시스템이 필요하다 — 실기기에서는 그 경로가 없다.
+        try XCTSkipUnless(FileManager.default.fileExists(atPath: root.path),
+                          "소스 대조 테스트는 시뮬레이터에서만 의미가 있다")
 
         func cases(in path: String) throws -> [String] {
             let source = try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)

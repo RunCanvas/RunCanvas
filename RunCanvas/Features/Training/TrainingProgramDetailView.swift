@@ -70,6 +70,7 @@ struct TrainingProgramDetailView: View {
                     if program.isBuiltIn {
                         // 내장은 원본을 못 고치니 복제본으로 연다 — 에디터가 "(내 버전)" 복제를 만든다
                         Button("복제해서 수정") { showsEditor = true }
+                        .frame(minHeight: 44).contentShape(Rectangle())
                     } else {
                         Button("편집") { showsEditor = true }
                             .frame(minHeight: 44).contentShape(Rectangle())

@@ -49,7 +49,8 @@ struct RunDetailView: View {
                 }
 
                 // 한국어 전용 앱 — 기기 로케일이 영어면 "September 6, 2026 at 5:23 PM"으로 나오므로 ko_KR 고정
-                Text(run.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened, locale: Locale(identifier: "ko_KR"))))
+                Text(run.startedAt.formatted(Date.FormatStyle(date: .long, time: .shortened, locale: Locale(identifier: "ko_KR"),
+                                 calendar: .appGregorian, timeZone: .current)))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -120,7 +121,7 @@ struct RunDetailView: View {
             try await CanvasExporter.savePNGToPhotos(card)
             saveMessage = "사진 앱에 PNG로 저장했어요."
         } catch {
-            saveMessage = error.localizedDescription
+            saveMessage = (error as? LocalizedError)?.errorDescription ?? "이미지를 저장하지 못했어요. 잠시 후 다시 시도해 주세요."
         }
     }
 

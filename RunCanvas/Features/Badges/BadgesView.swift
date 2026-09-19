@@ -111,18 +111,28 @@ struct BadgesView: View {
         }
     }
 
+    @ViewBuilder
+    private func bestCards(_ bests: PersonalBests) -> some View {
+        StatCard(title: "최장 거리", value: RunMath.formatKm(bests.longestRunMeters), unit: "km")
+        StatCard(title: "최고 페이스", value: RunMath.formatPace(bests.bestPaceSecondsPerKm), unit: "/km")
+        StatCard(title: "최장 연속", value: "\(bests.longestStreakDays)", unit: "일")
+    }
+
     private func personalBestsSection(_ bests: PersonalBests) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("최고 기록")
                 .font(.headline)
-            HStack(spacing: 12) {
-                StatCard(title: "최장 거리", value: RunMath.formatKm(bests.longestRunMeters), unit: "km")
-                StatCard(title: "최고 페이스", value: RunMath.formatPace(bests.bestPaceSecondsPerKm), unit: "/km")
-                StatCard(title: "최장 연속", value: "\(bests.longestStreakDays)", unit: "일")
+            // 접근성 크기에서는 3열에 "05'30\"" 가 안 들어간다 — 뱃지 그리드(2열로 내림)와 같은 규칙으로 세로로 쌓는다.
+            // 가로일 때만 축소가 필요하다(세로로 쌓으면 폭이 넉넉하다).
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: 12) { bestCards(bests) }
+                } else {
+                    HStack(spacing: 12) { bestCards(bests) }
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
             }
-            // 기록 탭(2열) 타일을 3열로 쓰면 "05'30\"" 같은 값이 넘친다 — 환경으로 내려가 StatCard 안 Text에 적용된다
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
         }
     }
 }
@@ -136,12 +146,12 @@ struct LevelCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 Circle()
-                    .fill(level.tier.color)
+                    .fill(level.tier.accent)
                     .frame(width: 56, height: 56)
                     .overlay(
                         Text("LV.\(level.number)")
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(level.tier.foreground)
+                            .foregroundStyle(level.tier.onAccent)
                     )
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(level.title) 레벨")
@@ -154,7 +164,7 @@ struct LevelCard: View {
             }
 
             ProgressView(value: level.progress)
-                .tint(level.tier.accent)
+                .tint(.primary)
                 .accessibilityLabel("\(level.title) 레벨 진행도")
 
             if let next = level.nextTier, let remaining = level.remainingMeters {
@@ -250,7 +260,14 @@ struct BadgeCell: View {
     private var caption: String {
         if isEarned {
             // 기기 언어가 영어면 "08/27/2026"이 된다 — 한국어 전용 앱이라 로케일 고정
-            if let earnedAt { return earnedAt.formatted(.dateTime.year().month(.twoDigits).day(.twoDigits).locale(Locale(identifier: "ko_KR"))) + " 획득" }
+            // .locale() 은 로케일만 바꾸고 달력은 autoupdatingCurrent 로 남는다 —
+            // .year() 가 있어 불교력 기기에서는 "2569", 일본력에서는 "8" 로 찍힌다.
+            if let earnedAt {
+                var style = Date.FormatStyle.dateTime.year().month(.twoDigits).day(.twoDigits)
+                    .locale(Locale(identifier: "ko_KR"))
+                style.calendar = .appGregorian
+                return earnedAt.formatted(style) + " 획득"
+            }
             return badge.detail
         }
         switch badge.category {

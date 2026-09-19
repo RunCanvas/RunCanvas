@@ -29,7 +29,9 @@ final class CourseService {
     }
 
     private(set) var courses: [Course] = []
-    private(set) var isLoading = false
+    /// 첫 렌더에서 '등록된 코스가 없어요'가 번쩍이지 않게 로딩으로 시작한다 —
+    /// .task 는 body 를 한 번 그린 뒤 실행되므로 false 로 두면 빈 상태가 먼저 보인다.
+    private(set) var isLoading = true
     private(set) var isLoadingMore = false
     private(set) var totalCount = 0
     /// 서버를 못 읽었을 때 화면에 보여줄 한 줄
