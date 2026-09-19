@@ -552,7 +552,8 @@ extension WatchWorkoutManager: HKLiveWorkoutBuilderDelegate {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 updates.forEach { self.updateStatistics($0.1, for: $0.0) }
-                self.sendSnapshot()   // 콜백당 1회 (예전엔 루프 안이라 3~5회 전송됐다)
+                // 전송은 1초 타이머에 맡긴다 — 심박·거리·활동에너지가 각각 콜백으로 와서
+                // 여기서 보내면 초당 3~5건이 되고, WatchConnectivity 가 스로틀링하면 조용히 드롭된다
             }
         }
     }

@@ -66,7 +66,7 @@ struct CanvasExportSheet: View {
             }
         }
         .presentationDetents([.large])
-        .task { render() }
+        .task { await Task.yield(); render() }   // 한 프레임 양보 — 안 그러면 스피너가 그려질 틈 없이 멈춘다
         .sheet(isPresented: $showsShareSheet) {
             // PNG 파일 URL로 넘긴다 — UIImage 를 그대로 주면 투명 배경이 사라진다(CanvasExporter 주석 참고).
             // 파일을 못 만들면 이미지로라도 공유한다(투명도는 잃지만 공유 자체는 되게).
@@ -104,7 +104,6 @@ struct CanvasExportSheet: View {
                 .background {
                     if background.isTransparent { TransparencyGrid() }
                 }
-                .shadow(color: .black.opacity(0.2), radius: 12, y: 5)
                 .padding(.horizontal, 20)
         } else if renderFailed {
             VStack(spacing: 12) {
