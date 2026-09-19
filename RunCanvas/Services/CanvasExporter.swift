@@ -49,6 +49,17 @@ enum CanvasExporter {
         }
     }
 
+    /// 공유용 PNG 임시 파일. UIActivityViewController 에 UIImage 를 그대로 넘기면 받는 쪽이 형식을
+    /// 정해(대개 JPEG 평탄화) "배경 없음"으로 꾸민 투명 영역이 검정·흰색으로 채워져 나간다.
+    /// 미리보기에 "체크무늬는 저장되지 않아요"라고 적어 둔 것과 결과가 달라지므로 파일 URL로 넘긴다.
+    static func pngFileForSharing(_ image: UIImage, runID: UUID) throws -> URL {
+        guard let data = image.pngData() else { throw ExportError.pngEncodingFailed }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RunCanvas-\(runID.uuidString.prefix(8)).png")
+        try data.write(to: url, options: .atomic)
+        return url
+    }
+
     /// 편집을 거치지 않고 기본 배치 그대로 한 장 만든다 ("기록에서 바로 저장")
     @MainActor
     static func quickCard(for run: Run, background: CanvasBackground = .transparent) -> UIImage? {

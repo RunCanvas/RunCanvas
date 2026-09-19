@@ -82,6 +82,7 @@ enum SyncService {
             for chunk in missing.chunked(by: chunkSize) {
                 let rows: [RunDTO] = try await supabase.from("runs")
                     .select()
+                    .eq("user_id", value: ownerID.uuidString)   // RLS 가 이미 막지만 클라이언트 쪽 이중 방어
                     .in("id", values: chunk.map(\.uuidString))
                     .execute().value
                 for dto in rows {
@@ -192,6 +193,9 @@ enum SyncService {
     @MainActor
     static func deleteRemote(runIDs: [UUID], ownerID: UUID) async {
         guard !runIDs.isEmpty else { return }
+        // 세션이 아예 없으면(데모 모드) 서버에 사본이 없다 — 큐에 적어 봐야 영영 안 빠진다.
+        // 오프라인인 실제 사용자는 저장된 세션이 남아 있어 여기서 걸리지 않는다.
+        guard supabase.auth.currentSession != nil else { return }
         var queued = Set(pendingDeletes)
         runIDs.forEach { queued.insert(PendingDelete(ownerID: ownerID, runID: $0)) }
         pendingDeletes = Array(queued)   // 요청 전에 먼저 적어 둔다 — 도중에 앱이 죽어도 남게

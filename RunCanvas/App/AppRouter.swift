@@ -8,6 +8,8 @@ struct AppRouter: View {
     @State private var isLoading = true
     @State private var didShowSplash = false
     @State private var loadedUserID: UUID?
+    /// 진행 중인 동기화. 포그라운드 전환이 겹쳤을 때 두 번 도는 걸 막는다 (syncIfPossible 주석 참고)
+    @State private var syncTask: Task<Void, Never>?
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
@@ -44,9 +46,17 @@ struct AppRouter: View {
     private static let profiledUserKey = "profiledUserID"
 
     /// 안 올라간 기록·뱃지를 서버로 (로그인 상태에서만, 실패는 조용히)
+    ///
+    /// 왜 진행 중이면 건너뛰는가: importMissingRuns 는 로컬 스냅샷을 읽고 **그다음에** 긴 await(90일치
+    /// 건강 앱 쿼리)를 탄다. 포그라운드 전환이 겹쳐 두 번 들어오면 둘 다 같은 스냅샷을 보고 중복 판정을
+    /// 통과해, 같은 워크아웃이 서로 다른 Run.id 로 두 번 저장된다(@Attribute(.unique) 가 막지 못한다).
+    /// 설치 직후 첫 실행이 가장 위험하다 — 그때 쿼리가 제일 길다.
+    /// SyncService 는 내부에 syncTail 이 있지만 그 앞의 importMissingRuns 는 보호받지 못한다.
     private func syncIfPossible() {
         guard auth.canSync, hasProfile, let id = auth.userID else { return }
-        Task {
+        guard syncTask == nil else { return }
+        syncTask = Task {
+            defer { syncTask = nil }
             // 왜 가져오기가 먼저: 폰 앱이 꺼진 채 워치로 뛴 러닝은 건강 앱에만 있다.
             // 여기서 기록으로 만들어 둬야 이어지는 sync 가 그것까지 서버에 올린다.
             await HealthImport.importMissingRuns(context: context, ownerID: id, health: HealthService())
@@ -57,8 +67,8 @@ struct AppRouter: View {
     private func load() async {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-uiTestSkipLogin") {
-            let testUser = UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE")!
             if ProcessInfo.processInfo.arguments.contains("-uiTestReset") {
+                let testUser = AuthService.demoAccountID
                 try? context.delete(model: Run.self, where: #Predicate { $0.ownerID == testUser })
                 try? context.save()
                 BadgeStore.reset(for: testUser)
@@ -66,38 +76,24 @@ struct AppRouter: View {
                 // 다음 실행부터 "이전 러닝이 중단됐어요" 알럿이 떠서 러닝이 시작되지 않는다
                 RunSession.discardRecoverable()
             }
+            auth.enterDemo()
             if ProcessInfo.processInfo.arguments.contains("-uiTestSeedRun") {
-                let existing = (try? context.fetch(FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == testUser }))) ?? []
-                if existing.isEmpty {
-                    let start = Date().addingTimeInterval(-700)
-                    let route = (0..<24).map { index in
-                        RoutePoint(
-                            latitude: 37.5445 + Double(index) * 0.00008,
-                            longitude: 127.0374 + sin(Double(index) / 4) * 0.0003,
-                            timestamp: start.addingTimeInterval(Double(index) * 25)
-                        )
-                    }
-                    context.insert(Run(
-                        ownerID: testUser,
-                        startedAt: start,
-                        endedAt: start.addingTimeInterval(600),
-                        distanceMeters: 1_250,
-                        movingSeconds: 600,
-                        calories: 77.7,
-                        averageHeartRate: 148,
-                        maxHeartRate: 172,
-                        route: route
-                    ))
-                    try? context.save()
-                }
+                DemoData.seedIfNeeded(context: context, runCount: 1)
             }
-            auth.debugUserID = testUser
             hasProfile = true
-            loadedUserID = testUser
+            loadedUserID = auth.userID
             isLoading = false
             return
         }
         #endif
+        // 심사용 데모 모드 — 로그인 화면에서 진입한다. 서버를 타지 않으므로 바로 메인으로 보낸다.
+        if auth.isDemo {
+            DemoData.seedIfNeeded(context: context)
+            hasProfile = true
+            loadedUserID = auth.userID
+            isLoading = false
+            return
+        }
         isLoading = true
         let started = Date()
         let loadingID = auth.userID          // 이 load()가 담당하는 계정

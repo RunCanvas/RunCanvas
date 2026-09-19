@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RunCanvas — Every Run, A Canvas</title>
+<meta name="description" content="달린 기록을 캔버스에 얹어 꾸미고 공유하는 iOS·watchOS 러닝 앱.">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #17160f;
+    --ink-soft: #55534a;
+    --rule: #e4e2da;
+    --surface: #f7f6f2;
+    --night: #121210;
+    --volt: #cfff00;
+    --yellow: #f5c417;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #121210;
+      --ink: #efede5;
+      --ink-soft: #a6a396;
+      --rule: #33312b;
+      --surface: #1c1b18;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    line-height: 1.7;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding-inline: 20px; }
+
+  /* hero — 볼트 그린은 브랜드 규칙상 검정 위에만 */
+  .hero { background: var(--night); color: #ffffff; padding-block: 64px 60px; }
+  .hero .wrap { display: flex; gap: 48px; align-items: center; }
+  .hero .copy { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; flex: 1 1 auto; min-width: 0; }
+  .hero .shot { flex: 0 0 auto; }
+  .hero .shot img {
+    width: 240px; max-width: 100%; height: auto; display: block;
+    border-radius: 26px; border: 1px solid rgba(255,255,255,0.16);
+  }
+  @media (max-width: 640px) {
+    .hero .wrap { flex-direction: column; align-items: flex-start; gap: 36px; }
+    .hero .shot img { width: 210px; }
+  }
+  .hero .mark { width: 84px; height: 84px; border-radius: 19px; display: block; }
+  .hero h1 { font-size: clamp(34px, 7vw, 52px); line-height: 1.1; letter-spacing: -0.03em; margin: 0; font-weight: 700; }
+  .tagline { color: var(--volt); font-size: clamp(16px, 3vw, 19px); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  .hero p.sub { color: rgba(255,255,255,0.72); margin: 0; max-width: 46ch; }
+  .platforms {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;
+  }
+  .platforms span {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+    border: 1px solid rgba(255,255,255,0.28); border-radius: 999px; padding: 4px 12px;
+    color: rgba(255,255,255,0.86);
+  }
+
+  section { padding-block: 56px; }
+  h2 { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 24px; font-weight: 600; }
+
+  .features { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+  @media (min-width: 620px) { .features { grid-template-columns: 1fr 1fr; } }
+  .f { background: var(--paper); padding: 22px 24px; }
+  .f h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -0.01em; }
+  .f p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+
+  .status {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+    padding: 20px 24px; display: flex; gap: 14px; align-items: flex-start;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; margin-top: 9px; }
+  .status p { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .status b { color: var(--ink); font-weight: 600; }
+
+  footer { border-top: 1px solid var(--rule); padding-block: 32px 48px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
+  footer a { color: var(--ink); font-size: 15px; }
+  footer small { color: var(--ink-soft); font-size: 13.5px; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="copy">
+      <img class="mark" src="icon.png" alt="RunCanvas 앱 아이콘">
+      <div>
+        <h1>RunCanvas</h1>
+        <p class="tagline">Every Run, A Canvas.</p>
+      </div>
+      <p class="sub">달린 기록을 캔버스에 얹어 꾸미고 공유하는 러닝 앱입니다.</p>
+      <div class="platforms"><span>iOS</span><span>watchOS</span></div>
+    </div>
+    <div class="shot">
+      <img src="screenshot-home.png" alt="RunCanvas 홈 화면 — 오늘 달린 경로가 지도에 그려지고 아래에 최근 러닝 목록이 있다">
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>기능</h2>
+    <div class="features">
+      <div class="f">
+        <h3>러닝 기록</h3>
+        <p>GPS로 거리·시간·페이스와 경로를 기록합니다. 화면을 꺼도 계속 측정하고, 터널처럼 GPS가 끊기는 구간은 걸음 수로 보정합니다.</p>
+      </div>
+      <div class="f">
+        <h3>Apple Watch</h3>
+        <p>워치만으로도 달릴 수 있습니다. 폰 앱을 열면 그 기록이 경로까지 그대로 넘어옵니다.</p>
+      </div>
+      <div class="f">
+        <h3>심박수와 건강 앱</h3>
+        <p>러닝 중 심박수를 기록하고, 완료한 러닝을 Apple 건강 앱에 워크아웃으로 저장합니다.</p>
+      </div>
+      <div class="f">
+        <h3>런꾸</h3>
+        <p>기록을 캔버스에 얹고 배경·스티커로 꾸며 사진으로 저장하거나 공유합니다.</p>
+      </div>
+      <div class="f">
+        <h3>레벨과 뱃지</h3>
+        <p>누적 거리에 따라 레벨이 오르고, 거리·연속 일수·시간대별 뱃지를 모읍니다.</p>
+      </div>
+      <div class="f">
+        <h3>통계와 마라톤 일정</h3>
+        <p>주·월 단위 기록 통계를 보고, 국내 마라톤 대회 일정을 확인합니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top: 0;">
+  <div class="wrap">
+    <h2>출시 상태</h2>
+    <div class="status">
+      <span class="dot" aria-hidden="true"></span>
+      <p><b>출시 준비 중입니다.</b> 아직 App Store에 등록되지 않았습니다. 준비가 끝나는 대로 이 페이지에 안내하겠습니다.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="privacy.html">개인정보 처리방침</a>
+    <a href="mailto:rsj1001@gmail.com">문의</a>
+    <small>© RunCanvas</small>
+  </div>
+</footer>
+
+</body>
+</html>

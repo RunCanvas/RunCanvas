@@ -119,7 +119,7 @@
       "courses": [
         "5.8km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-changwon-youth-week-youth-first-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1530,7 +1530,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-run-together",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1549,7 +1549,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/140th-anniversary-of-france-korea-diplomatic-relations-commemorative-running-event",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1786,7 +1786,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/7th-minister-of-culture-sports-and-tourism-cup-chungcheongnam-do-taean-national-inclusive-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1939,7 +1939,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-hanam-dangjeong-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2426,7 +2426,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-autism-race",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2644,7 +2644,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/21st-ulsan-human-rights-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2751,6 +2751,25 @@
       "fee_min": 45000
     },
     {
+      "name": "JUST RUN10 대전 하반기",
+      "event_date": "2026-11-07",
+      "region": "대전",
+      "place": "갑천 러닝성지",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/just-run10-daejeon-second-half-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789656299/kormarathon/events/event-images-1789656298515.jpg",
+      "reg_start_date": "2026-09-02",
+      "reg_end_date": "2026-10-31",
+      "fee_min": 45000
+    },
+    {
       "name": "Save Race 2026 (세이브 레이스 - 카카오뱅크)",
       "event_date": "2026-11-07",
       "region": "서울",
@@ -2758,7 +2777,7 @@
       "courses": [
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/save-race-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2803,7 +2822,7 @@
       "tags": [],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789026479/kormarathon/events/event-images-1789026478740.jpg",
       "reg_start_date": "2026-09-10",
-      "reg_end_date": "2026-10-02",
+      "reg_end_date": "2026-10-06",
       "fee_min": 25000
     },
     {
@@ -3167,7 +3186,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/12th-asan-ginkgo-tree-road-national-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -3188,7 +3207,7 @@
         "Half"
       ],
       "status": "open",
-      "signup_url": "https://www.kormarathon.com/ko/races/24th-national-naju-geumseongsan-forest-trail-marathon-1",
+      "signup_url": "https://www.kormarathon.com/ko/races/24th-national-naju-geumseongsan-forest-trail-marathon",
       "source": "kormarathon.com",
       "type": "대회",
       "tags": [],
@@ -3313,6 +3332,26 @@
       "reg_start_date": "2026-08-01",
       "reg_end_date": "2026-11-05",
       "fee_min": 50000
+    },
+    {
+      "name": "제7회 적벽강 마라톤",
+      "event_date": "2026-11-14",
+      "region": "충남",
+      "place": "금산 인삼골 오토캠핑장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/jeokbyeok-river-marathon-2026",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789655794/kormarathon/events/event-images-1789655793018.jpg",
+      "reg_start_date": "2026-08-10",
+      "reg_end_date": "2026-11-07",
+      "fee_min": 40000
     },
     {
       "name": "통큰런",
@@ -3580,7 +3619,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/the-28th-busan-kookje-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -3832,7 +3871,7 @@
         "10km"
       ],
       "status": "open",
-      "signup_url": "https://www.kormarathon.com/ko/races/6th-minister-of-employment-and-labor-cup-workplace-marathon-1",
+      "signup_url": "https://www.kormarathon.com/ko/races/6th-minister-of-employment-and-labor-cup-workplace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
       "tags": [],
@@ -3932,7 +3971,7 @@
         "Half"
       ],
       "status": null,
-      "signup_url": "https://www.kormarathon.com/ko/races/2026-saehan-media-marathon-1",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-saehan-media-marathon",
       "source": "kormarathon.com",
       "type": "대회",
       "tags": [],
@@ -4033,6 +4072,24 @@
       "reg_start_date": "2026-08-01",
       "reg_end_date": "2026-11-26",
       "fee_min": 50000
+    },
+    {
+      "name": "2026 허그런",
+      "event_date": "2026-12-05",
+      "region": "서울",
+      "place": "상암 월드컵경기장 평화의공원 평화광장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-hug-run",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789655380/kormarathon/events/event-images-1789655379621.jpg",
+      "reg_start_date": "2026-10-06",
+      "reg_end_date": "2026-11-08"
     },
     {
       "name": "사바스티안 사웨 2026 월드 레코드 금산 국제 마라톤 축제",

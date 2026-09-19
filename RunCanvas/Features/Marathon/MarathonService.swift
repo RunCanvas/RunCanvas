@@ -19,7 +19,8 @@ final class MarathonService {
     @ObservationIgnored private var loadTask: Task<Void, Never>?
 
     private(set) var events: [MarathonEvent] = []
-    private(set) var isLoading = false
+    /// 첫 렌더에서 '다가오는 일정이 없어요'가 번쩍이지 않게 로딩으로 시작한다 (CourseService 와 같은 이유)
+    private(set) var isLoading = true
     /// 서버를 못 읽어 캐시·씨앗으로 보여주는 중이면 채워진다
     private(set) var fallbackNotice: String?
 

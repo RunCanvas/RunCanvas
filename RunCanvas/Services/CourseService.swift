@@ -29,7 +29,9 @@ final class CourseService {
     }
 
     private(set) var courses: [Course] = []
-    private(set) var isLoading = false
+    /// 첫 렌더에서 '등록된 코스가 없어요'가 번쩍이지 않게 로딩으로 시작한다 —
+    /// .task 는 body 를 한 번 그린 뒤 실행되므로 false 로 두면 빈 상태가 먼저 보인다.
+    private(set) var isLoading = true
     private(set) var isLoadingMore = false
     private(set) var totalCount = 0
     /// 서버를 못 읽었을 때 화면에 보여줄 한 줄
@@ -146,6 +148,8 @@ final class CourseService {
     func register(path: [CoursePoint], name: String, region: String,
                   ownerID: UUID, ownerNickname: String) async throws -> Course {
         guard path.count >= 2 else { throw CourseError.tooShort }   // 서버 courses_path_size 하한과 같게
+        // 데모 모드는 서버 계정이 없어 insert 가 RLS 에 막힌다 — "연결을 확인해 주세요"로 보이기 전에 이유를 말해 준다
+        guard supabase.auth.currentSession != nil else { throw CourseError.demoMode }
         // 서버 제약과 같은 기준(점 5000개·100km). 여기서 막지 않으면 업로드가 400 으로 튕겨
         // 사용자에게는 "연결을 확인해 주세요"로 보인다
         let distance = CourseGeometry.length(path)
@@ -164,7 +168,12 @@ final class CourseService {
 
     @MainActor
     func delete(_ course: Course) async throws {
-        try await supabase.from("courses").delete().eq("id", value: course.id.uuidString).execute()
+        // owner_id 까지 거는 이유: 남의 코스면 RLS 가 0행 삭제로 조용히 성공 처리하는데,
+        // 아래에서 로컬 목록은 지워 버려 "지운 것처럼 보이지만 새로고침하면 돌아온다".
+        try await supabase.from("courses").delete()
+            .eq("id", value: course.id.uuidString)
+            .eq("owner_id", value: course.ownerID.uuidString)
+            .execute()
         let wasLoaded = courses.contains { $0.id == course.id }
         courses.removeAll { $0.id == course.id }
         if wasLoaded {
@@ -177,6 +186,7 @@ final class CourseService {
     enum CourseError: LocalizedError {
         case tooShort
         case tooLong
+        case demoMode
 
         var errorDescription: String? {
             switch self {
@@ -186,6 +196,8 @@ final class CourseService {
             case .tooLong:
                 // 서버가 courses_distance·courses_path_size 로 막는다 — 그 전에 이유를 알려 준다
                 "코스로 올리기엔 기록이 길어요. 100km 이하 기록을 골라 주세요."
+            case .demoMode:
+                "둘러보기 중에는 코스를 공유할 수 없어요. 로그인 후 이용해 주세요."
             }
         }
     }
