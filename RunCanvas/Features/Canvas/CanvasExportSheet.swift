@@ -17,6 +17,8 @@ struct CanvasExportSheet: View {
     @State private var renderedImage: UIImage?
     @State private var renderFailed = false
     @State private var showsShareSheet = false
+    /// 공유용 PNG 임시 파일 — UIImage 를 그대로 넘기면 투명 배경을 잃는다
+    @State private var shareURL: URL?
     @State private var showsOverwriteConfirmation = false
     @State private var message: ExportMessage?
 
@@ -39,6 +41,12 @@ struct CanvasExportSheet: View {
 
                     HStack(spacing: 10) {
                         SecondaryButton(title: "공유", systemImage: "square.and.arrow.up") {
+                            // 공유도 내보내기다 — didSave 를 안 세우면 편집기를 닫을 때
+                            // 이미 내보낸 사용자에게 "꾸미던 내용을 버릴까요?"가 뜬다
+                            onSaved()
+                            if let renderedImage {
+                                shareURL = try? CanvasExporter.pngFileForSharing(renderedImage, runID: run.id)
+                            }
                             showsShareSheet = true
                         }
                         SecondaryButton(title: "앱에 저장", systemImage: "tray.and.arrow.down") {
@@ -60,7 +68,10 @@ struct CanvasExportSheet: View {
         .presentationDetents([.large])
         .task { render() }
         .sheet(isPresented: $showsShareSheet) {
-            if let renderedImage { ShareSheet(items: [renderedImage]) }
+            // PNG 파일 URL로 넘긴다 — UIImage 를 그대로 주면 투명 배경이 사라진다(CanvasExporter 주석 참고).
+            // 파일을 못 만들면 이미지로라도 공유한다(투명도는 잃지만 공유 자체는 되게).
+            if let shareURL { ShareSheet(items: [shareURL]) }
+            else if let renderedImage { ShareSheet(items: [renderedImage]) }
         }
         .confirmationDialog("이미 저장한 런꾸가 있어요", isPresented: $showsOverwriteConfirmation, titleVisibility: .visible) {
             Button("덮어쓰기") { saveToApp() }
@@ -141,13 +152,17 @@ struct CanvasExportSheet: View {
 
     private func saveToApp() {
         guard let renderedImage else { return }
+        // 실패 시 되돌릴 이전 값 — 안 되돌리면 파일은 안 썼는데 모델은 새 파일을 가리키거나,
+        // 반대로 방금 쓴 파일이 즉시 고아가 된다 (삭제 경로는 이미 같은 방식으로 복구한다)
+        let previous = run.decoratedImageFilename
         do {
             run.decoratedImageFilename = try CanvasStorage.save(image: renderedImage, runID: run.id, preservesTransparency: background.isTransparent)
             try context.save()
             onSaved()
             message = ExportMessage(text: "이 러닝의 상세 화면에 저장했어요.", isSuccess: true, finishesFlow: true)
         } catch {
-            message = ExportMessage(text: error.localizedDescription, isSuccess: false)
+            run.decoratedImageFilename = previous
+            message = ExportMessage(text: "런꾸를 저장하지 못했어요. 저장 공간을 확인한 뒤 다시 시도해 주세요.", isSuccess: false)
         }
     }
 }
