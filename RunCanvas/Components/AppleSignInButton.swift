@@ -79,7 +79,11 @@ enum AppleNonce {
     static func random(length: Int = 32) -> String {
         let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
         var bytes = [UInt8](repeating: 0, count: length)
-        _ = SecRandomCopyBytes(kSecRandomDefault, length, &bytes)
+        // 반환값을 버리면 실패 시 bytes 가 전부 0인 채로 남아 nonce 가 "000…0" 고정 문자열이 된다.
+        // 사용자에겐 정상 로그인처럼 보이고 재전송 방지라는 존재 이유만 조용히 사라진다.
+        guard SecRandomCopyBytes(kSecRandomDefault, length, &bytes) == errSecSuccess else {
+            return (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "")
+        }
         return String(bytes.map { charset[Int($0) % charset.count] })
     }
 

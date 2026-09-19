@@ -164,7 +164,12 @@ final class CourseService {
 
     @MainActor
     func delete(_ course: Course) async throws {
-        try await supabase.from("courses").delete().eq("id", value: course.id.uuidString).execute()
+        // owner_id 까지 거는 이유: 남의 코스면 RLS 가 0행 삭제로 조용히 성공 처리하는데,
+        // 아래에서 로컬 목록은 지워 버려 "지운 것처럼 보이지만 새로고침하면 돌아온다".
+        try await supabase.from("courses").delete()
+            .eq("id", value: course.id.uuidString)
+            .eq("owner_id", value: course.ownerID.uuidString)
+            .execute()
         let wasLoaded = courses.contains { $0.id == course.id }
         courses.removeAll { $0.id == course.id }
         if wasLoaded {

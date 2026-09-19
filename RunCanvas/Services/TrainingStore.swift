@@ -62,4 +62,11 @@ enum TrainingStore {
         let done = completedSessionIDs(ownerID: ownerID, defaults: defaults)
         return program.sessions.count { done.contains($0.id) }
     }
+
+    /// 회원 탈퇴 시 그 계정의 캐시만 삭제 (BadgeStore.reset 과 같은 역할).
+    /// 없으면 탈퇴한 계정의 사용자 제작 프로그램이 이 기기에 영원히 남는다.
+    static func reset(for ownerID: UUID, defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: key(programsKey, ownerID))
+        defaults.removeObject(forKey: key(completedKey, ownerID))
+    }
 }

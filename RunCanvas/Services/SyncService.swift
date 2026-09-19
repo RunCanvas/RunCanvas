@@ -82,6 +82,7 @@ enum SyncService {
             for chunk in missing.chunked(by: chunkSize) {
                 let rows: [RunDTO] = try await supabase.from("runs")
                     .select()
+                    .eq("user_id", value: ownerID.uuidString)   // RLS 가 이미 막지만 클라이언트 쪽 이중 방어
                     .in("id", values: chunk.map(\.uuidString))
                     .execute().value
                 for dto in rows {
