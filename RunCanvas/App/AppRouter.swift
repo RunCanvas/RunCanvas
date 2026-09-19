@@ -67,8 +67,8 @@ struct AppRouter: View {
     private func load() async {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-uiTestSkipLogin") {
-            let testUser = UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE")!
             if ProcessInfo.processInfo.arguments.contains("-uiTestReset") {
+                let testUser = AuthService.demoAccountID
                 try? context.delete(model: Run.self, where: #Predicate { $0.ownerID == testUser })
                 try? context.save()
                 BadgeStore.reset(for: testUser)
@@ -76,38 +76,24 @@ struct AppRouter: View {
                 // 다음 실행부터 "이전 러닝이 중단됐어요" 알럿이 떠서 러닝이 시작되지 않는다
                 RunSession.discardRecoverable()
             }
+            auth.enterDemo()
             if ProcessInfo.processInfo.arguments.contains("-uiTestSeedRun") {
-                let existing = (try? context.fetch(FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == testUser }))) ?? []
-                if existing.isEmpty {
-                    let start = Date().addingTimeInterval(-700)
-                    let route = (0..<24).map { index in
-                        RoutePoint(
-                            latitude: 37.5445 + Double(index) * 0.00008,
-                            longitude: 127.0374 + sin(Double(index) / 4) * 0.0003,
-                            timestamp: start.addingTimeInterval(Double(index) * 25)
-                        )
-                    }
-                    context.insert(Run(
-                        ownerID: testUser,
-                        startedAt: start,
-                        endedAt: start.addingTimeInterval(600),
-                        distanceMeters: 1_250,
-                        movingSeconds: 600,
-                        calories: 77.7,
-                        averageHeartRate: 148,
-                        maxHeartRate: 172,
-                        route: route
-                    ))
-                    try? context.save()
-                }
+                DemoData.seedIfNeeded(context: context, runCount: 1)
             }
-            auth.debugUserID = testUser
             hasProfile = true
-            loadedUserID = testUser
+            loadedUserID = auth.userID
             isLoading = false
             return
         }
         #endif
+        // 심사용 데모 모드 — 로그인 화면에서 진입한다. 서버를 타지 않으므로 바로 메인으로 보낸다.
+        if auth.isDemo {
+            DemoData.seedIfNeeded(context: context)
+            hasProfile = true
+            loadedUserID = auth.userID
+            isLoading = false
+            return
+        }
         isLoading = true
         let started = Date()
         let loadingID = auth.userID          // 이 load()가 담당하는 계정

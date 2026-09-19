@@ -14,18 +14,33 @@ final class AuthService {
     /// 탈퇴 직후 로그인 화면이 안내 알럿을 띄우기 위한 1회성 플래그 (알럿이 닫히며 false로 돌아감)
     var didDeleteAccount = false
 
-    #if DEBUG
-    /// UI 테스트 전용: 런치 인자 `-uiTestSkipLogin`이면 AppRouter가 고정 계정으로 세팅한다 (릴리즈 빌드엔 없음)
-    var debugUserID: UUID?
-    var userID: UUID? { debugUserID ?? session?.user.id }
-    var isSignedIn: Bool { debugUserID != nil || session != nil }
-    /// 서버 동기화 가능: 실제 세션이 있고 UI 테스트 계정이 아닐 때
-    var canSync: Bool { debugUserID == nil && session != nil }
-    #else
-    var userID: UUID? { session?.user.id }
-    var isSignedIn: Bool { session != nil }
-    var canSync: Bool { session != nil }
-    #endif
+    /// 로그인 없이 앱을 둘러보는 고정 계정. 두 곳에서 쓴다 —
+    /// UI 테스트(`-uiTestSkipLogin`)와 **App Store 심사용 데모 모드**.
+    ///
+    /// 심사자는 Apple·Google·카카오 계정이 없어 소셜 로그인만으로는 앱에 들어올 수 없다
+    /// (심사 지침 2.1이 데모 계정이나 데모 모드를 요구한다). 릴리즈 빌드에도 있어야 하므로
+    /// `#if DEBUG` 로 감싸지 않는다. 진입 방법은 LoginView 참고.
+    private(set) var demoUserID: UUID?
+    var isDemo: Bool { demoUserID != nil }
+
+    var userID: UUID? { demoUserID ?? session?.user.id }
+    var isSignedIn: Bool { demoUserID != nil || session != nil }
+    /// 서버 동기화 가능: 실제 세션이 있고 데모 계정이 아닐 때.
+    /// 데모 기록이 서버로 올라가면 안 된다 — 기기 안에서만 산다.
+    var canSync: Bool { demoUserID == nil && session != nil }
+
+    /// 심사·UI 테스트용 고정 계정. 값이 고정이라 앱을 다시 열어도 같은 기록을 본다.
+    static let demoAccountID = UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE")!
+
+    func enterDemo() {
+        guard session == nil else { return }   // 진짜 로그인 중이면 무시
+        demoUserID = Self.demoAccountID
+    }
+
+    func exitDemo() {
+        demoUserID = nil
+        Profile.clearLocalCache()
+    }
 
     private static let redirectURL = URL(string: "runcanvas://auth-callback")!
     /// 카카오 콘솔 동의항목과 정확히 일치해야 한다(불일치 시 invalid_scope). 이메일은 비즈 앱 전환 후 추가됨.
@@ -113,6 +128,8 @@ final class AuthService {
     // MARK: - 로그아웃 / 탈퇴
 
     func signOut() async throws {
+        // 데모는 서버 세션이 없다 — 상태만 비우면 AppRouter 가 로그인 화면으로 돌려보낸다
+        if isDemo { exitDemo(); return }
         // 왜: SDK는 로컬 세션을 먼저 지운 뒤 네트워크 오류를 던질 수 있어, 캐시 정리는 defer로 보장한다.
         defer { Profile.clearLocalCache() }
         try await supabase.auth.signOut()
@@ -123,6 +140,17 @@ final class AuthService {
     /// 3) 로컬 세션·캐시 정리 (서버 signOut은 사용자가 이미 없어 실패하므로 .local)
     func deleteAccount() async throws {
         let id = userID
+        // 데모는 서버 계정이 없어 RPC 가 실패한다. 심사자는 계정 삭제가 동작하는지 확인하므로
+        // (지침 5.1.1(v)) 여기서 조용히 끝내지 않고 로컬 데이터를 실제로 지워 같은 결과를 보인다.
+        if isDemo {
+            if let id {
+                BadgeStore.reset(for: id)
+                TrainingStore.reset(for: id)
+            }
+            exitDemo()
+            didDeleteAccount = true
+            return
+        }
         if let id {
             // 공개 버킷이라 남으면 URL 아는 사람에게 계속 노출된다 → 실패는 남겨서 추적 가능하게
             do {

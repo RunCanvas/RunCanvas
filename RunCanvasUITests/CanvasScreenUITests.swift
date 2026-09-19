@@ -20,8 +20,8 @@ final class CanvasScreenUITests: XCTestCase {
         attach(app, "canvas_tab")
         create.tap()
 
-        // 기록이 없으면 시트가 먼저 뜬다
-        let run = app.staticTexts["1.25 km"]
+        // 기록이 없으면 시트가 먼저 뜬다 (거리는 DemoData.samples 의 첫 항목)
+        let run = app.staticTexts["5.12 km"]
         XCTAssertTrue(run.waitForExistence(timeout: 5), "기록 고르기 시트가 안 뜸")
         run.tap()
 

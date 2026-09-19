@@ -25,6 +25,12 @@ struct LoginView: View {
                 Text("RunCanvas")
                     .font(.largeTitle.bold())
             }
+            // App Store 심사용 데모 진입 — 워드마크를 5번 두드린다.
+            // 심사자는 Apple·Google·카카오 계정이 없어 소셜 로그인만으로는 앱에 못 들어온다(지침 2.1).
+            // 일반 사용자가 우연히 밟지 않도록 안내를 두지 않고, ASC 심사 메모에만 적는다.
+            .contentShape(Rectangle())
+            .onTapGesture(count: 5) { auth.enterDemo() }
+            .accessibilityAddTraits(.isHeader)
 
             Spacer()
 
