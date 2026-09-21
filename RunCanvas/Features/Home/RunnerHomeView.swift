@@ -34,6 +34,9 @@ private struct HomeContent: View {
 
     /// 내 위치 점을 레벨 색으로. RootTabView가 넣어 준다.
     @Environment(\.levelTier) private var tier
+    /// 진행 중인 러닝을 버튼에 비추기 위해. 앱 수명 세션이라 탭을 옮겨도 살아 있다.
+    /// 옵셔널인 이유: 프리뷰엔 코디네이터가 없다 — 비옵셔널이면 읽는 순간 죽는다.
+    @Environment(RunCoordinator.self) private var coordinator: RunCoordinator?
 
     init(ownerID: UUID?) {
         self.ownerID = ownerID
@@ -142,11 +145,18 @@ private struct HomeContent: View {
         }
     }
 
+    /// 러닝 중에 홈으로 돌아오면 버튼이 "러닝 시작" 그대로라, 진행 중인 러닝으로 돌아갈 길이 안 보였다.
+    /// (누르면 실제로는 돌아가진다 — RunSession.start 가 이미 달리는 중이면 무시하므로. 안내만 거짓이었다.)
     private var startRunButton: some View {
-        NavigationLink {
-            RunView(startImmediately: true)
+        let state = coordinator?.session.state ?? .idle
+        let isActive = state == .running || state == .paused
+        return NavigationLink {
+            RunView(startImmediately: !isActive)
         } label: {
-            PrimaryButtonLabel(title: "러닝 시작", systemImage: "figure.run")
+            PrimaryButtonLabel(
+                title: state == .paused ? "일시정지됨" : (state == .running ? "러닝 중" : "러닝 시작"),
+                systemImage: state == .paused ? "pause.fill" : "figure.run"
+            )
         }
     }
 
