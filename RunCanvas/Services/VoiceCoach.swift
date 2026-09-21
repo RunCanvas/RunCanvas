@@ -51,22 +51,51 @@ final class VoiceCoach: NSObject, AVSpeechSynthesizerDelegate {
         }
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "ko-KR")   // ponytail: 기본 음성 하나. 목소리 선택·다른 언어는 2.0
+        pending += 1
         synthesizer.speak(utterance)
     }
 
     /// 안내가 끝나면 오디오 세션을 내려 음악 볼륨을 되돌린다
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        deactivateSession(synthesizer)
+        utteranceEnded()
     }
 
     /// 취소(stopSpeaking)로 끝날 때도 세션을 내려야 음악이 계속 작아진 채 남지 않는다
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        deactivateSession(synthesizer)
+        utteranceEnded()
     }
 
-    private func deactivateSession(_ synthesizer: AVSpeechSynthesizer) {
-        guard !synthesizer.isSpeaking else { return }
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    /// 아직 안 끝난 안내 수. `synthesizer.isSpeaking` 을 쓰지 않는 이유: didFinish 콜백 안에서는
+    /// 아직 true 로 나올 때가 있어, 그걸 믿고 되돌아가면 세션을 영영 안 내린다.
+    private var pending = 0
+
+    private func utteranceEnded() {
+        // 델리게이트 콜백 스레드가 보장되지 않는다 — pending 은 메인에서만 만진다
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            pending = max(0, pending - 1)
+            guard pending == 0 else { return }
+            scheduleDeactivate()
+        }
+    }
+
+    /// 왜 곧바로 안 내리는가: 안내가 끝난 순간엔 오디오가 아직 비워지는 중이라
+    /// `setActive(false)` 가 IsBusy 로 튕긴다. 그러면 덕킹이 풀리지 않아 음악이 작아진 채로 남는다
+    /// (실기기에서 확인 — 에어팟으로 음악을 틀어 두면 바로 드러난다).
+    /// 잠깐 뒤에 내리고, 그래도 실패하면 몇 번 더 시도한다.
+    private func scheduleDeactivate(after delay: TimeInterval = 0.5, retries: Int = 3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self, pending == 0 else { return }   // 그새 다음 안내가 시작됐으면 그쪽이 책임진다
+            do {
+                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            } catch {
+                guard retries > 0 else {
+                    Self.log.error("오디오 세션 비활성화 실패 — 음악이 작아진 채로 남는다: \(error.localizedDescription, privacy: .public)")
+                    return
+                }
+                scheduleDeactivate(after: 0.5, retries: retries - 1)
+            }
+        }
     }
 }
 
