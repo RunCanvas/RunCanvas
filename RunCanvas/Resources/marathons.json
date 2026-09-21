@@ -1930,7 +1930,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/cookie-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2121,7 +2121,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/marvel-run-seoul-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2861,13 +2861,15 @@
         "6.1km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/3rd-liberty-democracy-marathon",
       "source": "kormarathon.com",
       "type": "대회",
       "tags": [],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789089151/kormarathon/events/event-images-1789089149871.png",
-      "fee_min": 35000
+      "fee_min": 35000,
+      "reg_start_date": "2026-09-04",
+      "reg_end_date": "2026-09-30"
     },
     {
       "name": "2026 영종 하늘길 마라톤",
@@ -2907,6 +2909,25 @@
       "reg_start_date": "2026-04-13",
       "reg_end_date": "2026-09-30",
       "fee_min": 30000
+    },
+    {
+      "name": "서울 빵빵런2026",
+      "event_date": "2026-11-14",
+      "region": "서울",
+      "place": "뚝섬한강공원 수변무대",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/seoul-bbangbbang-run-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1790000059/kormarathon/events/event-images-1790000057814.jpg",
+      "reg_start_date": "2026-09-21",
+      "reg_end_date": "2026-10-02",
+      "fee_min": 59000
     },
     {
       "name": "제26회 순천남승룡마라톤",
