@@ -156,7 +156,8 @@ struct ProfileEditView: View {
         isSaving = true
         defer { isSaving = false }
         guard let weight, let height else { return }
-        guard let id = auth.userID else {
+        // 데모(canSync=false)는 서버 계정이 없다 — 올리려 들면 실패하므로 로컬에만 저장한다
+        guard auth.canSync, let id = auth.userID else {
             userNickname = trimmedNickname
             userWeight = weight
             userHeight = height

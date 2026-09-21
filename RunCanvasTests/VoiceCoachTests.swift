@@ -72,6 +72,44 @@ final class RunSessionVoiceTests: XCTestCase {
         XCTAssertTrue(spoken.last?.hasPrefix("러닝 종료") == true, spoken.description)
     }
 
+    /// 2.5.4 거절 대응: 심사자는 사무실에 앉아 있어 거리가 1m도 안 쌓인다.
+    /// 시간 기준에서는 가만히 있어도 울려야, 홈 버튼을 누른 뒤 백그라운드 음성을 확인할 수 있다.
+    func testTimeModeAnnouncesWhileStandingStill() {
+        defaults.set(VoiceCoach.CueMode.time.rawValue, forKey: VoiceCoach.Keys.mode)
+        defaults.set(60, forKey: VoiceCoach.Keys.intervalSeconds)
+        var now = Date()
+        let session = RunSession(coach: makeCoach(), now: { now })
+        session.start()
+        XCTAssertEqual(spoken, ["러닝 시작"])
+
+        session.checkVoiceCue()                 // 아직 1분 전
+        XCTAssertEqual(spoken.count, 1)
+
+        now += 60
+        session.checkVoiceCue()
+        XCTAssertEqual(spoken.count, 2)
+        XCTAssertTrue(spoken[1].hasPrefix("0킬로미터. 시간 1분"), spoken[1])
+
+        session.checkVoiceCue()                 // 다음 지점 전엔 다시 말하지 않음
+        XCTAssertEqual(spoken.count, 2)
+
+        now += 60
+        session.checkVoiceCue()
+        XCTAssertEqual(spoken.count, 3)
+    }
+
+    /// 시간 기준을 켜 두면 거리 기준은 울리지 않아야 한다 — 둘 다 울리면 안내가 겹친다
+    func testTimeModeSilencesDistanceCue() {
+        defaults.set(VoiceCoach.CueMode.time.rawValue, forKey: VoiceCoach.Keys.mode)
+        defaults.set(600, forKey: VoiceCoach.Keys.intervalSeconds)
+        let location = LocationService()
+        let session = RunSession(location: location, coach: makeCoach())
+        session.start()
+        location.locationManager(manager, didUpdateLocations: (0..<12).map { loc(37.5445 + Double($0) * 0.0001, at: Double($0) - 9) })
+        session.checkVoiceCue()
+        XCTAssertEqual(spoken, ["러닝 시작"])
+    }
+
     func testDisabledCoachStaysSilent() {
         defaults.set(false, forKey: VoiceCoach.Keys.enabled)
         let session = RunSession(location: LocationService(), coach: makeCoach())

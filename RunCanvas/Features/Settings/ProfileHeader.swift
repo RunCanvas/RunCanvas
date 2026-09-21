@@ -60,7 +60,7 @@ struct ProfileHeader: View {
                 HStack {
                     Text("이번 주 · \(level.title) 레벨")
                     Spacer()
-                    Text("\(RunMath.formatKm(weekMeters)) / \(targetKm.formatted(.number.precision(.fractionLength(0...1)))) km")
+                    Text("\(RunMath.formatKm(weekMeters)) / \(targetKm.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "ko_KR")))) km")
                         .monospacedDigit()
                 }
                 .font(.caption)

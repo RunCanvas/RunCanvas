@@ -47,7 +47,7 @@ struct CanvasBackgroundSheet: View {
                                     .shadow(color: .black.opacity(0.7), radius: 3)
                             }
                             .aspectRatio(4 / 5, contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
                         .buttonStyle(.plain)
 
@@ -64,7 +64,7 @@ struct CanvasBackgroundSheet: View {
                                         .padding(14)
                                 }
                                 .aspectRatio(4 / 5, contentMode: .fit)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
                             }
                             .buttonStyle(.plain)
                         }

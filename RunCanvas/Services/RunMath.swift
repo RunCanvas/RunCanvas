@@ -2,8 +2,10 @@ import Foundation
 
 /// 페이스·칼로리·표시 포맷. 플랜 Task 1.2와 동일 — Phase 1에서 다시 만들지 말 것.
 enum RunMath {
+    /// 0초면 nil — 0 을 그대로 나누면 페이스가 00'00" 으로 찍힌다.
+    /// 거리는 워치에서 한 번에 들어올 수 있어 "거리는 있는데 시간이 0"이 실제로 만들어진다.
     static func paceSecondsPerKm(distanceMeters: Double, seconds: Int) -> Double? {
-        guard distanceMeters >= 10 else { return nil }
+        guard distanceMeters >= 10, seconds > 0 else { return nil }
         return Double(seconds) / (distanceMeters / 1000)
     }
 

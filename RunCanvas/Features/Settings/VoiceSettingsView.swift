@@ -4,6 +4,8 @@ import SwiftUI
 struct VoiceSettingsView: View {
     @AppStorage(VoiceCoach.Keys.enabled) private var isEnabled = true
     @AppStorage(VoiceCoach.Keys.interval) private var intervalMeters = 1000.0
+    @AppStorage(VoiceCoach.Keys.mode) private var mode = VoiceCoach.CueMode.distance.rawValue
+    @AppStorage(VoiceCoach.Keys.intervalSeconds) private var intervalSeconds = 300
     @State private var coach = VoiceCoach()
 
     var body: some View {
@@ -17,14 +19,33 @@ struct VoiceSettingsView: View {
 
                 if isEnabled {
                     Section {
-                        Picker("간격", selection: $intervalMeters) {
-                            Text("500m").tag(500.0)
-                            Text("1km").tag(1000.0)
-                            Text("2km").tag(2000.0)
+                        Picker("기준", selection: $mode) {
+                            Text("거리").tag(VoiceCoach.CueMode.distance.rawValue)
+                            Text("시간").tag(VoiceCoach.CueMode.time.rawValue)
                         }
                         .pickerStyle(.segmented)
+
+                        if mode == VoiceCoach.CueMode.time.rawValue {
+                            Picker("간격", selection: $intervalSeconds) {
+                                Text("1분").tag(60)
+                                Text("5분").tag(300)
+                                Text("10분").tag(600)
+                            }
+                            .pickerStyle(.segmented)
+                        } else {
+                            Picker("간격", selection: $intervalMeters) {
+                                Text("500m").tag(500.0)
+                                Text("1km").tag(1000.0)
+                                Text("2km").tag(2000.0)
+                            }
+                            .pickerStyle(.segmented)
+                        }
                     } header: {
                         Text("안내 간격")
+                    } footer: {
+                        Text(mode == VoiceCoach.CueMode.time.rawValue
+                             ? "정해진 시간마다 읽어줘요. 트랙처럼 거리가 잘 안 잡히는 곳에서 쓰기 좋아요."
+                             : "정해진 거리를 지날 때마다 읽어줘요.")
                     }
 
                     Section {

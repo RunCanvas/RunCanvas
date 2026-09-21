@@ -100,13 +100,16 @@ private struct StatsContent: View {
                     ForEach(StatsEngine.Period.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 150)
+                // 고정 150pt 는 접근성 글자 크기에서 "주/월/년" 3칸을 못 담아 라벨이 눌리고
+                // 왼쪽 "기간별"까지 밀려 잘린다. 상한만 두고 필요하면 늘어나게 한다.
+                .frame(maxWidth: 220)
             }
 
             VStack(spacing: 18) {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text(RunMath.formatKm(summary.totalMeters))
                         .font(.system(size: 40, weight: .bold))
+                        .monospacedDigit()
                     Text("km")
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -257,6 +260,8 @@ struct StatCard: View {
                 Text(value)
                     .font(.title2)
                     .fontWeight(.bold)
+                    // 바뀌는 숫자는 tabular — 기록·뱃지 양쪽이 이 카드를 쓴다
+                    .monospacedDigit()
                 
                 Text(unit)
                     .font(.caption)

@@ -14,7 +14,14 @@ enum CanvasStorage {
             throw preservesTransparency ? StorageError.pngEncodingFailed : StorageError.jpegEncodingFailed
         }
         let directory = try canvasDirectory(fileManager: fileManager)
-        let filename = "\(runID.uuidString.lowercased()).\(preservesTransparency ? "png" : "jpg")"
+        let stem = runID.uuidString.lowercased()
+        let ext = preservesTransparency ? "png" : "jpg"
+        // 배경 종류를 바꿔 다시 저장하면 확장자가 갈려 이전 파일이 아무도 안 가리키는 고아로 남는다.
+        // (Run.decoratedImageFilename 은 새 값으로 덮이고, 삭제 경로들은 현재 값 하나만 지운다)
+        for stale in ["png", "jpg"] where stale != ext {
+            try? fileManager.removeItem(at: directory.appendingPathComponent("\(stem).\(stale)"))
+        }
+        let filename = "\(stem).\(ext)"
         try data.write(to: directory.appendingPathComponent(filename), options: .atomic)
         return "canvas/\(filename)"
     }

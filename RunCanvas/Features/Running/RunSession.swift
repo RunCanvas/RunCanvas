@@ -29,7 +29,8 @@ final class RunSession {
     private let health: HealthServicing?
     private let coach: VoiceCoach?
     private let now: () -> Date
-    private var nextCueMeters: Double = .infinity   // 다음 음성 안내 지점
+    private var nextCueMeters: Double = .infinity   // 다음 음성 안내 지점 (거리 기준)
+    private var nextCueSeconds: Int = .max          // 다음 음성 안내 시각 (시간 기준)
     private var startedAt: Date?
     private var segmentStart: Date?       // 현재 달리는 구간 시작
     private var accumulated: TimeInterval = 0
@@ -105,7 +106,9 @@ final class RunSession {
                 self?.recordHeartRate(bpm)
             }
         }
-        nextCueMeters = coach?.intervalMeters ?? .infinity
+        // 모드에 맞는 쪽만 유한값으로 두면 checkVoiceCue 가 분기 없이 하나만 집는다
+        nextCueMeters = coach?.mode == .distance ? (coach?.intervalMeters ?? .infinity) : .infinity
+        nextCueSeconds = coach?.mode == .time ? (coach?.intervalSeconds ?? .max) : .max
         startTicker()
         say(VoiceCue.start)
     }
@@ -250,11 +253,17 @@ final class RunSession {
         coach.speak(text)
     }
 
-    /// 설정 간격(기본 1km)을 넘을 때마다 거리·시간·페이스를 읽어준다. 매초 틱에서 호출.
+    /// 설정 간격(기본 1km, 또는 시간 기준)을 넘을 때마다 거리·시간·페이스를 읽어준다. 매초 틱에서 호출.
+    /// start() 에서 모드에 맞는 쪽만 유한값이라 둘 중 하나만 걸린다.
     func checkVoiceCue() {
-        guard state == .running, let coach, coach.isEnabled, distanceMeters >= nextCueMeters else { return }
-        coach.speak(VoiceCue.progress(distanceMeters: nextCueMeters, seconds: elapsedSeconds))
-        nextCueMeters += coach.intervalMeters
+        guard state == .running, let coach, coach.isEnabled else { return }
+        if distanceMeters >= nextCueMeters {
+            coach.speak(VoiceCue.progress(distanceMeters: nextCueMeters, seconds: elapsedSeconds))
+            nextCueMeters += coach.intervalMeters
+        } else if elapsedSeconds >= nextCueSeconds {
+            coach.speak(VoiceCue.progress(distanceMeters: distanceMeters, seconds: nextCueSeconds))
+            nextCueSeconds += coach.intervalSeconds
+        }
     }
 
     /// 건강 권한을 러닝 시작 뒤에 받았을 때 심박 스트림을 다시 건다.

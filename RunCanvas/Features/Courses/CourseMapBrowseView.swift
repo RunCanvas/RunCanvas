@@ -62,6 +62,7 @@ struct CourseMapBrowseView: View {
                     .foregroundStyle(.secondary)
                 Button("다시 시도") { Task { await onRetry() } }
                     .font(.footnote.weight(.semibold))
+                    .frame(minHeight: 44).contentShape(Rectangle())   // 네트워크가 끊겼을 때만 보이는 버튼이라 안 눌리면 "먹통"으로 읽힌다
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)

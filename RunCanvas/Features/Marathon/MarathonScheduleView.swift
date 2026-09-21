@@ -377,7 +377,7 @@ private struct MarathonCard: View {
             parts.append("신청 \(d.month ?? 0)월 \(d.day ?? 0)일 마감")
         }
         if let fee = event.feeMin {
-            parts.append("\(fee.formatted())원부터")
+            parts.append("\(fee.formatted(.number.locale(Locale(identifier: "ko_KR"))))원부터")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

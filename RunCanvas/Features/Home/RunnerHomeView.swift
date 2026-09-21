@@ -15,6 +15,9 @@ struct RunnerHomeView: View {
     var body: some View {
         NavigationStack {
             HomeContent(ownerID: auth.userID)
+                // 홈엔 타이틀이 없는데도 빈 내비게이션 바가 상단을 차지한다.
+                // 숨기면 그만큼 최근 러닝 스크롤 영역이 늘어난다. 푸시된 화면은 자기 바를 그대로 쓴다.
+                .toolbar(.hidden, for: .navigationBar)
         }
     }
 }
@@ -23,6 +26,17 @@ struct RunnerHomeView: View {
 private struct HomeContent: View {
     @Query private var runs: [Run]
     private let ownerID: UUID?
+
+    // 상수 바인딩이면 첫 렌더에 위치가 없을 때 .automatic(전국 지도)에 고정되고 되돌아오지 못한다.
+    // 상태로 들고 있어야 위치를 잡은 뒤 카메라가 따라간다.
+    @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var locationManager = CLLocationManager()
+
+    /// 내 위치 점을 레벨 색으로. RootTabView가 넣어 준다.
+    @Environment(\.levelTier) private var tier
+    /// 진행 중인 러닝을 버튼에 비추기 위해. 앱 수명 세션이라 탭을 옮겨도 살아 있다.
+    /// 옵셔널인 이유: 프리뷰엔 코디네이터가 없다 — 비옵셔널이면 읽는 순간 죽는다.
+    @Environment(RunCoordinator.self) private var coordinator: RunCoordinator?
 
     init(ownerID: UUID?) {
         self.ownerID = ownerID
@@ -46,12 +60,12 @@ private struct HomeContent: View {
         VStack(spacing: 0) {
             // 프로필·오늘 지도·시작 버튼은 항상 보이게 두고,
             // 스크롤은 아래의 최근 기록 영역에서만 일어난다.
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 ProfileHeader(totalMeters: totalMeters, weekMeters: weekMeters)
-                todayRunMap
-                startRunButton
+                heroCard
             }
             .padding(.horizontal, 20)
+            .padding(.top, 16)
             .padding(.bottom, 12)
 
             ScrollView {
@@ -60,40 +74,89 @@ private struct HomeContent: View {
                 .padding(.top, 12)
                 .padding(.bottom, 20)
             }
+            // 3개 고정이라 보통은 다 보이지만, 작은 기기(SE)나 큰 글씨에선 넘친다.
+            // 스크롤은 남기되 다 보일 때는 튕기지 않게 한다.
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 
-    private var todayRunMap: some View {
+    /// 오늘 기록의 경로. 오늘 안 뛰었으면 빈 배열이라 지도는 현재 위치를 보여준다.
+    /// runs 는 최신순이라 맨 앞만 보면 된다.
+    private var todayRoute: [RoutePoint] {
+        guard let latest = runs.first, Calendar.current.isDateInToday(latest.startedAt) else { return [] }
+        return latest.route
+    }
+
+    /// 지도가 카드 전체를 채우고 그 위에 오늘 거리와 시작 버튼만 얹는다.
+    /// 상자를 셋(지도·버튼·기록) 두면 화면이 빽빽해 보여서 하나로 합쳤다.
+    /// 높이는 예전(지도 196 + 간격 24 + 버튼 56)과 같아 최근 러닝 3개가 그대로 다 보인다.
+    private var heroCard: some View {
         ZStack(alignment: .bottomLeading) {
-            Map(position: .constant(.userLocation(fallback: .automatic)), interactionModes: []) {
-                UserAnnotation()
-            }
-            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
-            .mapControlVisibility(.hidden)
+            mapLayer
+                // 좌하단 Apple 지도 표기를 가리면 안 된다 — 버튼 높이만큼 안전 영역을 줘서 위로 올린다.
+                .safeAreaPadding(.bottom, Self.mapOrnamentInset)
 
             LinearGradient(colors: [.clear, Color(.systemBackground).opacity(0.95)], startPoint: .center, endPoint: .bottom)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("오늘의 러닝")
-                    .font(.headline)
-                HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(RunMath.formatKm(todayMeters))
-                        .font(.system(size: 52, weight: .bold))
-                    Text("km")
-                        .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("오늘의 러닝")
+                        .font(.headline)
+                    HStack(alignment: .lastTextBaseline, spacing: 6) {
+                        Text(RunMath.formatKm(todayMeters))
+                            .font(.system(size: 52, weight: .bold))
+                            .monospacedDigit()
+                        Text("km")
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                startRunButton
             }
-            .padding(20)
+            .padding(16)
         }
-        .frame(height: 220)
+        .frame(height: 276)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
+    /// 버튼(56) + 아래 패딩(16) + 여유(4)
+    private static let mapOrnamentInset: CGFloat = 76
+
+    /// 오늘 뛴 경로가 있으면 그 경로를, 없으면 현재 위치를.
+    @ViewBuilder
+    private var mapLayer: some View {
+        if todayRoute.count > 1 {
+            RouteMapView(route: todayRoute, showsLegend: false)
+        } else {
+            Map(position: $camera, interactionModes: []) {
+                UserAnnotation()
+            }
+            .task {
+                // 권한을 러닝 시작 때만 물어서, 한 번도 안 뛴 계정은 홈 지도가 권한 없이 뜬다.
+                // 그러면 .userLocation 이 해석되지 못하고 .automatic(전국 지도)으로 떨어진다.
+                if locationManager.authorizationStatus == .notDetermined {
+                    locationManager.requestWhenInUseAuthorization()
+                }
+            }
+            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll, showsTraffic: false))
+            .mapControlVisibility(.hidden)
+            // 탭 틴트가 primary라 내 위치 점이 검게 나온다. 여기서만 레벨 색으로 되돌린다.
+            // 블랙 레벨은 accent가 primary라 다크 모드에서도 묻히지 않는다.
+            .tint(tier?.accent ?? .primary)
+        }
+    }
+
+    /// 러닝 중에 홈으로 돌아오면 버튼이 "러닝 시작" 그대로라, 진행 중인 러닝으로 돌아갈 길이 안 보였다.
+    /// (누르면 실제로는 돌아가진다 — RunSession.start 가 이미 달리는 중이면 무시하므로. 안내만 거짓이었다.)
     private var startRunButton: some View {
-        NavigationLink {
-            RunView(startImmediately: true)
+        let state = coordinator?.session.state ?? .idle
+        let isActive = state == .running || state == .paused
+        return NavigationLink {
+            RunView(startImmediately: !isActive)
         } label: {
-            PrimaryButtonLabel(title: "러닝 시작", systemImage: "figure.run")
+            PrimaryButtonLabel(
+                title: state == .paused ? "일시정지됨" : (state == .running ? "러닝 중" : "러닝 시작"),
+                systemImage: state == .paused ? "pause.fill" : "figure.run"
+            )
         }
     }
 

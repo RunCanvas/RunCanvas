@@ -18,10 +18,14 @@ final class RunCoordinator {
     var watchStartError: String?
     var showsDiscardedRun = false
 
-    /// 세션이 만료돼 auth.userID가 사라져도 기록을 잃지 않도록 마지막 계정을 들고 있는다
+    /// 세션이 만료돼 auth.userID가 사라져도 기록을 잃지 않도록 마지막 계정을 들고 있는다.
+    /// nil 은 무시한다 — RootTabView 가 auth.userID 를 그대로 흘려보내므로, 러닝 중 토큰 갱신이
+    /// 실패해 잠깐 nil 이 되면 이 값이 지워지고 finish() 가 저장하지 못한다(워치 종료 경로는
+    /// 반환값을 버려서 아무 표시도 안 난다). 남아 있어도 해롭지 않다 — start() 가 세션을 따로
+    /// 확인하고, 로그아웃하면 AppRouter 가 로그인 화면으로 보낸다.
     var ownerID: UUID? {
         get { UserDefaults.standard.string(forKey: Self.ownerKey).flatMap(UUID.init(uuidString:)) }
-        set { UserDefaults.standard.set(newValue?.uuidString, forKey: Self.ownerKey) }
+        set { if let newValue { UserDefaults.standard.set(newValue.uuidString, forKey: Self.ownerKey) } }
     }
 
     private static let ownerKey = "lastOwnerID"
@@ -53,7 +57,6 @@ final class RunCoordinator {
         watch.onFinishedWorkout = { [weak self] finished in
             self?.save(finished)
         }
-        startSyncLoop()
     }
 
     // MARK: - 러닝 조작 (RunView·워치 공용)
@@ -72,6 +75,7 @@ final class RunCoordinator {
         guard session.state == .running else { return false }
         lastWatchSnapshotAt = nil
         watchStartedAt = usesWatchWorkout ? Date() : nil
+        startSyncLoop()
         guard sendToWatch, usesWatchWorkout else { return true }
         watch.sendCommand(.start, sessionID: sessionID)
         return true
@@ -108,6 +112,7 @@ final class RunCoordinator {
         finishedRun = run
         watchStartedAt = nil
         lastWatchSnapshotAt = nil
+        syncTask?.cancel()
         return true
     }
 
@@ -210,15 +215,20 @@ final class RunCoordinator {
 
     // MARK: - 스냅샷 송신 + 워치 감시
 
+    /// 러닝 중에만 돈다. 예전엔 init 에서 시작해 앱 수명 내내 3초마다 깼고(러닝하지 않는 모든 시간),
+    /// self 가 사라져도 `self?.` 라 루프가 안 끝나 프리뷰·테스트에서 인스턴스마다 하나씩 쌓였다.
     private func startSyncLoop() {
         syncTask?.cancel()
         syncTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
-                self?.syncTick()
+                guard let self else { return }
+                self.syncTick()
                 try? await Task.sleep(for: .seconds(3))
             }
         }
     }
+
+    deinit { syncTask?.cancel() }
 
     private func syncTick() {
         guard session.state == .running || session.state == .paused else { return }
