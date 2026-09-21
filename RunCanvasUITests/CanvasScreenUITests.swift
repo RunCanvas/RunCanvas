@@ -16,7 +16,8 @@ final class CanvasScreenUITests: XCTestCase {
         // 탭은 앱 톤 그대로인 갤러리 — 편집기는 여기서 전체 화면으로 덮어 연다
         // PrimaryButton은 아이콘+텍스트라 label 이 정확히 일치하지 않을 수 있다
         let create = app.buttons.matching(NSPredicate(format: "label CONTAINS '새로 꾸미기'")).firstMatch
-        XCTAssertTrue(create.waitForExistence(timeout: 5), "런꾸 탭에 새로 꾸미기가 없음")
+        // 전체 스위트로 돌릴 때 갤러리 첫 렌더가 5초를 넘겨 한 번 흔들렸다 — 탭 바 대기(15초)와 눈높이를 맞춘다
+        XCTAssertTrue(create.waitForExistence(timeout: 15), "런꾸 탭에 새로 꾸미기가 없음")
         attach(app, "canvas_tab")
         create.tap()
 
