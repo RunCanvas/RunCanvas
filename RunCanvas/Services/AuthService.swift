@@ -34,6 +34,9 @@ final class AuthService {
 
     func enterDemo() {
         guard session == nil else { return }   // 진짜 로그인 중이면 무시
+        // 나갈 때처럼 들어올 때도 비운다. 안 비우면 이전에 로그인했던 계정의 닉네임·체중·키와
+        // 아바타 URL 이 데모 화면에 그대로 뜬다 — 아바타는 잠긴 버킷을 가리켜 스피너만 돈다.
+        Profile.clearLocalCache()
         demoUserID = Self.demoAccountID
     }
 

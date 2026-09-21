@@ -22,9 +22,12 @@ enum DemoData {
         try? context.save()
 
         // 홈 인사말이 "러너 님"으로 비어 보이지 않게. 사용자가 이미 값을 넣었으면 건드리지 않는다.
+        // 체중은 위 기록들의 칼로리를 계산한 값과 같게 둔다 — 프로필과 기록이 어긋나 보이지 않게.
         let defaults = UserDefaults.standard
         if (defaults.string(forKey: "userNickname") ?? "").isEmpty {
             defaults.set("데모", forKey: "userNickname")
+            defaults.set(62.0, forKey: "userWeight")
+            defaults.set(170.0, forKey: "userHeight")
         }
     }
 
