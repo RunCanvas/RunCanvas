@@ -10,6 +10,8 @@ enum DemoData {
     /// 이미 기록이 있으면 아무것도 하지 않는다. 심사자가 러닝을 직접 해 봐도 시드가 덮어쓰지 않는다.
     @MainActor
     static func seedIfNeeded(context: ModelContext, runCount: Int = 5) {
+        seedProfileIfNeeded()   // 기록이 이미 있어 아래에서 되돌아가도 프로필은 채워져야 한다
+
         let owner = AuthService.demoAccountID
         let existing = (try? context.fetch(
             FetchDescriptor<Run>(predicate: #Predicate { $0.ownerID == owner })
@@ -21,11 +23,16 @@ enum DemoData {
         }
         try? context.save()
 
-        // 홈 인사말이 "러너 님"으로 비어 보이지 않게. 사용자가 이미 값을 넣었으면 건드리지 않는다.
+    }
+
+    /// 홈 인사말이 기본값 "러너"로 뜨지 않게. 사용자가 이미 값을 넣었으면 건드리지 않는다.
+    /// 체중은 시드 기록의 칼로리를 계산한 값과 같게 둔다 — 프로필과 기록이 어긋나 보이지 않게.
+    private static func seedProfileIfNeeded() {
         let defaults = UserDefaults.standard
-        if (defaults.string(forKey: "userNickname") ?? "").isEmpty {
-            defaults.set("데모", forKey: "userNickname")
-        }
+        guard (defaults.string(forKey: "userNickname") ?? "").isEmpty else { return }
+        defaults.set("데모", forKey: "userNickname")
+        defaults.set(62.0, forKey: "userWeight")
+        defaults.set(170.0, forKey: "userHeight")
     }
 
     /// (며칠 전, 거리 m, 이동 초, 평균 심박, 최대 심박)
