@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import RunCanvas
 
 @MainActor
@@ -25,5 +26,26 @@ final class AuthServiceDemoTests: XCTestCase {
         XCTAssertTrue(auth.isDemo)
         XCTAssertFalse(auth.canSync, "데모 기록이 서버로 올라가면 안 된다")
         keys.forEach { XCTAssertNil(defaults.object(forKey: $0), $0) }
+    }
+
+    /// 회귀: 프로필 채우기가 "기록이 이미 있으면 되돌아간다" 뒤에 있던 탓에, 두 번째 진입부터는
+    /// enterDemo 가 비운 닉네임이 다시 안 채워져 홈에 기본값 "러너"가 떴다.
+    func testSeedFillsProfileEvenWhenRunsAlreadyExist() throws {
+        let container = try ModelContainer(for: Run.self,
+                                           configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let defaults = UserDefaults.standard
+
+        DemoData.seedIfNeeded(context: context)
+        let seeded = try context.fetch(FetchDescriptor<Run>()).count
+        XCTAssertGreaterThan(seeded, 0)
+        XCTAssertEqual(defaults.string(forKey: "userNickname"), "데모")
+
+        Profile.clearLocalCache()          // 두 번째 진입에서 enterDemo 가 하는 일
+        DemoData.seedIfNeeded(context: context)
+
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Run>()).count, seeded, "기록을 다시 심으면 안 된다")
+        XCTAssertEqual(defaults.string(forKey: "userNickname"), "데모")
+        XCTAssertEqual(defaults.double(forKey: "userWeight"), 62)
     }
 }
