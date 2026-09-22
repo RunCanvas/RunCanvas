@@ -2867,9 +2867,9 @@
       "type": "대회",
       "tags": [],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789089151/kormarathon/events/event-images-1789089149871.png",
-      "fee_min": 35000,
       "reg_start_date": "2026-09-04",
-      "reg_end_date": "2026-09-30"
+      "reg_end_date": "2026-09-30",
+      "fee_min": 35000
     },
     {
       "name": "2026 영종 하늘길 마라톤",
