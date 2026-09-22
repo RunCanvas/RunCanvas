@@ -76,26 +76,6 @@
       "fee_min": 40000
     },
     {
-      "name": "2026 잠수교 10K 나이트런 (일정 변경)",
-      "event_date": "2026-10-03",
-      "region": "서울",
-      "place": "반포한강공원 달빛광장",
-      "courses": [
-        "10km"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/10k-night-run",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [
-        "야간"
-      ],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1784888138/kormarathon/events/event-images-1784888136722.jpg",
-      "reg_start_date": "2026-08-19",
-      "reg_end_date": "2026-08-23",
-      "fee_min": 80000
-    },
-    {
       "name": "2026 천사데이 천사마라톤",
       "event_date": "2026-10-03",
       "region": "경기",
@@ -410,7 +390,7 @@
       "fee_min": 15000
     },
     {
-      "name": "2026 서울 오픈마라톤",
+      "name": "2026 서울 오픈마라톤 (변경 일정 미정)",
       "event_date": "2026-10-05",
       "region": "서울",
       "place": "광화문 광장",
@@ -2252,6 +2232,25 @@
       "fee_min": 40000
     },
     {
+      "name": "저스티스 런 서초 2026",
+      "event_date": "2026-11-01",
+      "region": "서울",
+      "place": "서울 서초구 반포한강공원 달빛광장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/justice-run-seocho-2026",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1790056997/kormarathon/events/event-images-1790056996610.jpg",
+      "reg_start_date": "2026-09-21",
+      "reg_end_date": "2026-10-14",
+      "fee_min": 40000
+    },
+    {
       "name": "제21회 울산 인권마라톤",
       "event_date": "2026-11-01",
       "region": "울산",
@@ -2439,7 +2438,7 @@
       "tags": [],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789026479/kormarathon/events/event-images-1789026478740.jpg",
       "reg_start_date": "2026-09-10",
-      "reg_end_date": "2026-10-06",
+      "reg_end_date": "2026-10-13",
       "fee_min": 25000
     },
     {
@@ -3458,6 +3457,26 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788171679/kormarathon/events/event-images-1788171678693.jpg",
       "reg_start_date": "2026-09-07",
       "reg_end_date": "2026-09-07"
+    },
+    {
+      "name": "2026 잠수교 10K 나이트런 (11월 22일로 일정 변경)",
+      "event_date": "2026-11-22",
+      "region": "서울",
+      "place": "반포한강공원 달빛광장",
+      "courses": [
+        "10km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/10k-night-run",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [
+        "야간"
+      ],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1784888138/kormarathon/events/event-images-1784888136722.jpg",
+      "reg_start_date": "2026-08-19",
+      "reg_end_date": "2026-08-23",
+      "fee_min": 80000
     },
     {
       "name": "2026 평화의숲 마라톤",
