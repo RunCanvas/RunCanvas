@@ -65,7 +65,7 @@
         "4.4km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-lee-il-seon-memorial-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1730,7 +1730,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/mussu-run-zero-waste-run",
       "source": "kormarathon.com",
       "type": "테마런",
