@@ -1199,7 +1199,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-mindrun",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1930,7 +1930,7 @@
         "10km",
         "Half"
       ],
-      "status": null,
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/14th-jeongseojin-ara-waterway-national-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2412,7 +2412,7 @@
         "3km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/miracle365-purme-run-1",
       "source": "kormarathon.com",
       "type": "테마런",
