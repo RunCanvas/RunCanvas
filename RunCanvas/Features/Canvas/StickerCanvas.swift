@@ -4,6 +4,7 @@ import UIKit
 struct StickerCanvas: View {
     let background: CanvasBackground
     let run: Run
+    var canvasAspectRatio: CGFloat = 4 / 5
     @Binding var stickers: [CanvasSticker]
     /// 여러 개를 함께 고를 수 있다 (길게 눌러 추가)
     @Binding var selection: Set<UUID>
@@ -64,7 +65,7 @@ struct StickerCanvas: View {
             }
             .onPreferenceChange(StickerSizePreferenceKey.self) { stickerSizes = $0 }
         }
-        .aspectRatio(4 / 5, contentMode: .fit)
+        .aspectRatio(canvasAspectRatio, contentMode: .fit)
         .clipped()
         // 편집 화면과 ImageRenderer 결과의 글자 크기를 같게 (렌더러는 기본 환경으로 그린다)
         .dynamicTypeSize(.large)
