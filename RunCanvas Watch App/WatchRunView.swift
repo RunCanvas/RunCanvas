@@ -158,7 +158,7 @@ struct WatchRunView: View {
                 metricDivider
                 statMetric(title: "BPM", value: workout.heartRate.map { "\(Int($0))" } ?? "--", accent: WatchPalette.coral)
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 7)
             .background(WatchPalette.surface, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
 
             HStack(spacing: 4) {
@@ -176,31 +176,29 @@ struct WatchRunView: View {
         let bpm = workout.heartRate.map { Int($0.rounded()) }
         let currentZone = bpm.map(heartRateZone(for:))
 
-        return VStack(alignment: .leading, spacing: 7) {
+        return VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text("HEART RATE ZONES")
-                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
                     .tracking(1.1)
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(.white.opacity(0.78))
                 Spacer()
                 connectionIcon
             }
 
             HStack(alignment: .lastTextBaseline, spacing: 5) {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(currentZone.map(zoneColor) ?? .white.opacity(0.35))
                 Text(bpm.map(String.init) ?? "--")
-                    .font(.system(size: 39, weight: .black, design: .rounded))
+                    .font(.system(size: 44, weight: .black, design: .rounded))
+                    .layoutPriority(1)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text("BPM")
-                    .font(.system(size: 10, weight: .black, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.5))
-                Spacer(minLength: 2)
-                Text(currentZone.map { "ZONE \($0)" } ?? "ZONE --")
                     .font(.system(size: 11, weight: .black, design: .rounded))
-                    .foregroundStyle(currentZone.map(zoneColor) ?? .white.opacity(0.4))
+                    .foregroundStyle(.white.opacity(0.58))
+                Spacer(minLength: 0)
             }
 
             HStack(spacing: 4) {
@@ -209,23 +207,25 @@ struct WatchRunView: View {
                 }
             }
 
+            Text(currentZone.map(zoneRangeLabel) ?? "심박 측정 대기 중")
+                .font(.system(size: 11, weight: .black, design: .rounded))
+                .foregroundStyle(currentZone.map(zoneColor) ?? .white.opacity(0.52))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
             HStack(spacing: 5) {
                 Circle()
                     .fill(WatchPalette.zone2)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 7, height: 7)
                 Text(zoneTwoMessage(currentZone: currentZone))
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Spacer(minLength: 2)
             }
             .foregroundStyle(currentZone == 2 ? WatchPalette.zone2 : .white.opacity(0.62))
-
-            Text("기본 최대 심박 \(defaultMaxHeartRate) BPM 기준")
-                .font(.system(size: 7, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.32))
         }
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 5)
     }
 
     private var controlsPage: some View {
@@ -339,13 +339,13 @@ struct WatchRunView: View {
     private func statMetric(title: String, value: String, accent: Color) -> some View {
         VStack(spacing: 2) {
             Text(title)
-                .font(.system(size: 9, weight: .black, design: .rounded))
+                .font(.system(size: 10, weight: .black, design: .rounded))
                 .tracking(0.8)
                 .foregroundStyle(accent.opacity(0.78))
             Text(value)
-                .font(.system(size: 18, weight: .black, design: .rounded))
+                .font(.system(size: 20, weight: .black, design: .rounded))
                 .foregroundStyle(accent)
-                .minimumScaleFactor(0.68)
+                .minimumScaleFactor(0.62)
                 .lineLimit(1)
                 .monospacedDigit()
                 .contentTransition(.numericText())
@@ -423,27 +423,25 @@ struct WatchRunView: View {
     }
 
     private func zoneTile(_ zone: Int, isActive: Bool) -> some View {
-        let range = zoneRange(zone)
-        return VStack(spacing: 2) {
-            Text("Z\(zone)")
-                .font(.system(size: 9, weight: .black, design: .rounded))
-            Text("\(range.lowerBound)-\(range.upperBound)")
-                .font(.system(size: 6.5, weight: .bold, design: .rounded))
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
-        }
-        .foregroundStyle(isActive ? .black : .white.opacity(0.66))
-        .frame(maxWidth: .infinity, minHeight: 31)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isActive ? zoneColor(zone) : zoneColor(zone).opacity(zone == 2 ? 0.30 : 0.16))
-        )
-        .overlay {
-            if zone == 2, !isActive {
+        Text("Z\(zone)")
+            .font(.system(size: 12, weight: .black, design: .rounded))
+            .foregroundStyle(isActive ? .black : .white.opacity(0.72))
+            .frame(maxWidth: .infinity, minHeight: 34)
+            .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(WatchPalette.zone2.opacity(0.65), lineWidth: 1)
+                    .fill(isActive ? zoneColor(zone) : zoneColor(zone).opacity(zone == 2 ? 0.30 : 0.16))
+            )
+            .overlay {
+                if zone == 2, !isActive {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(WatchPalette.zone2.opacity(0.65), lineWidth: 1)
+                }
             }
-        }
+    }
+
+    private func zoneRangeLabel(_ zone: Int) -> String {
+        let range = zoneRange(zone)
+        return "ZONE \(zone)  ·  \(range.lowerBound)–\(range.upperBound) BPM"
     }
 
     private func zoneColor(_ zone: Int) -> Color {
