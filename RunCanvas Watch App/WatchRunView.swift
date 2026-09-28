@@ -136,8 +136,8 @@ struct WatchRunView: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(String(format: "%.2f", workout.displayedDistanceMeters / 1_000))
-                        .font(.system(size: 50, weight: .black, design: .rounded))
-                        .minimumScaleFactor(0.62)
+                        .font(.system(size: 54, weight: .black, design: .rounded))
+                        .minimumScaleFactor(0.58)
                         .lineLimit(1)
                         .monospacedDigit()
                         .contentTransition(.numericText())
