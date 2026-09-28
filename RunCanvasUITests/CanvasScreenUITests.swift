@@ -1,6 +1,6 @@
 import XCTest
 
-/// 런꾸는 한 화면이다 — 기록 고르기 시트 → 캔버스에서 바로 편집 → 저장 시트
+/// 런꾸는 한 화면이다 — 기록 고르기 → 비율 선택 → 캔버스에서 바로 편집 → 저장 시트
 final class CanvasScreenUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
@@ -26,10 +26,15 @@ final class CanvasScreenUITests: XCTestCase {
         XCTAssertTrue(run.waitForExistence(timeout: 5), "기록 고르기 시트가 안 뜸")
         run.tap()
 
+        let storyFormat = app.buttons["스토리 9:16"]
+        XCTAssertTrue(storyFormat.waitForExistence(timeout: 3), "꾸미기 전 비율 선택이 안 뜸")
+        storyFormat.tap()
+
         // 같은 화면에 캔버스와 도구가 함께 있다
         let distanceSticker = app.descendants(matching: .any)["거리 스티커"]
         XCTAssertTrue(distanceSticker.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["배경"].exists)
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS '캔버스 비율'")).firstMatch.exists)
         XCTAssertTrue(app.buttons["텍스트"].exists)
         attach(app, "studio_initial")
 

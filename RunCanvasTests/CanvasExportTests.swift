@@ -3,7 +3,7 @@ import UIKit
 @testable import RunCanvas
 
 final class CanvasExportTests: XCTestCase {
-    private func run() -> Run {
+    private func sampleRun() -> Run {
         Run(ownerID: UUID(), startedAt: Date(), endedAt: Date(), distanceMeters: 1000, movingSeconds: 360, calories: 60)
     }
 
@@ -19,7 +19,7 @@ final class CanvasExportTests: XCTestCase {
 
     @MainActor
     func testTransparentExportPreservesStickersAndClearCornersAfterPNGEncoding() throws {
-        let image = try XCTUnwrap(CanvasExporter.quickCard(for: run()))
+        let image = try XCTUnwrap(CanvasExporter.quickCard(for: sampleRun()))
         let decoded = try XCTUnwrap(UIImage(data: XCTUnwrap(image.pngData())))
         XCTAssertEqual(decoded.size, CanvasExporter.size)
         XCTAssertEqual(try alpha(decoded), 0)
@@ -35,14 +35,41 @@ final class CanvasExportTests: XCTestCase {
 
     @MainActor
     func testDefaultBackgroundRemainsOpaque() throws {
-        let image = try XCTUnwrap(CanvasExporter.quickCard(for: run(), background: .preset(.midnight)))
+        let image = try XCTUnwrap(CanvasExporter.quickCard(for: sampleRun(), background: .preset(.midnight)))
         XCTAssertEqual(try alpha(image), 255)
+    }
+
+    @MainActor
+    func testEachCanvasFormatRendersAtItsExportSize() throws {
+        let run = sampleRun()
+        let stickers = CanvasStudioView.defaultStickers(for: run, color: .white)
+
+        for format in [CanvasFormat.story, .portrait, .square] {
+            let image = try XCTUnwrap(CanvasExporter.render(
+                background: .transparent,
+                run: run,
+                stickers: stickers,
+                format: format
+            ))
+            XCTAssertEqual(image.size, format.outputSize(for: .transparent))
+        }
+    }
+
+    func testOriginalFormatUsesBackgroundPhotoRatio() {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 1600, height: 900)).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: CGSize(width: 1600, height: 900)))
+        }
+        let background = CanvasBackground.photo(image)
+
+        XCTAssertEqual(CanvasFormat.original.aspectRatio(for: background), 16.0 / 9.0, accuracy: 0.001)
+        XCTAssertEqual(CanvasFormat.original.outputSize(for: background), CGSize(width: 1920, height: 1080))
     }
 
     @MainActor
     func testLocalPNGStorageKeepsTransparency() throws {
         let id = UUID()
-        let image = try XCTUnwrap(CanvasExporter.quickCard(for: run()))
+        let image = try XCTUnwrap(CanvasExporter.quickCard(for: sampleRun()))
         let filename = try CanvasStorage.save(image: image, runID: id, preservesTransparency: true)
         defer { CanvasStorage.delete(filename: filename) }
         XCTAssertTrue(filename.hasSuffix(".png"))
