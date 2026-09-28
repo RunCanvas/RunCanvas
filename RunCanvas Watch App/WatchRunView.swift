@@ -115,47 +115,51 @@ struct WatchRunView: View {
     }
 
     private var metricsPage: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 5) {
                 Circle()
                     .fill(workout.state == .paused ? WatchPalette.orange : WatchPalette.lime)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 7, height: 7)
                 Text(workout.state == .paused ? "PAUSED" : "RUNNING")
-                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
                     .tracking(1.1)
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(.white.opacity(0.82))
                 Spacer(minLength: 2)
                 connectionIcon
             }
 
-            VStack(alignment: .leading, spacing: -4) {
+            VStack(alignment: .leading, spacing: -5) {
                 Text("DISTANCE")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(.system(size: 10, weight: .black, design: .rounded))
                     .tracking(1.4)
                     .foregroundStyle(WatchPalette.lime)
 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(String(format: "%.2f", workout.displayedDistanceMeters / 1_000))
-                        .font(.system(size: 43, weight: .black, design: .rounded))
-                        .minimumScaleFactor(0.72)
+                        .font(.system(size: 50, weight: .black, design: .rounded))
+                        .minimumScaleFactor(0.62)
                         .lineLimit(1)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                     Text("KM")
-                        .font(.system(size: 11, weight: .black, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.58))
+                        .font(.system(size: 12, weight: .black, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.64))
                 }
             }
 
             Capsule()
                 .fill(WatchPalette.lime)
-                .frame(height: 2)
+                .frame(height: 3)
 
-            HStack(spacing: 5) {
-                statCard(title: "TIME", value: formatDuration(workout.displayedElapsedSeconds), accent: .white)
-                statCard(title: "PACE", value: formatPace(workout.displayedPaceSecondsPerKm), accent: WatchPalette.lime)
-                statCard(title: "BPM", value: workout.heartRate.map { "\(Int($0))" } ?? "--", accent: WatchPalette.coral)
+            HStack(spacing: 0) {
+                statMetric(title: "TIME", value: formatDuration(workout.displayedElapsedSeconds), accent: .white)
+                metricDivider
+                statMetric(title: "PACE", value: formatPace(workout.displayedPaceSecondsPerKm), accent: WatchPalette.lime)
+                metricDivider
+                statMetric(title: "BPM", value: workout.heartRate.map { "\(Int($0))" } ?? "--", accent: WatchPalette.coral)
             }
+            .padding(.vertical, 6)
+            .background(WatchPalette.surface, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
 
             HStack(spacing: 4) {
                 Label("심박 존", systemImage: "chevron.down")
@@ -165,7 +169,7 @@ struct WatchRunView: View {
             .font(.system(size: 8, weight: .semibold, design: .rounded))
             .foregroundStyle(.white.opacity(0.45))
         }
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 5)
     }
 
     private var heartRateZonesPage: some View {
@@ -332,24 +336,28 @@ struct WatchRunView: View {
             .accessibilityLabel(isPhoneKeepingRecord ? "iPhone 동기화" : "Apple Watch 기록")
     }
 
-    private func statCard(title: String, value: String, accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+    private func statMetric(title: String, value: String, accent: Color) -> some View {
+        VStack(spacing: 2) {
             Text(title)
-                .font(.system(size: 8, weight: .bold, design: .rounded))
-                .tracking(0.7)
-                .foregroundStyle(accent.opacity(0.72))
+                .font(.system(size: 9, weight: .black, design: .rounded))
+                .tracking(0.8)
+                .foregroundStyle(accent.opacity(0.78))
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .black, design: .rounded))
                 .foregroundStyle(accent)
-                .minimumScaleFactor(0.55)
+                .minimumScaleFactor(0.68)
                 .lineLimit(1)
                 .monospacedDigit()
                 .contentTransition(.numericText())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 7)
-        .background(WatchPalette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 2)
+    }
+
+    private var metricDivider: some View {
+        Rectangle()
+            .fill(.white.opacity(0.14))
+            .frame(width: 1, height: 35)
     }
 
     private func roundControlButton(
