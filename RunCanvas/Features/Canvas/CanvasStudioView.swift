@@ -20,6 +20,7 @@ struct CanvasStudioView: View {
     @AppStorage(CanvasTheme.storageKey) private var stickerColorHex = ""
 
     @State private var background: CanvasBackground = .transparent
+    @State private var format: CanvasFormat = .story
     @State private var selectedRun: Run?
     @State private var stickers: [CanvasSticker] = []
     @State private var selection: Set<UUID> = []
@@ -35,6 +36,7 @@ struct CanvasStudioView: View {
     @State private var didPromptForRun = false
     @State private var showsDiscardConfirmation = false
     @State private var didSave = false
+    @State private var showsInitialFormatPicker = false
 
     /// 러닝 결과 화면에서 들어오면 그 기록으로 고정된다 (런꾸 탭에서 열면 기록을 고를 수 있다)
     private let hasFixedRun: Bool
@@ -52,6 +54,7 @@ struct CanvasStudioView: View {
     private struct CanvasEditSnapshot {
         let background: CanvasBackground
         let stickers: [CanvasSticker]
+        let format: CanvasFormat
     }
 
     private var selectedIndices: [Int] {
@@ -83,6 +86,12 @@ struct CanvasStudioView: View {
                 canvasArea
                 bottomControls
             }
+
+            if showsInitialFormatPicker {
+                initialFormatPicker
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                    .zIndex(2)
+            }
         }
         .preferredColorScheme(.dark)   // 크롬이 항상 어둡다 — 시트·키보드까지 일관되게
         .onAppear {
@@ -100,6 +109,7 @@ struct CanvasStudioView: View {
                         background: background,
                         run: selectedRun,
                         stickers: stickers,
+                        format: format,
                         onSaved: { didSave = true },
                         onSavedToApp: { dismiss() }
                     )
@@ -211,6 +221,7 @@ struct CanvasStudioView: View {
             StickerCanvas(
                 background: background,
                 run: selectedRun,
+                canvasAspectRatio: format.aspectRatio(for: background),
                 stickers: $stickers,
                 selection: $selection,
                 isRotationMode: isRotationMode,
@@ -350,8 +361,21 @@ struct CanvasStudioView: View {
     }
 
     private var toolRow: some View {
-        HStack(spacing: 26) {
+        HStack(spacing: 18) {
             toolButton("photo.on.rectangle", "배경") { sheet = .background }
+
+            Menu {
+                ForEach(CanvasFormat.allCases) { option in
+                    Button {
+                        changeFormat(to: option)
+                    } label: {
+                        Label("\(option.title) \(option.ratioLabel)", systemImage: format == option ? "checkmark" : option.systemImage)
+                    }
+                }
+            } label: {
+                toolLabel("aspectratio", "비율")
+            }
+            .accessibilityLabel("캔버스 비율, 현재 \(format.title) \(format.ratioLabel)")
 
             Menu {
                 Button("거리") { add(.distance) }
@@ -418,6 +442,57 @@ struct CanvasStudioView: View {
 
     // MARK: - 동작
 
+    private var initialFormatPicker: some View {
+        ZStack {
+            Color.black.opacity(0.72)
+                .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                VStack(spacing: 6) {
+                    Text("어디에 올릴까요?")
+                        .font(.title3.weight(.bold))
+                    Text("먼저 비율을 고르면 꾸민 모습 그대로 저장돼요.")
+                        .font(.subheadline)
+                        .foregroundStyle(Studio.dim)
+                        .multilineTextAlignment(.center)
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(CanvasFormat.allCases) { option in
+                        Button {
+                            chooseInitialFormat(option)
+                        } label: {
+                            VStack(spacing: 8) {
+                                Image(systemName: option.systemImage)
+                                    .font(.system(size: 25, weight: .medium))
+                                    .frame(height: 32)
+                                Text(option.title)
+                                    .font(.system(size: 14, weight: .bold))
+                                Text(option.ratioLabel)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(option == .story ? .black.opacity(0.62) : Studio.dim)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 105)
+                            .background(option == .story ? Color.white : Studio.surface, in: RoundedRectangle(cornerRadius: 16))
+                            .foregroundStyle(option == .story ? .black : .white)
+                        }
+                        .accessibilityLabel("\(option.title) \(option.ratioLabel)")
+                    }
+                }
+
+                Text("원본은 배경 사진 비율을 사용하며, 사진이 없으면 4:5로 시작해요.")
+                    .font(.caption)
+                    .foregroundStyle(Studio.dim)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(20)
+            .background(Studio.background, in: RoundedRectangle(cornerRadius: 22))
+            .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.12)))
+            .padding(.horizontal, 24)
+        }
+        .animation(.snappy(duration: 0.22), value: showsInitialFormatPicker)
+    }
+
     /// 저장한 적 없이 꾸미던 중이면 한 번 물어본다 (인스타가 하는 방식)
     private func goBack() {
         if selectedRun != nil && !didSave {
@@ -438,7 +513,7 @@ struct CanvasStudioView: View {
     private func pick(_ run: Run) {
         selectedRun = run
         if stickers.isEmpty {
-            stickers = Self.defaultStickers(for: run, color: defaultStickerColor)
+            showsInitialFormatPicker = true
             return
         }
         // 꾸미던 중 기록을 바꿨다 — 새 기록에 없는 데이터의 스티커는 내용 없이 테두리만 남아
@@ -450,6 +525,22 @@ struct CanvasStudioView: View {
             stickers.removeAll { if case .heartRate = $0.kind { return true } else { return false } }
         }
         selection = selection.filter { id in stickers.contains { $0.id == id } }
+    }
+
+    private func chooseInitialFormat(_ newFormat: CanvasFormat) {
+        format = newFormat
+        if let selectedRun, stickers.isEmpty {
+            stickers = Self.defaultStickers(for: selectedRun, color: defaultStickerColor)
+        }
+        showsInitialFormatPicker = false
+    }
+
+    private func changeFormat(to newFormat: CanvasFormat) {
+        guard format != newFormat else { return }
+        rememberState()
+        format = newFormat
+        selection = []
+        isRotationMode = false
     }
 
     private func add(_ kind: CanvasSticker.Kind) {
@@ -560,7 +651,7 @@ struct CanvasStudioView: View {
     }
 
     private func rememberState() {
-        undoStack.append(CanvasEditSnapshot(background: background, stickers: stickers))
+        undoStack.append(CanvasEditSnapshot(background: background, stickers: stickers, format: format))
         if undoStack.count > 30 { undoStack.removeFirst(undoStack.count - 30) }
     }
 
@@ -568,6 +659,7 @@ struct CanvasStudioView: View {
         guard let previous = undoStack.popLast() else { return }
         background = previous.background
         stickers = previous.stickers
+        format = previous.format
         selection = []
         isRotationMode = false
     }

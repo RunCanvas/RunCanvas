@@ -4,7 +4,7 @@ import UIKit
 
 /// 런꾸 이미지를 만들고 사진 앱에 넣는 곳 — 편집 화면과 "바로 저장"이 같은 코드를 쓴다.
 enum CanvasExporter {
-    /// 인스타 스토리에 올리기 좋은 4:5
+    /// 리캡 카드와 기존 바로 저장이 쓰는 호환 크기. 런꾸 편집기는 선택한 `CanvasFormat`을 사용한다.
     static let size = CGSize(width: 1080, height: 1350)
 
     enum ExportError: LocalizedError {
@@ -22,15 +22,22 @@ enum CanvasExporter {
     }
 
     @MainActor
-    static func render(background: CanvasBackground, run: Run, stickers: [CanvasSticker]) -> UIImage? {
+    static func render(
+        background: CanvasBackground,
+        run: Run,
+        stickers: [CanvasSticker],
+        format: CanvasFormat = .portrait
+    ) -> UIImage? {
+        let outputSize = format.outputSize(for: background)
         let content = StickerCanvas(
             background: background,
             run: run,
+            canvasAspectRatio: format.aspectRatio(for: background),
             stickers: .constant(stickers),
             selection: .constant([]),
             isEditing: false
         )
-        .frame(width: size.width, height: size.height)
+        .frame(width: outputSize.width, height: outputSize.height)
 
         let renderer = ImageRenderer(content: content)
         renderer.scale = 1

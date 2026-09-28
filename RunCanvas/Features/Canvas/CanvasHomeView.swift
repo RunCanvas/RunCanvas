@@ -113,12 +113,12 @@ private struct CanvasGallery: View {
 
     private func thumbnail(for run: Run) -> some View {
         ZStack(alignment: .bottomLeading) {
+            Color.card
+
             if let image = thumbnails[run.id] {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
-            } else {
-                Color.card
+                    .scaledToFit()
             }
 
             LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .center, endPoint: .bottom)

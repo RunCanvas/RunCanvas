@@ -7,6 +7,7 @@ struct CanvasExportSheet: View {
     let background: CanvasBackground
     let run: Run
     let stickers: [CanvasSticker]
+    let format: CanvasFormat
     /// 사진 앱이든 앱 내부든 한 번이라도 저장하면 알린다 (편집 화면이 나갈 때 안 물어보도록)
     let onSaved: () -> Void
     /// 앱에 저장까지 끝나면 편집 화면도 닫는다
@@ -123,7 +124,7 @@ struct CanvasExportSheet: View {
     @MainActor
     private func render() {
         renderFailed = false
-        renderedImage = CanvasExporter.render(background: background, run: run, stickers: stickers)
+        renderedImage = CanvasExporter.render(background: background, run: run, stickers: stickers, format: format)
         renderFailed = renderedImage == nil   // nil을 안 보면 스피너가 영원히 돈다
     }
 
