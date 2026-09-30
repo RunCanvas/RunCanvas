@@ -1046,7 +1046,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/independence-activists-descendants-donation-running-university-student-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1125,7 +1125,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/6th-yeongdeungpo-gu-mayors-cup-athletics-meet",
       "source": "kormarathon.com",
       "type": "대회",
