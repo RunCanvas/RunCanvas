@@ -38,6 +38,21 @@
       "fee_min": 50000
     },
     {
+      "name": "2026 안동 낙동강 힐링로드 (안동 힐링 워크&런 페스타)",
+      "event_date": "2026-10-03",
+      "region": "경북",
+      "place": "안동 탈춤공원 및 낙동강변 일원",
+      "courses": [
+        "9km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-andong-nakdong-river-healing-road-andong-healing-walk-run-festa-ea17ddc2c1134d02ae68f77f719ed40b",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/096a650d-cec3-4a44-a0f3-2b18d70aa250/display"
+    },
+    {
       "name": "2026 월드비전 글로벌 6K 마라톤 (부산)",
       "event_date": "2026-10-03",
       "region": "부산",
@@ -1975,7 +1990,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/cookie-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3205,6 +3220,22 @@
       "fee_min": 50000
     },
     {
+      "name": "2026 에코나우런",
+      "event_date": "2026-11-15",
+      "region": "서울",
+      "place": "서울 뚝섬한강공원 수변무대",
+      "courses": [
+        "5km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-econow-run-7c6afaffc7f04723aed67f7a3d703838",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/83e166ce-2164-4842-b378-90d5ff841044/display",
+      "fee_min": 30000
+    },
+    {
       "name": "2026 제주감귤국제마라톤대회",
       "event_date": "2026-11-15",
       "region": "제주",
@@ -3275,7 +3306,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/16th-daejeon-seo-gu-mayors-cup-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -3335,7 +3366,7 @@
       "courses": [
         "5km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/26th-changwon-unification-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -3473,6 +3504,22 @@
       "tags": [],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788351913/kormarathon/events/event-images-1788351912494.jpg",
       "fee_min": 45000
+    },
+    {
+      "name": "신한은행과 함께하는 2026 Brave Run",
+      "event_date": "2026-11-21",
+      "region": "서울",
+      "place": "서울 올림픽공원 피크닉장 (송파구 올림픽로 424)",
+      "courses": [
+        "3km",
+        "5km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-brave-run-with-shinhan-bank-9edc04bbd258458981cc3ce6544614b0",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/c0e6fa23-2e41-4a70-b694-3f8dc5911cee/display"
     },
     {
       "name": "2026 김대중마라톤대회",
