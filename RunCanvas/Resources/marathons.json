@@ -3846,6 +3846,22 @@
       "fee_min": 19000
     },
     {
+      "name": "2026 월드 레코드 금산 국제 마라톤 축제",
+      "event_date": "2026-12-05",
+      "region": "충남",
+      "place": "금산세계인삼엑스포광장",
+      "courses": [
+        "14km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/sawe-2026-world-record-international-marathon-festival",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788263092/kormarathon/events/event-images-1788263090967.jpg",
+      "fee_min": 100000
+    },
+    {
       "name": "2026 하남 미사 호수 에너지런",
       "event_date": "2026-12-05",
       "region": "경기",
@@ -3881,24 +3897,6 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789655380/kormarathon/events/event-images-1789655379621.jpg",
       "reg_start_date": "2026-10-06",
       "reg_end_date": "2026-11-08"
-    },
-    {
-      "name": "사바스티안 사웨 2026 월드 레코드 금산 국제 마라톤 축제",
-      "event_date": "2026-12-05",
-      "region": "충남",
-      "place": "금산세계인삼엑스포광장",
-      "courses": [
-        "14km"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/sawe-2026-world-record-international-marathon-festival",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788263092/kormarathon/events/event-images-1788263090967.jpg",
-      "reg_start_date": "2026-08-31",
-      "reg_end_date": "2026-09-10",
-      "fee_min": 100000
     },
     {
       "name": "오크밸리 윈터 하프 마라톤",
