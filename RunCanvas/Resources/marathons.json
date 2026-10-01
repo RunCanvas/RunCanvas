@@ -4195,6 +4195,26 @@
       "fee_min": 30000
     },
     {
+      "name": "2027 고구려 마라톤",
+      "event_date": "2027-02-28",
+      "region": "서울",
+      "place": "한강시민공원 뚝섬유원지 수변마당",
+      "courses": [
+        "10km",
+        "Half",
+        "32km",
+        "Full"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-goguryeo-marathon-d4d6ac9dde7049cba33f280735bbcaad",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [
+        "풀코스"
+      ],
+      "image_url": "https://www.kormarathon.com/og-default.png"
+    },
+    {
       "name": "2027 대구마라톤",
       "event_date": "2027-02-28",
       "region": "대구",
