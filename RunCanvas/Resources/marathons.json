@@ -3032,7 +3032,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/seoul-bbangbbang-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3234,6 +3234,25 @@
       "tags": [],
       "image_url": "https://www.kormarathon.com/api/request-assets/public/83e166ce-2164-4842-b378-90d5ff841044/display",
       "fee_min": 30000
+    },
+    {
+      "name": "2026 우리함께런 with 빗썸나눔",
+      "event_date": "2026-11-15",
+      "region": "서울",
+      "place": "여의도한강공원 물빛무대앞 광장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-run-together-with-bithumb-sharing-d143977b11474a9298a6da27680e7a06",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [
+        "기부·공익"
+      ],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/cd4bae80-7538-4734-b565-01a2d5200095/display",
+      "fee_min": 50000
     },
     {
       "name": "2026 제주감귤국제마라톤대회",
