@@ -4240,6 +4240,24 @@
       "fee_min": 30000
     },
     {
+      "name": "제23회 밀양아리랑 마라톤대회",
+      "event_date": "2027-02-20",
+      "region": "경남",
+      "place": "밀양종합운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/23rd-miryang-arirang-marathon-b52dfaee00764f3fb29bf70f808ec49a",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/4d902ee3-1203-4de0-bb64-818a79660aa8/display",
+      "fee_min": 10000
+    },
+    {
       "name": "2027 고구려 마라톤",
       "event_date": "2027-02-28",
       "region": "서울",
