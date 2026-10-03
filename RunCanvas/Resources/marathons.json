@@ -8,7 +8,7 @@
       "courses": [
         "16.25km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-rok-army-trail-running",
       "source": "kormarathon.com",
       "type": "대회",
@@ -27,7 +27,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-masters-half-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -45,7 +45,7 @@
       "courses": [
         "9km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-andong-nakdong-river-healing-road-andong-healing-walk-run-festa-ea17ddc2c1134d02ae68f77f719ed40b",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -61,7 +61,7 @@
         "6km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-world-vision-global-6k-marathon-busan",
       "source": "kormarathon.com",
       "type": "대회",
@@ -80,7 +80,7 @@
         "4.4km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-lee-il-seon-memorial-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -100,7 +100,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-angels-day-angels-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -120,7 +120,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-chuncheon-yonhap-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -140,7 +140,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seosan-cosmos-golden-fields-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -158,7 +158,7 @@
       "courses": [
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/smtown-run-club-26",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -178,7 +178,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/25th-gimje-saemangeum-horizon-national-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -196,7 +196,7 @@
       "courses": [
         "5km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/harry-potter-run",
       "source": "kormarathon.com",
       "type": "테마런",
