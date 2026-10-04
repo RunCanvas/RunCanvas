@@ -8,7 +8,7 @@
       "courses": [
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/run-your-way-10k-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -26,7 +26,7 @@
       "courses": [
         "5km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-rias-full-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -47,7 +47,7 @@
         "Half",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-andong-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -69,7 +69,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/paju-book-city-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -89,7 +89,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-hongcheon-love-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -111,7 +111,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/inspiring-marathon-with-s-oil",
       "source": "kormarathon.com",
       "type": "대회",
@@ -130,7 +130,7 @@
         "7km",
         "9km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/sono-runtrip-180k-in-gyeongju",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -149,7 +149,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/14th-gwangmyeong-mayors-cup-health-running-competition",
       "source": "kormarathon.com",
       "type": "대회",
@@ -169,7 +169,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/20-1",
       "source": "kormarathon.com",
       "type": "대회",
@@ -188,7 +188,7 @@
         "3km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/23rd-gyeongnam-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -284,7 +284,7 @@
       "courses": [
         "3km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/insam-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -855,7 +855,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/independence-activists-descendants-donation-running-university-student-run",
       "source": "kormarathon.com",
       "type": "테마런",
