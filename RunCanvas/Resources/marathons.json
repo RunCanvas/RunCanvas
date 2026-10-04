@@ -130,7 +130,7 @@
         "7km",
         "9km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/sono-runtrip-180k-in-gyeongju",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3845,7 +3845,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/20th-yangsan-national-half-marathon",
       "source": "kormarathon.com",
       "type": "대회",
