@@ -1846,6 +1846,23 @@
       "fee_min": 30000
     },
     {
+      "name": "제2회 옥수수런",
+      "event_date": "2026-11-01",
+      "region": "강원",
+      "place": "영월 강변저류지 수변공원 (신아아파트 앞)",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2nd-oksusu-run-0067b076e2684905959c6364fea6b6d2",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/bc418373-27f0-49c1-8cc2-6501c6fd10ff/display",
+      "fee_min": 45000
+    },
+    {
       "name": "2026 Global 6K for Water in 고양",
       "event_date": "2026-11-07",
       "region": "경기",
@@ -1862,6 +1879,22 @@
       "reg_start_date": "2026-08-02",
       "reg_end_date": "2026-09-06",
       "fee_min": 30000
+    },
+    {
+      "name": "2026 멕시카나런 with 펩시",
+      "event_date": "2026-11-07",
+      "region": "경기",
+      "place": "파주 출판도시 일대 (지혜의숲 ~ 샛강 산책로)",
+      "courses": [
+        "5km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-mexicana-run-with-pepsi-acc38de66e594a48b2f4121ac4e32b9c",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/2631ef25-fce2-4e84-8f8f-271b7a7dc6ae/display",
+      "fee_min": 20000
     },
     {
       "name": "2026 영천댐 마라톤 대회",
@@ -3181,6 +3214,22 @@
       "fee_min": 30000
     },
     {
+      "name": "2026 카카오페이 롱런",
+      "event_date": "2026-11-28",
+      "region": "경기",
+      "place": "하남 미사 경정공원",
+      "courses": [
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-long-run-aafaeb7ee8e740cc999eedd4ec700e1f",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/ab1ddb24-a713-4938-a782-cc0eb62d6c6c/display",
+      "fee_min": 60000
+    },
+    {
       "name": "2027 서울 세계청년대회 성공 기원 평화런",
       "event_date": "2026-11-28",
       "region": "서울",
@@ -3540,6 +3589,24 @@
       "reg_start_date": "2026-07-01",
       "reg_end_date": "2026-09-01",
       "fee_min": 45000
+    },
+    {
+      "name": "2026 연합뉴스 하남 국제 트레일런 페스티벌",
+      "event_date": "2026-12-12",
+      "region": "경기",
+      "place": "미사경정공원 및 하남시 일대",
+      "courses": [
+        "5km",
+        "10km",
+        "15km",
+        "28km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-yonhap-news-hanam-international-trail-run-festival-44ea415725f745708495f2cc23bd8810",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/d19a2d8a-b875-4afc-b60f-9467dd05de61/display"
     },
     {
       "name": "제3회 긍정의 힘 마라톤",
