@@ -666,7 +666,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gyeongcheong-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -961,7 +961,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/19th-jungnang-gu-mayors-rose-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1154,7 +1154,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-petlympic-and-run-with-go",
       "source": "kormarathon.com",
       "type": "테마런",
