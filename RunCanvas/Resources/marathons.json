@@ -2578,6 +2578,23 @@
       "fee_min": 40000
     },
     {
+      "name": "제부도 씨로드 마라톤",
+      "event_date": "2026-11-14",
+      "region": "경기",
+      "place": "화성시 제부도",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/jebudo-searoad-marathon-430fbd68d1744fa79abf696c0010b754",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/3e8edc28-d708-43e7-8b3b-c6f4f9304e17/display",
+      "fee_min": 60000
+    },
+    {
       "name": "통큰런",
       "event_date": "2026-11-14",
       "region": "서울",
