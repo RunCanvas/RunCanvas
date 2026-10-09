@@ -10,7 +10,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-goheung-space-aviation-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -30,7 +30,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/11th-super-blue-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -48,7 +48,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-hangeul-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -67,7 +67,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-love-for-life-marathon-and-walk-with-wyd",
       "source": "kormarathon.com",
       "type": "대회",
@@ -89,7 +89,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/bbangbbang-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -109,7 +109,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/26th-songsung-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1943,7 +1943,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/give-run-2026-gumi",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2135,7 +2135,7 @@
         "10km",
         "Half"
       ],
-      "status": null,
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gyeonggi-hwaseong-eco-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2212,7 +2212,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-busan-heritage-run",
       "source": "kormarathon.com",
       "type": "테마런",
