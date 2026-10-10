@@ -10,7 +10,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gyeongpo-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -29,7 +29,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-yeonsu-dream-link-run",
       "source": "kormarathon.com",
       "type": "대회",
@@ -51,7 +51,7 @@
         "Half",
         "30km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-5th-mudeungsan-area-geo-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -69,7 +69,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-jeju-windmill-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -88,7 +88,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-heart-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -107,7 +107,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/angseong-binae-gil-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -126,7 +126,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/3rd-seongdong-gu-federation-presidents-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -146,7 +146,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/the-4th-gangseo-heojun-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -166,7 +166,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/9th-geoje-mayors-seomkkot-national-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -185,7 +185,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/kakao-friends-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1311,7 +1311,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/cookie-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2290,7 +2290,7 @@
         "11km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/24th-national-naju-geumseongsan-forest-trail-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2376,6 +2376,23 @@
       "reg_start_date": "2026-04-13",
       "reg_end_date": "2026-09-30",
       "fee_min": 30000
+    },
+    {
+      "name": "2026대전갈대숲ecox트레킹",
+      "event_date": "2026-11-14",
+      "region": "대전",
+      "place": "갑천생태호수공원",
+      "courses": [
+        "2.7km",
+        "5km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-daejeon-reed-forest-ecox-trekking-3dee79218b9e4dbc95f263a57ab7034b",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/6d8cd4eb-1151-4439-9083-d775011b4f6d/display",
+      "fee_min": 20000
     },
     {
       "name": "서울 빵빵런2026",
