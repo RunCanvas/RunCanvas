@@ -11,7 +11,7 @@
         "Half",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/the-2026-mbn-naju-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -33,7 +33,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-mungyeong-omija-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -52,7 +52,7 @@
         "11km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-race",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -71,7 +71,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-ulsan-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -90,7 +90,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-incheon-robot-land-future-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -110,7 +110,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/cheonan-lee-bong-ju-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -130,7 +130,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/pyeongtaek-port-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -149,7 +149,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/pink-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -168,7 +168,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/dangjin-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -187,7 +187,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/independence-activists-descendants-donation-running-university-student-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -205,7 +205,7 @@
       "courses": [
         "1.8km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/eworld-83-tower-uphill-run-challenge",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -226,7 +226,7 @@
         "31km",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/10",
       "source": "kormarathon.com",
       "type": "대회",
@@ -247,7 +247,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/22nd-geumcheon-gu-mayors-cup-health-run-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -266,7 +266,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/6th-yeongdeungpo-gu-mayors-cup-athletics-meet",
       "source": "kormarathon.com",
       "type": "대회",
@@ -283,7 +283,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-run-together",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1574,7 +1574,7 @@
       "courses": [
         "5km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-mexicana-run-with-pepsi-acc38de66e594a48b2f4121ac4e32b9c",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3532,14 +3532,14 @@
         "10km",
         "Full"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/daegu-marathon-2027",
       "source": "kormarathon.com",
       "type": "대회",
       "tags": [
         "풀코스"
       ],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1784105019/kormarathon/events/event-images-1784105018338.jpg",
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/2ed8db78-acf0-4b90-bd1b-f7b5be26fa73/display",
       "reg_start_date": "2026-10-12",
       "reg_end_date": "2026-10-26"
     },
