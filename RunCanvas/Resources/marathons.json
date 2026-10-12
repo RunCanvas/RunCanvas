@@ -1300,7 +1300,7 @@
       "courses": [
         "5km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-mexicana-run-with-pepsi-acc38de66e594a48b2f4121ac4e32b9c",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -3258,7 +3258,7 @@
         "10km",
         "Full"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/daegu-marathon-2027",
       "source": "kormarathon.com",
       "type": "대회",
