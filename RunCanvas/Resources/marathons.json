@@ -815,7 +815,7 @@
       "fee_min": 40000
     },
     {
-      "name": "럭키드로우 나이트런 5K·10K",
+      "name": "럭키드로우 나이트런 5K·10K (대회 취소)",
       "event_date": "2026-10-25",
       "region": "서울",
       "place": "안양천 가족정원 (오목교역 5번 출구 인근)",
@@ -823,7 +823,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/sodong-luckydraw-night-run-5k-10k-ef8f7e81cf4e47358b6fac9125c9cdbf",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1909,7 +1909,7 @@
       "fee_min": 30000
     },
     {
-      "name": "2026대전갈대숲ecox트레킹",
+      "name": "2026대전갈대숲eco트레킹",
       "event_date": "2026-11-14",
       "region": "대전",
       "place": "갑천생태호수공원",
@@ -1922,7 +1922,7 @@
       "source": "kormarathon.com",
       "type": "대회",
       "tags": [],
-      "image_url": "https://www.kormarathon.com/api/request-assets/public/6d8cd4eb-1151-4439-9083-d775011b4f6d/display",
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/da8d850c-f33a-4028-bb11-621062c69c98/display",
       "fee_min": 20000
     },
     {
