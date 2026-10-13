@@ -8,7 +8,7 @@
       "courses": [
         "3km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/picturebook-association-running-day-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -42,7 +42,7 @@
       "courses": [
         "5km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-river-run-sejong",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1033,7 +1033,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/marvel-run-seoul-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2529,7 +2529,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-silver-grass-marathon",
       "source": "kormarathon.com",
       "type": "대회",
