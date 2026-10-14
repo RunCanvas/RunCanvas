@@ -1201,7 +1201,7 @@
       "name": "저스티스 런 서초 2026",
       "event_date": "2026-11-01",
       "region": "서울",
-      "place": "서울 서초구 반포한강공원 달빛광장",
+      "place": "서초구 반포한강공원 달빛광장",
       "courses": [
         "5km",
         "10km"
@@ -2015,7 +2015,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/jebudo-searoad-marathon-430fbd68d1744fa79abf696c0010b754",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2046,7 +2046,7 @@
       "courses": [
         "84.6km"
       ],
-      "status": null,
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/island-of-peace-2026-prime-ministers-cup-intl-sports-for-all-relay-marathon",
       "source": "kormarathon.com",
       "type": "대회",
