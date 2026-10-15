@@ -834,7 +834,7 @@
       "fee_min": 20000
     },
     {
-      "name": "용감한 쿠키 Run in 서울",
+      "name": "용감한 쿠키 Run in 서울 (대회 취소)",
       "event_date": "2026-10-25",
       "region": "서울",
       "place": "어린이대공원",
@@ -848,8 +848,6 @@
       "type": "테마런",
       "tags": [],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1786603877/kormarathon/events/event-images-1786603875970.jpg",
-      "reg_start_date": "2026-08-20",
-      "reg_end_date": "2026-09-21",
       "fee_min": 70000
     },
     {
