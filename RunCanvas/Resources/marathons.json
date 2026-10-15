@@ -8,7 +8,7 @@
       "courses": [
         "3km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/picturebook-association-running-day-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -24,7 +24,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/140th-anniversary-of-france-korea-diplomatic-relations-commemorative-running-event",
       "source": "kormarathon.com",
       "type": "대회",
@@ -896,7 +896,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/jurassic-park-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2449,7 +2449,7 @@
         "3km",
         "5km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-brave-run-with-shinhan-bank-9edc04bbd258458981cc3ce6544614b0",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2466,7 +2466,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-kim-dae-jung-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2722,7 +2722,7 @@
         "10km",
         "Half"
       ],
-      "status": null,
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-saehan-media-marathon",
       "source": "kormarathon.com",
       "type": "대회",
