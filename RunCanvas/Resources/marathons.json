@@ -1474,7 +1474,7 @@
         "3.2km",
         "5km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2nd-oncorun",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2165,7 +2165,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/9th-seoul-peace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
