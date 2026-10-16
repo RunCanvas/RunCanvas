@@ -1,40 +1,6 @@
 {
   "events": [
     {
-      "name": "제1회 그림책협회 러닝 데이",
-      "event_date": "2026-10-15",
-      "region": "서울",
-      "place": "망원한강공원 야외무대",
-      "courses": [
-        "3km"
-      ],
-      "status": null,
-      "signup_url": "https://www.kormarathon.com/ko/races/picturebook-association-running-day-2026",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1790327725/kormarathon/events/event-images-1790327724627.jpg"
-    },
-    {
-      "name": "프랑스-한국 수교 140주년 기념 달리기 대회",
-      "event_date": "2026-10-15",
-      "region": "서울",
-      "place": "마포구 유니세프 광장 출발 (하늘공원 방향 코스)",
-      "courses": [
-        "5km",
-        "10km"
-      ],
-      "status": null,
-      "signup_url": "https://www.kormarathon.com/ko/races/140th-anniversary-of-france-korea-diplomatic-relations-commemorative-running-event",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788246054/kormarathon/events/og-image-1788246053992-z3x6c.jpg",
-      "reg_start_date": "2026-08-29",
-      "reg_end_date": "2026-09-16",
-      "fee_min": 30000
-    },
-    {
       "name": "2026 River Run ‘세종’",
       "event_date": "2026-10-17",
       "region": "세종",
@@ -1670,7 +1636,7 @@
       "fee_min": 40000
     },
     {
-      "name": "2026 제20회 자원봉사사랑 굿펀마라톤",
+      "name": "2026 제20회 자원봉사사랑 굿펀마라톤 (대회 취소)",
       "event_date": "2026-11-08",
       "region": "서울",
       "place": "안양천 신정교하부육상트랙구장",
@@ -1678,7 +1644,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-20th-volunteer-love-good-fun-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1686,8 +1652,6 @@
         "기부·공익"
       ],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1786701952/kormarathon/events/event-images-1786701951093.jpg",
-      "reg_start_date": "2026-07-27",
-      "reg_end_date": "2026-10-16",
       "fee_min": 50000
     },
     {
@@ -3275,7 +3239,7 @@
         "10km",
         "Full"
       ],
-      "status": null,
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2027-seoul-marathon",
       "source": "kormarathon.com",
       "type": "대회",
