@@ -8,7 +8,7 @@
       "courses": [
         "5km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-river-run-sejong",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -25,7 +25,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gyeongcheong-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -44,7 +44,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-mindrun",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -63,7 +63,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-memorial-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -82,7 +82,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-silver-grass-sunset-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -102,7 +102,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-uijeongbu-city-waterway-marathon-national-race",
       "source": "kormarathon.com",
       "type": "대회",
@@ -122,7 +122,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-jeonnam-gwangju-special-integrated-city-nam-gu-mayors-cup-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -142,7 +142,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/jeongseon-donggang-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -162,7 +162,7 @@
         "Half",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/gyeongju-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -183,7 +183,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2nd-1019-peace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -206,7 +206,7 @@
         "Half",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/the-24th-cheongwon-life-rice-daecheong-lake-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -227,7 +227,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/7th-minister-of-culture-sports-and-tourism-cup-chungcheongnam-do-taean-national-inclusive-marathon",
       "source": "kormarathon.com",
       "type": "대회",
