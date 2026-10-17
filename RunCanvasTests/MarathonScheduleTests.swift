@@ -32,7 +32,8 @@ final class MarathonScheduleTests: XCTestCase {
         XCTAssertEqual(event.name, "해리포터 런")
         XCTAssertEqual(event.region, "부산")
         XCTAssertEqual(event.kind, "테마런")
-        XCTAssertTrue(event.isAcceptingSignups)
+        // 왜 now 고정: 오늘 날짜로 보면 마감(2026-09-30)이 지난 뒤부터 테스트가 저절로 깨진다
+        XCTAssertTrue(event.isAcceptingSignups(now: now, calendar: calendar))
         XCTAssertEqual(event.feeMin, 85000)
         XCTAssertNotNil(event.signupURL)
         XCTAssertEqual(event.date, day("2026-10-03"))
