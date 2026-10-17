@@ -103,7 +103,8 @@ struct RunView: View {
 
             VStack(spacing: 8) {
                 Text("거리").font(.subheadline).foregroundStyle(.secondary)
-                Text(RunMath.formatKm(session.distanceMeters)).font(.system(size: 64, weight: .bold))
+                // 자릿수 폭이 같아야 가운데 정렬된 큰 숫자가 0.01km마다 좌우로 흔들리지 않는다
+                Text(RunMath.formatKm(session.distanceMeters)).font(.system(size: 64, weight: .bold)).monospacedDigit()
                 Text("km").font(.title3).foregroundStyle(.secondary)
                 // 첫 유효 fix 전엔 0.00에 시간만 흘러 GPS 탓인지 앱 탓인지 알 수 없다 — 경로 점이 들어오면 사라진다
                 if isActive, session.route.isEmpty {
@@ -183,6 +184,8 @@ struct RunView: View {
         .sensoryFeedback(.impact(weight: .medium), trigger: session.state) { _, new in
             new == .running || new == .paused
         }
+        // 코스 이탈은 음성으로만 알렸다 — 음성 안내를 꺼 둔 사람에게도 닿게
+        .sensoryFeedback(.warning, trigger: warnedOffCourse) { _, warned in warned }
         .onChange(of: session.route.count) { _, _ in updateCourseFollow() }
         .onChange(of: session.locationAuthorization) { _, status in
             switch status {

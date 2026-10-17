@@ -69,7 +69,8 @@ struct ProfileHeader: View {
                 progressBar
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("이번 주 \(RunMath.formatKm(weekMeters))킬로미터, 목표 \(Int(targetKm))킬로미터")
+            // 화면과 같은 소수 한 자리 — Int 로 자르면 12.5km 목표를 "12킬로미터"로 읽었다
+            .accessibilityLabel("이번 주 \(RunMath.formatKm(weekMeters))킬로미터, 목표 \(targetKm.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: "ko_KR"))))킬로미터")
         }
     }
 

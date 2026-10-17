@@ -199,6 +199,7 @@ struct SettingsView: View {
             Image(systemName: icon)
                 .frame(width: 22)
                 .foregroundStyle(.primary)
+                .accessibilityHidden(true)   // 안 숨기면 카카오 행을 아이콘 이름("메시지")부터 읽는다
             Text(name)
             Spacer()
             if let identity = auth.identity(for: provider) {

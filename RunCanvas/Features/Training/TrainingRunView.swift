@@ -91,6 +91,12 @@ struct TrainingRunView: View {
         .navigationBarBackButtonHidden(didStart && (run.state == .running || run.state == .paused))
         .onAppear(perform: startIfPossible)
         .onReceive(ticker) { _ in tick() }
+        // 음성 안내를 꺼 두면 구간이 바뀌어도 아무 신호가 없었다 — 구간 화면의 본업이라 손에도 알린다
+        .sensoryFeedback(.impact(weight: .heavy), trigger: lastAnnouncedStep) { old, _ in old >= 0 }
+        .sensoryFeedback(.success, trigger: didFinish) { _, finished in finished }
+        .sensoryFeedback(.impact(weight: .medium), trigger: run.state) { _, new in
+            didStart && (new == .running || new == .paused)
+        }
         .onChange(of: run.locationAuthorization) { _, status in
             switch status {
             case .authorizedWhenInUse, .authorizedAlways:
@@ -142,7 +148,8 @@ struct TrainingRunView: View {
         ) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text(healthAuthorizationMessage ?? "러닝 기록은 계속 사용할 수 있어요.")
+            // 두 문장을 이어 붙인다 — ?? 로 두면 오류 문구가 있을 때 안심 문구가 절대 안 보인다 (RunView 와 같은 수정)
+            Text((healthAuthorizationMessage.map { $0 + " " } ?? "") + "러닝 기록은 계속 사용할 수 있어요.")
         }
         .fullScreenCover(item: $runs.finishedRun, onDismiss: { dismiss() }) { finished in
             RunResultView(run: finished)
