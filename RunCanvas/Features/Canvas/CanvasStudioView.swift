@@ -82,9 +82,12 @@ struct CanvasStudioView: View {
             Studio.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // 위아래 크롬은 한 줄짜리라 손쉬운 사용 크기까지 키우면 버튼이 화면 밖으로 밀린다 — xxxLarge 까지만 따라간다
                 topBar
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 canvasArea
                 bottomControls
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
 
             if showsInitialFormatPicker {
@@ -151,7 +154,7 @@ struct CanvasStudioView: View {
         HStack {
             Button { goBack() } label: {
                 Label("뒤로", systemImage: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(Studio.surface, in: Capsule())
@@ -185,7 +188,7 @@ struct CanvasStudioView: View {
 
             Button { sheet = .export } label: {
                 Text("저장")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(selectedRun == nil ? Studio.surface : Color.white, in: Capsule())
@@ -202,9 +205,9 @@ struct CanvasStudioView: View {
     private func runChip(_ run: Run) -> some View {
         HStack(spacing: 5) {
             Text("\(RunMath.formatKm(run.distanceMeters)) km")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
             if !hasFixedRun {
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+                Image(systemName: "chevron.down").font(.caption2.weight(.bold))
             }
         }
         .padding(.horizontal, 12)
@@ -239,10 +242,10 @@ struct CanvasStudioView: View {
                     .font(.system(size: 40, weight: .light))
                     .foregroundStyle(Studio.dim)
                 Text("꾸밀 기록을 고르면 시작해요")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white)
                 Button("기록 고르기") { sheet = .run }
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
@@ -273,7 +276,7 @@ struct CanvasStudioView: View {
         VStack(spacing: 12) {
             if selection.count > 1 {
                 Text("\(selection.count)개 선택 — 함께 바뀌어요")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(Studio.dim)
             }
 
@@ -420,7 +423,7 @@ struct CanvasStudioView: View {
                 .frame(width: 46, height: 46)
                 .background(Studio.surface, in: Circle())
             Text(title)
-                .font(.system(size: 11, weight: .medium))
+                .font(.caption2.weight(.medium))
         }
         .foregroundStyle(.white)
     }
@@ -469,9 +472,9 @@ struct CanvasStudioView: View {
                                     .font(.system(size: 25, weight: .medium))
                                     .frame(height: 32)
                                 Text(option.title)
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.subheadline.weight(.bold))
                                 Text(option.ratioLabel)
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.caption.weight(.semibold))
                                     .foregroundStyle(option == .story ? .black.opacity(0.62) : Studio.dim)
                             }
                             .frame(maxWidth: .infinity, minHeight: 105)
