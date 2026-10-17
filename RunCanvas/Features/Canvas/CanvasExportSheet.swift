@@ -45,9 +45,6 @@ struct CanvasExportSheet: View {
                             // 공유도 내보내기다 — didSave 를 안 세우면 편집기를 닫을 때
                             // 이미 내보낸 사용자에게 "꾸미던 내용을 버릴까요?"가 뜬다
                             onSaved()
-                            if let renderedImage {
-                                shareURL = try? CanvasExporter.pngFileForSharing(renderedImage, runID: run.id)
-                            }
                             showsShareSheet = true
                         }
                         SecondaryButton(title: "앱에 저장", systemImage: "tray.and.arrow.down") {
@@ -126,6 +123,11 @@ struct CanvasExportSheet: View {
         renderFailed = false
         renderedImage = CanvasExporter.render(background: background, run: run, stickers: stickers, format: format)
         renderFailed = renderedImage == nil   // nil을 안 보면 스피너가 영원히 돈다
+        // PNG 인코딩(1080×1920)을 '공유'를 누른 순간이 아니라 스피너가 이미 도는 지금 끝내 둔다 —
+        // 누르면 시트만 띄우게 (측정: 공유 탭 직후 멈춤 326ms 중 인코딩이 25ms, 나머지는 시스템 공유 시트)
+        if let renderedImage {
+            shareURL = try? CanvasExporter.pngFileForSharing(renderedImage, runID: run.id)
+        }
     }
 
     @MainActor

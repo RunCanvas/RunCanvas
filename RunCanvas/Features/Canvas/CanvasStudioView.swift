@@ -288,8 +288,11 @@ struct CanvasStudioView: View {
             ScrollView(.horizontal) {
                 // 왜 spacing 0: 44pt 히트 영역 안에 34pt 링이 들어가 있어 시각 간격은 예전(10pt) 그대로다
                 HStack(spacing: 0) {
+                    // 끄는 동안 이 줄이 매 프레임 다시 그려진다 — 고른 색 hex 는 한 번만, 견본 hex 는 미리 구해 둔 것으로
+                    // (전엔 견본마다 양쪽을 UIColor 로 바꿔 프레임당 16번 변환했다)
+                    let leadHex = CanvasTheme.hex(lead.color)
                     ForEach(Studio.swatches, id: \.name) { swatch in
-                        let isOn = Studio.isSame(lead.color, swatch.color)
+                        let isOn = swatch.hex == leadHex
                         Button { applyToSelection { $0.color = swatch.color } } label: {
                             Circle()
                                 .fill(swatch.color)
@@ -700,10 +703,13 @@ enum Studio {
     /// 스티커 색 팔레트 — 흰/검정 + 배경 프리셋에서 뽑은 색들.
     /// 왜 hex 로 만드나: 설정 테마(`CanvasTheme.presets`)와 같은 값을 가져야 선택 링·기본 색 판정이 맞는다
     /// (예전엔 0.96 리터럴 vs 245/255 라 `==` 가 늘 false 였다).
-    static let swatches: [(name: String, color: Color)] = [
+    /// hex 는 isSame 과 같은 규칙(CanvasTheme.hex)으로 한 번만 구해 둔다
+    static let swatches: [(name: String, color: Color, hex: String)] = [
         ("흰색", "FFFFFF"), ("검정", "000000"), ("옐로", "F5C417"), ("오렌지", "F26B1C"),
         ("코랄", "F0525A"), ("그린", "66A859"), ("민트", "33BAC7"), ("라벤더", "D4A8E8")
-    ].compactMap { name, hex in CanvasTheme.color(hex: hex).map { color in (name: name, color: color) } }
+    ].compactMap { name, hex in
+        CanvasTheme.color(hex: hex).map { color in (name: name, color: color, hex: CanvasTheme.hex(color)) }
+    }
 
     /// `Color ==` 는 `.white` 와 rgb(1,1,1) 처럼 만든 경로가 다르면 못 알아본다 — 저장 규칙과 같은 hex 6자리로 비교
     static func isSame(_ a: Color, _ b: Color) -> Bool {
