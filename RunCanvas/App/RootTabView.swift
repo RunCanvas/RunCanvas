@@ -62,7 +62,7 @@ private struct LevelThemedTabs: View {
     let watch = WatchConnectivityService()
     RootTabView()
         .environment(AuthService())
-        .environmentObject(watch)
+        .environment(watch)
         .environment(RunCoordinator(watch: watch, context: container.mainContext, session: RunSession()))
         .modelContainer(container)
 }

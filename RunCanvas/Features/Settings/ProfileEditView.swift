@@ -122,6 +122,9 @@ struct ProfileEditView: View {
                 }
                 .padding(.top, 8)
             }
+            // 왜 버튼 스타일: 한 List 행에 기본 스타일 버튼이 둘이면 행을 누를 때 둘 다 눌린다 —
+            // '사진 변경'만 눌러도 '사진 삭제'가 같이 켜져, 고르기를 취소하고 저장하면 서버 사진이 지워졌다
+            .buttonStyle(.plain)
             .disabled(isLoadingAvatar || isSaving)
 
             if pendingAvatarImage != nil || !avatarURL.isEmpty {
@@ -133,6 +136,7 @@ struct ProfileEditView: View {
                     statusMessage = "저장을 누르면 프로필 사진을 삭제해요."
                 }
                 .font(.subheadline.weight(.semibold))
+                .buttonStyle(.borderless)   // 위 PhotosPicker 와 같은 이유. borderless 라 destructive 빨강은 남는다
                 .disabled(isLoadingAvatar || isSaving || removesAvatarOnSave)
             }
         }

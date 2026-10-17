@@ -70,12 +70,13 @@ struct TrainingProgramDetailView: View {
                     if program.isBuiltIn {
                         // 내장은 원본을 못 고치니 복제본으로 연다 — 에디터가 "(내 버전)" 복제를 만든다
                         Button("복제해서 수정") { showsEditor = true }
-                        .frame(minHeight: 44).contentShape(Rectangle())
+                        .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                     } else {
+                        // 두 글자 버튼은 폭이 28pt 남짓이라 높이만큼 폭도 44 — 바로 옆이 '삭제'다
                         Button("편집") { showsEditor = true }
-                            .frame(minHeight: 44).contentShape(Rectangle())
+                            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                         Button("삭제", role: .destructive) { showsDeleteConfirm = true }
-                            .frame(minHeight: 44).contentShape(Rectangle())
+                            .frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
                     }
                 }
                 .font(.subheadline)
@@ -168,6 +169,7 @@ struct TrainingProgramDetailView: View {
             Image(systemName: completed.contains(session.id) ? "checkmark.circle.fill" : "circle")
                 .font(.title3)
                 .foregroundStyle(completed.contains(session.id) ? Color.primary : Color.secondary)
+                .accessibilityHidden(true)   // 완료 여부는 아래 accessibilityValue 로 말한다
             VStack(alignment: .leading, spacing: 3) {
                 Text(session.title).font(.subheadline.weight(.semibold))
                 Text("\(session.totalSeconds / 60)분 · 달리기 \(session.runningSeconds / 60)분 · 구간 \(session.steps.count)개")
@@ -184,6 +186,7 @@ struct TrainingProgramDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.card, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .combine)
+        .accessibilityValue(completed.contains(session.id) ? "완료" : "미완료")
     }
 
     // MARK: 주차 묶기

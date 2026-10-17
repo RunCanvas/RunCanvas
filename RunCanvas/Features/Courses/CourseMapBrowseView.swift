@@ -23,7 +23,8 @@ struct CourseMapBrowseView: View {
             }
 
             ForEach(courses) { course in
-                if let start = course.coordinates.first {
+                // 첫 점만 필요하다 — coordinates 는 경로 전체를 매번 변환해서, 핀을 누를 때마다 모든 코스를 통째로 돌았다
+                if let start = course.path.first.map({ CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }) {
                     Annotation(course.name, coordinate: start) {
                         pin(for: course)
                     }

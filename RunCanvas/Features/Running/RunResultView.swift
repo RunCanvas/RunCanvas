@@ -19,6 +19,7 @@ struct RunResultView: View {
     @State private var newBadges: [Badge] = []
     @State private var completedChallenges: [Challenge] = []
     @State private var showsCanvas = false
+    @State private var didRecordAchievements = false
 
     init(run: Run) {
         self.run = run
@@ -62,6 +63,10 @@ struct RunResultView: View {
             CanvasStudioView(run: run)
         }
         .onAppear {
+            // 런꾸 화면(fullScreenCover)을 닫으면 onAppear 가 또 온다. 두 번째 기록은 이미 저장돼 [] 를 돌려줘
+            // '챌린지 완료' 줄과 떠 있던 뱃지 토스트가 지워졌다 — 한 번만 기록한다
+            guard !didRecordAchievements else { return }
+            didRecordAchievements = true
             let badgeRuns = ownerRuns.map(\.badgeRun)
             newBadges = BadgeStore.recordNewlyEarned(from: badgeRuns, ownerID: run.ownerID)
             completedChallenges = BadgeStore.recordCompletedChallenges(from: badgeRuns, ownerID: run.ownerID)

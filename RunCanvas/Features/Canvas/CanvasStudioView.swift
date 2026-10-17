@@ -89,6 +89,9 @@ struct CanvasStudioView: View {
                 bottomControls
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
+            // 인스펙터가 오르내리면 (세로가 빠듯한 9:16 에서) 캔버스 크기도 바뀐다 — 둘이 같은 스프링으로 움직여야
+            // 캔버스가 혼자 툭 줄어들지 않는다. 탭으로 뜨는 패널이라 튕김 없는 스프링.
+            .animation(.smooth(duration: 0.22), value: selection)
 
             if showsInitialFormatPicker {
                 initialFormatPicker
@@ -244,12 +247,15 @@ struct CanvasStudioView: View {
                 Text("꾸밀 기록을 고르면 시작해요")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white)
-                Button("기록 고르기") { sheet = .run }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 10)
-                    .background(.white, in: Capsule())
+                // 모양을 라벨 안에 둬야 알약 전체가 눌린다 (밖에 두면 글자만 눌렸다)
+                Button { sheet = .run } label: {
+                    Text("기록 고르기")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .background(.white, in: Capsule())
+                }
             }
             .frame(maxHeight: .infinity)
         }
@@ -265,8 +271,6 @@ struct CanvasStudioView: View {
             }
             toolRow
         }
-        // 탭으로 뜨는 패널이라 튕김 없는 스프링 — 오버슈트는 손가락이 던진 움직임에만 어울린다
-        .animation(.smooth(duration: 0.22), value: selection)
         .padding(.top, 14)
         .padding(.bottom, 6)
     }
@@ -495,7 +499,8 @@ struct CanvasStudioView: View {
             .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.12)))
             .padding(.horizontal, 24)
         }
-        .animation(.smooth(duration: 0.22), value: showsInitialFormatPicker)
+        // 뒤의 화면은 막이 터치를 막지만 VoiceOver 는 그대로 훑는다 — 비율을 고르기 전엔 여기만 읽게
+        .accessibilityAddTraits(.isModal)
     }
 
     /// 저장한 적 없이 꾸미던 중이면 한 번 물어본다 (인스타가 하는 방식)
@@ -518,7 +523,8 @@ struct CanvasStudioView: View {
     private func pick(_ run: Run) {
         selectedRun = run
         if stickers.isEmpty {
-            showsInitialFormatPicker = true
+            // 왜 withAnimation: 전환은 바깥에서 값이 바뀔 때만 돈다 — 고르는 창 안쪽의 .animation 으로는 나타나고 사라지는 게 안 보였다
+            withAnimation(.smooth(duration: 0.22)) { showsInitialFormatPicker = true }
             return
         }
         // 꾸미던 중 기록을 바꿨다 — 새 기록에 없는 데이터의 스티커는 내용 없이 테두리만 남아
@@ -537,7 +543,7 @@ struct CanvasStudioView: View {
         if let selectedRun, stickers.isEmpty {
             stickers = Self.defaultStickers(for: selectedRun, color: defaultStickerColor)
         }
-        showsInitialFormatPicker = false
+        withAnimation(.smooth(duration: 0.22)) { showsInitialFormatPicker = false }
     }
 
     private func changeFormat(to newFormat: CanvasFormat) {

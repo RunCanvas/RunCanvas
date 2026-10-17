@@ -155,9 +155,9 @@ private struct CanvasGallery: View {
     }
 
     private func reloadThumbnails() {
-        // 같은 파일명으로 덮어써도 새 이미지를 읽도록 편집기가 닫힐 때 메모리 캐시를 비운다.
-        thumbnails.removeAll()
-        Task { await loadThumbnails() }
+        // 같은 파일명으로 덮어써도 새 이미지를 읽도록 편집기가 닫힐 때 다시 읽는다.
+        // 캐시를 먼저 비우면 모든 썸네일이 빈 카드로 깜빡였다 — 옛 이미지를 두고 새 것이 오면 바꿔 끼운다.
+        Task { await loadThumbnails(reload: true) }
     }
 
     private func deleteDecoration(for run: Run) {
@@ -175,8 +175,8 @@ private struct CanvasGallery: View {
     }
 
     /// 그리드에 필요한 크기로 백그라운드에서 디코드해 원본 이미지가 메모리에 쌓이지 않게 한다.
-    private func loadThumbnails() async {
-        for run in decorated where thumbnails[run.id] == nil {
+    private func loadThumbnails(reload: Bool = false) async {
+        for run in decorated where reload || thumbnails[run.id] == nil {
             let filename = run.decoratedImageFilename
             let image = await Task.detached(priority: .userInitiated) { () -> UIImage? in
                 guard let image = CanvasStorage.image(filename: filename) else { return nil }

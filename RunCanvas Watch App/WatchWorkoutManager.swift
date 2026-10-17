@@ -2,11 +2,13 @@ import Foundation
 import CoreLocation
 import HealthKit
 import WatchKit
+import Observation
 
 /// 워크아웃 상태·수치는 전부 메인 액터에서만 만진다 — 원격 명령(Task)과 1초 타이머가 같은 값을 건드려서
 /// 클래스 전체를 @MainActor로 묶었다. HealthKit 델리게이트 콜백만 nonisolated로 받아 메인으로 넘긴다.
 @MainActor
-final class WatchWorkoutManager: NSObject, ObservableObject {
+@Observable
+final class WatchWorkoutManager: NSObject {
     enum State {
         case idle
         case running
@@ -14,17 +16,17 @@ final class WatchWorkoutManager: NSObject, ObservableObject {
         case finished
     }
 
-    @Published private(set) var state: State = .idle
-    @Published private(set) var heartRate: Double?
+    private(set) var state: State = .idle
+    private(set) var heartRate: Double?
     /// 거리는 이 HealthKit 값(GPS+걸음 융합)이 진실이다. 폰 GPS 값을 우선했더니 터널·고가 밑에서 얼어붙었고,
     /// 건강 앱에 남는 워치 기록과 폰 기록이 어긋났다. 폰도 스냅샷으로 이 값을 받아 같은 거리를 기록한다.
-    @Published private(set) var distanceMeters: Double = 0
-    @Published private(set) var activeEnergy: Double = 0
-    @Published private(set) var elapsedSeconds: Int = 0
-    @Published private(set) var isPhoneReachable = false
+    private(set) var distanceMeters: Double = 0
+    private(set) var activeEnergy: Double = 0
+    private(set) var elapsedSeconds: Int = 0
+    private(set) var isPhoneReachable = false
     /// start()가 권한·beginCollection을 기다리는 동안 true — 뷰에서 시작 버튼을 잠그는 데 쓴다
-    @Published private(set) var isStarting = false
-    @Published var errorMessage: String?
+    private(set) var isStarting = false
+    var errorMessage: String?
 
     /// 폰 스냅샷이 5초 넘게 안 오면 폰이 기록 중이 아닌 걸로 본다 (isPhoneRecording)
     private static let snapshotStaleAfter: TimeInterval = 5

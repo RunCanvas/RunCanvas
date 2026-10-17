@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 import WatchConnectivity
 
 enum WorkoutSyncAction: String {
@@ -19,9 +18,7 @@ struct PhoneWorkoutSnapshot {
     let distanceMeters: Double
 }
 
-final class WatchConnectivityService: NSObject, ObservableObject {
-    @Published private(set) var isReachable = false
-
+final class WatchConnectivityService: NSObject {
     var onCommand: ((WorkoutSyncAction, UUID) -> Void)?
     var onSnapshot: ((PhoneWorkoutSnapshot) -> Void)?
     var onReachabilityChange: ((Bool) -> Void)?
@@ -146,7 +143,6 @@ final class WatchConnectivityService: NSObject, ObservableObject {
     }
 
     private func updateReachability(_ reachable: Bool) {
-        isReachable = reachable
         onReachabilityChange?(reachable)
     }
 }

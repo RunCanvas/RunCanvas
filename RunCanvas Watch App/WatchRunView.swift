@@ -1,11 +1,10 @@
 import SwiftUI
 
 struct WatchRunView: View {
-    @StateObject private var workout = WatchWorkoutManager()
+    let workout: WatchWorkoutManager
     @State private var showsEndConfirm = false
     @State private var didPhoneRecord = false
     @State private var activePage: ActiveRunPage = .data
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -91,20 +90,14 @@ struct WatchRunView: View {
 
     /// 좌우 스와이프로 수치·조작을 분리하고, 수치 화면에서 아래로 넘기면 심박 존을 본다.
     /// 축을 나눠 두어 40mm Series 5에서도 버튼 오탭 없이 바로 전환할 수 있다.
+    /// 왜 시스템 페이징: 손가락을 1:1로 따라오고, 플릭 속도로 넘길지 정하고, 끝에서 버티고,
+    /// VoiceOver 로도 넘어간다 — 손을 뗄 때만 바뀌던 직접 만든 제스처로는 조작 화면에 갈 길이 없었다.
     private var activeRunView: some View {
-        ZStack {
-            switch activePage {
-            case .data:
-                dataPages
-                    .transition(pageTransition(from: .leading))
-            case .controls:
-                controlsPage
-                    .transition(pageTransition(from: .trailing))
-            }
+        TabView(selection: $activePage) {
+            dataPages.tag(ActiveRunPage.data)
+            controlsPage.tag(ActiveRunPage.controls)
         }
-        .contentShape(Rectangle())
-        .simultaneousGesture(horizontalPageGesture)
-        .animation(.snappy(duration: 0.22), value: activePage)
+        .tabViewStyle(.page(indexDisplayMode: .never))
     }
 
     private var dataPages: some View {
@@ -385,25 +378,6 @@ struct WatchRunView: View {
         .buttonStyle(.plain)
     }
 
-    /// 들어온 쪽으로 나간다. '동작 줄이기'를 켜면 작은 화면 전체가 미끄러지는 대신 제자리 페이드.
-    private func pageTransition(from edge: Edge) -> AnyTransition {
-        reduceMotion ? .opacity : .move(edge: edge)
-    }
-
-    private var horizontalPageGesture: some Gesture {
-        DragGesture(minimumDistance: 20)
-            .onEnded { value in
-                let horizontal = value.translation.width
-                let vertical = value.translation.height
-                guard abs(horizontal) > abs(vertical) * 1.2, abs(horizontal) > 34 else { return }
-                if horizontal < 0, activePage == .data {
-                    activePage = .controls
-                } else if horizontal > 0, activePage == .controls {
-                    activePage = .data
-                }
-            }
-    }
-
     // 사용자 최대 심박 설정을 추가하기 전의 기본값. 존 계산을 분리해 나중에 값만 교체할 수 있다.
     private var defaultMaxHeartRate: Int { 190 }
 
@@ -506,5 +480,5 @@ private enum ActiveRunPage {
 }
 
 #Preview {
-    WatchRunView()
+    WatchRunView(workout: WatchWorkoutManager())
 }

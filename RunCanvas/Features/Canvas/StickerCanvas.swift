@@ -190,6 +190,7 @@ private struct StickerLayer: View {
     @State private var didRecordThisGesture = false
     @State private var dragStartPosition: CGPoint?
     @State private var resizeStartScale: CGFloat?
+    @State private var resizeStartDistance: CGFloat?
     @State private var magnifyStartScale: CGFloat?
     @State private var rotateStartAngle: Angle?
     @State private var transformStartScale: CGFloat?
@@ -197,6 +198,10 @@ private struct StickerLayer: View {
     @State private var transformStartDistance: CGFloat?
     @State private var transformLastTouchAngle: Double?
     @State private var transformAccumulatedRotation: Double = 0
+    /// 제스처가 취소되면(제어 센터 쓸어내림·전화) onEnded 가 오지 않는다. 시작값이 남으면 다음 드래그가
+    /// 취소된 자리로 튀고 실행취소 스냅샷도 안 남는다 — GestureState 는 취소 때도 되돌아가므로 이걸로 정리한다.
+    @GestureState private var isTouching = false
+    @GestureState private var isDraggingHandle = false
 
     /// 핀치와 모서리 손잡이가 같은 한계를 쓴다 — 따로 두면 핀치로 3.5배 키운 뒤 손잡이를 잡는 순간 3배로 튄다
     private static let scaleRange: ClosedRange<CGFloat> = 0.3...4
@@ -211,6 +216,7 @@ private struct StickerLayer: View {
         StickerContent(sticker: sticker, run: run)
             .accessibilityElement(children: .combine)
             .accessibilityLabel("\(sticker.kind.accessibilityName) 스티커")
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
             .padding(8)
             .background {
                 GeometryReader { proxy in
@@ -243,7 +249,16 @@ private struct StickerLayer: View {
             // 드래그가 시작되며 다시 켜진다(인스펙터 깜빡임, 회전 모드가 저절로 꺼짐).
             .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 2) { if isEditing { onToggleSelect() } }
             // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
-            .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
+            .gesture(
+                SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture)
+                    .updating($isTouching) { _, touching, _ in touching = true }
+            )
+            .onChange(of: isTouching) { _, touching in
+                if !touching { resetAfterTouch() }
+            }
+            .onChange(of: isDraggingHandle) { _, dragging in
+                if !dragging { resetAfterHandleDrag() }
+            }
             // 두 손가락 회전이 0°에 붙을 때만 — 새로 만든 스티커나 실행 취소로 0°가 된 건 사람이 한 동작이 아니다
             .sensoryFeedback(.selection, trigger: sticker.rotation == .zero) { _, isUpright in
                 isUpright && rotateStartAngle != nil
@@ -254,7 +269,6 @@ private struct StickerLayer: View {
         DragGesture(coordinateSpace: .named("stickerCanvas"))
             .onChanged { value in
                 guard isEditing else { return }
-                onSelect()
 
                 let start = dragStartPosition ?? sticker.position
                 if dragStartPosition == nil {
@@ -269,17 +283,51 @@ private struct StickerLayer: View {
                 sticker.position = snap(nextPosition)
             }
             .onEnded { _ in
-                let settled = CGPoint(
-                    x: sticker.position.x.clamped(to: Self.positionRange),
-                    y: sticker.position.y.clamped(to: Self.positionRange)
-                )
-                if settled != sticker.position {
-                    withAnimation(.smooth(duration: 0.3)) { sticker.position = settled }
-                }
+                settleIntoCanvas()
                 dragStartPosition = nil
                 endGesture()
                 onDragEnded()
+                selectAfterGesture()
             }
+    }
+
+    /// 고무줄로 범위 밖에 나가 있던 만큼 스프링으로 돌려놓는다
+    private func settleIntoCanvas() {
+        let settled = CGPoint(
+            x: sticker.position.x.clamped(to: Self.positionRange),
+            y: sticker.position.y.clamped(to: Self.positionRange)
+        )
+        if settled != sticker.position {
+            withAnimation(.smooth(duration: 0.3)) { sticker.position = settled }
+        }
+    }
+
+    /// 선택은 손을 뗀 뒤에 — 누르는 순간 고르면 인스펙터가 올라오며 캔버스가 줄어들어,
+    /// 끌고 있는 스티커가 손가락 밑에서 미끄러진다
+    private func selectAfterGesture() {
+        if isEditing { onSelect() }
+    }
+
+    /// 정상 종료면 각 onEnded 가 이미 비웠으니 아무 일도 없다. 취소로 남은 값만 정리한다.
+    private func resetAfterTouch() {
+        if dragStartPosition != nil {
+            settleIntoCanvas()
+            onDragEnded()
+        }
+        dragStartPosition = nil
+        magnifyStartScale = nil
+        rotateStartAngle = nil
+        didRecordThisGesture = false
+    }
+
+    private func resetAfterHandleDrag() {
+        resizeStartScale = nil
+        resizeStartDistance = nil
+        transformStartScale = nil
+        transformStartRotation = nil
+        transformStartDistance = nil
+        transformLastTouchAngle = nil
+        transformAccumulatedRotation = 0
     }
 
     /// 세 제스처(드래그·확대·회전)는 동시 인식이라 두 손가락으로 확대하며 살짝 돌리면 전부 시작된다.
@@ -303,7 +351,6 @@ private struct StickerLayer: View {
         MagnifyGesture()
             .onChanged { value in
                 guard isEditing else { return }
-                onSelect()
                 let start = magnifyStartScale ?? sticker.scale
                 if magnifyStartScale == nil {
                     recordUndoOnce()
@@ -314,6 +361,7 @@ private struct StickerLayer: View {
             .onEnded { _ in
                 magnifyStartScale = nil
                 endGesture()
+                selectAfterGesture()
             }
     }
 
@@ -322,7 +370,6 @@ private struct StickerLayer: View {
         RotateGesture()
             .onChanged { value in
                 guard isEditing else { return }
-                onSelect()
                 let start = rotateStartAngle ?? sticker.rotation
                 if rotateStartAngle == nil {
                     recordUndoOnce()
@@ -336,6 +383,7 @@ private struct StickerLayer: View {
             .onEnded { _ in
                 rotateStartAngle = nil
                 endGesture()
+                selectAfterGesture()
             }
     }
 
@@ -370,14 +418,28 @@ private struct StickerLayer: View {
 
     private var resizeHandle: some View {
         handleImage("arrow.up.left.and.arrow.down.right")
-            .highPriorityGesture(resizeGesture)
+            .highPriorityGesture(resizeGesture.updating($isDraggingHandle) { _, dragging, _ in dragging = true })
             .accessibilityLabel("크기 조절")
+            .accessibilityAdjustableAction(adjustScale)
     }
 
     private var transformHandle: some View {
         handleImage("rotate.right")
-            .highPriorityGesture(transformGesture)
+            .highPriorityGesture(transformGesture.updating($isDraggingHandle) { _, dragging, _ in dragging = true })
             .accessibilityLabel("회전하며 크기 조절")
+            .accessibilityAdjustableAction(adjustScale)
+    }
+
+    /// VoiceOver 는 손잡이를 끌 수 없다 — 위아래 쓸기로 크기를 한 단계씩 바꾼다
+    private func adjustScale(_ direction: AccessibilityAdjustmentDirection) {
+        let step: CGFloat
+        switch direction {
+        case .increment: step = 0.1
+        case .decrement: step = -0.1
+        @unknown default: return
+        }
+        onEditBegan()
+        sticker.scale = (sticker.scale + step).clamped(to: Self.scaleRange)
     }
 
     /// 손잡이는 `.overlay` 라 아래의 `.scaleEffect(sticker.scale * contentScale)` 를 같이 탄다.
@@ -430,17 +492,21 @@ private struct StickerLayer: View {
             .onChanged { value in
                 guard isEditing else { return }
                 onSelect()
-                let start = resizeStartScale ?? sticker.scale
+                // 왜 중심에서의 거리: 손잡이는 스티커와 함께 돈다. 화면 기준 대각선(dx+dy)으로 재면
+                // 180° 돌린 스티커는 손잡이를 바깥으로 끌수록 작아지고, 90°에선 거의 안 변했다.
+                let center = CGPoint(x: sticker.position.x * canvasSize.width, y: sticker.position.y * canvasSize.height)
+                let distance = hypot(value.location.x - center.x, value.location.y - center.y)
                 if resizeStartScale == nil {
                     onEditBegan()
-                    resizeStartScale = start
+                    resizeStartScale = sticker.scale
+                    resizeStartDistance = max(hypot(value.startLocation.x - center.x, value.startLocation.y - center.y), 1)
                 }
-                let diagonalDelta = (value.translation.width + value.translation.height) / 2
-                // 기준 350pt 캔버스에서 100pt = 스케일 1 — 기기 폭이 달라도 손맛이 같게
-                sticker.scale = (start + diagonalDelta / (canvasSize.width / 3.5)).clamped(to: Self.scaleRange)
+                let start = resizeStartScale ?? sticker.scale
+                sticker.scale = (start * distance / (resizeStartDistance ?? distance)).clamped(to: Self.scaleRange)
             }
             .onEnded { _ in
                 resizeStartScale = nil
+                resizeStartDistance = nil
             }
     }
 

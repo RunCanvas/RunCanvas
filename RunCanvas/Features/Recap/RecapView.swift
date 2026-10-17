@@ -29,7 +29,7 @@ struct RecapView: View {
             VStack(spacing: 24) {
                 if let recap, let selected {
                     pickers(selected)
-                    preview
+                    preview(recap)
                     actions(recap)
                 } else {
                     ContentUnavailableView("아직 기록이 없어요", systemImage: "calendar",
@@ -67,13 +67,15 @@ struct RecapView: View {
     }
 
     @ViewBuilder
-    private var preview: some View {
+    private func preview(_ recap: RecapEngine.Recap) -> some View {
         if let rendered {
+            // 카드는 그림 한 장이라 VoiceOver 엔 숫자가 하나도 없다 — 같은 값을 말로 붙인다
             Image(uiImage: rendered)
                 .resizable()
                 .scaledToFit()
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                
+                .accessibilityLabel("\(recap.title) 정산 카드. \(RunMath.formatKm(recap.totalMeters))킬로미터, \(recap.count)번, \(recap.activeDays)일 달렸어요")
+
         } else {
             ProgressView("카드 만드는 중…")
                 .frame(maxWidth: .infinity)
