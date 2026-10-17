@@ -258,11 +258,12 @@ struct CanvasStudioView: View {
         VStack(spacing: 14) {
             if let lead = leadSticker {
                 inspector(lead: lead)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .edgeTransition(.bottom)
             }
             toolRow
         }
-        .animation(.snappy(duration: 0.22), value: selection)
+        // 탭으로 뜨는 패널이라 튕김 없는 스프링 — 오버슈트는 손가락이 던진 움직임에만 어울린다
+        .animation(.smooth(duration: 0.22), value: selection)
         .padding(.top, 14)
         .padding(.bottom, 6)
     }
@@ -277,7 +278,7 @@ struct CanvasStudioView: View {
             }
 
             // 색은 팔레트에서 고르는 게 스토리 편집기의 어휘다. 맨 끝만 커스텀 피커.
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 // 왜 spacing 0: 44pt 히트 영역 안에 34pt 링이 들어가 있어 시각 간격은 예전(10pt) 그대로다
                 HStack(spacing: 0) {
                     ForEach(Studio.swatches, id: \.name) { swatch in
@@ -308,6 +309,7 @@ struct CanvasStudioView: View {
                 }
                 .padding(.horizontal, 18)
             }
+            .scrollIndicators(.hidden)
 
             HStack(spacing: 12) {
                 // 글꼴은 이름표보다 실제 모양을 보여주는 게 빠르다
@@ -490,7 +492,7 @@ struct CanvasStudioView: View {
             .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.12)))
             .padding(.horizontal, 24)
         }
-        .animation(.snappy(duration: 0.22), value: showsInitialFormatPicker)
+        .animation(.smooth(duration: 0.22), value: showsInitialFormatPicker)
     }
 
     /// 저장한 적 없이 꾸미던 중이면 한 번 물어본다 (인스타가 하는 방식)

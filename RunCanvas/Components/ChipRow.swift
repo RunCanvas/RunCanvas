@@ -8,7 +8,7 @@ struct ChipRow: View {
     let onSelect: (String) -> Void
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 7) {
                 ForEach(titles, id: \.self) { title in
                     let isOn = title == selected
@@ -29,6 +29,7 @@ struct ChipRow: View {
             }
             .padding(.horizontal, 20)
         }
+        .scrollIndicators(.hidden)
     }
 }
 

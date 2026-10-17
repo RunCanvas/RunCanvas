@@ -4,6 +4,8 @@ import SwiftUI
 /// 사용: `.badgeEarnedToast($newBadges)` — 배열이 비어 있지 않으면 표시, 사라지면 비운다.
 struct BadgeEarnedToast: View {
     let badges: [Badge]
+    /// 성공 햅틱을 카드가 실제로 뜨는 순간에 맞춘다 — 부르는 쪽이 배열을 언제 채우든 화면과 손 느낌이 어긋나지 않게
+    @State private var didAppear = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -29,7 +31,9 @@ struct BadgeEarnedToast: View {
         .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
         .padding(.horizontal, 16)
         .accessibilityElement(children: .combine)
+        .sensoryFeedback(.success, trigger: didAppear)
         .onAppear {
+            didAppear = true
             AccessibilityNotification.Announcement(
                 "새 뱃지 \(badges.count)개: \(badges.map(\.title).joined(separator: ", "))"
             ).post()
@@ -41,16 +45,18 @@ extension View {
     func badgeEarnedToast(_ badges: Binding<[Badge]>) -> some View {
         overlay(alignment: .top) {
             if !badges.wrappedValue.isEmpty {
-                BadgeEarnedToast(badges: badges.wrappedValue)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .onTapGesture {
-                        withAnimation { badges.wrappedValue = [] }
-                    }
-                    .accessibilityHint("두 번 탭하여 닫기")
-                    .task {
-                        try? await Task.sleep(for: .seconds(3))
-                        withAnimation { badges.wrappedValue = [] }
-                    }
+                Button {
+                    withAnimation { badges.wrappedValue = [] }
+                } label: {
+                    BadgeEarnedToast(badges: badges.wrappedValue)
+                }
+                .buttonStyle(.plain)
+                .edgeTransition(.top)
+                .accessibilityHint("두 번 탭하여 닫기")
+                .task {
+                    try? await Task.sleep(for: .seconds(3))
+                    withAnimation { badges.wrappedValue = [] }
+                }
             }
         }
         .animation(.spring(duration: 0.4), value: badges.wrappedValue.isEmpty)

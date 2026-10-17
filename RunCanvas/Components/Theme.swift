@@ -42,14 +42,23 @@ extension Level.Tier {
     var onAccent: Color { self == .black ? Color(.systemBackground) : foreground }
 }
 
-/// 현재 계정의 레벨 — RootTabView가 넣어 주고, PrimaryButton·홈 러닝 시작 버튼이 색으로 쓴다. 로그인 전(nil)은 흑백.
-private struct LevelTierKey: EnvironmentKey {
-    static let defaultValue: Level.Tier? = nil
+extension EnvironmentValues {
+    /// 현재 계정의 레벨 — RootTabView가 넣어 주고, PrimaryButton·홈 러닝 시작 버튼이 색으로 쓴다. 로그인 전(nil)은 흑백.
+    @Entry var levelTier: Level.Tier? = nil
 }
 
-extension EnvironmentValues {
-    var levelTier: Level.Tier? {
-        get { self[LevelTierKey.self] }
-        set { self[LevelTierKey.self] = newValue }
+extension View {
+    /// 가장자리에서 밀려 들어오는 전환. '동작 줄이기'를 켜면 제자리 페이드로 바꾼다 — 미끄러지는 움직임은 어지럼을 부른다.
+    func edgeTransition(_ edge: Edge) -> some View {
+        modifier(EdgeTransition(edge: edge))
+    }
+}
+
+private struct EdgeTransition: ViewModifier {
+    let edge: Edge
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.transition(reduceMotion ? .opacity : .move(edge: edge).combined(with: .opacity))
     }
 }

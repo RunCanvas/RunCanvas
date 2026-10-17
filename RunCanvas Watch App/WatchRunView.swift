@@ -5,6 +5,7 @@ struct WatchRunView: View {
     @State private var showsEndConfirm = false
     @State private var didPhoneRecord = false
     @State private var activePage: ActiveRunPage = .data
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -95,10 +96,10 @@ struct WatchRunView: View {
             switch activePage {
             case .data:
                 dataPages
-                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
+                    .transition(pageTransition(from: .leading))
             case .controls:
                 controlsPage
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+                    .transition(pageTransition(from: .trailing))
             }
         }
         .contentShape(Rectangle())
@@ -382,6 +383,11 @@ struct WatchRunView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    /// 들어온 쪽으로 나간다. '동작 줄이기'를 켜면 작은 화면 전체가 미끄러지는 대신 제자리 페이드.
+    private func pageTransition(from edge: Edge) -> AnyTransition {
+        reduceMotion ? .opacity : .move(edge: edge)
     }
 
     private var horizontalPageGesture: some Gesture {

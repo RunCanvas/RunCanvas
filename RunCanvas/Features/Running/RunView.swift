@@ -179,6 +179,10 @@ struct RunView: View {
             }
         }
         .navigationBarBackButtonHidden(isActive)
+        // 뛰면서 화면을 끝까지 보지 않으니 시작·일시정지·재개가 먹었는지 손에 알려 준다
+        .sensoryFeedback(.impact(weight: .medium), trigger: session.state) { _, new in
+            new == .running || new == .paused
+        }
         .onChange(of: session.route.count) { _, _ in updateCourseFollow() }
         .onChange(of: session.locationAuthorization) { _, status in
             switch status {
