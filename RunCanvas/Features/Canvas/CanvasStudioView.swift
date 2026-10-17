@@ -82,9 +82,12 @@ struct CanvasStudioView: View {
             Studio.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // 위아래 크롬은 한 줄짜리라 손쉬운 사용 크기까지 키우면 버튼이 화면 밖으로 밀린다 — xxxLarge 까지만 따라간다
                 topBar
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 canvasArea
                 bottomControls
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
 
             if showsInitialFormatPicker {
@@ -151,7 +154,7 @@ struct CanvasStudioView: View {
         HStack {
             Button { goBack() } label: {
                 Label("뒤로", systemImage: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(Studio.surface, in: Capsule())
@@ -185,7 +188,7 @@ struct CanvasStudioView: View {
 
             Button { sheet = .export } label: {
                 Text("저장")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .background(selectedRun == nil ? Studio.surface : Color.white, in: Capsule())
@@ -202,9 +205,9 @@ struct CanvasStudioView: View {
     private func runChip(_ run: Run) -> some View {
         HStack(spacing: 5) {
             Text("\(RunMath.formatKm(run.distanceMeters)) km")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
             if !hasFixedRun {
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+                Image(systemName: "chevron.down").font(.caption2.weight(.bold))
             }
         }
         .padding(.horizontal, 12)
@@ -239,10 +242,10 @@ struct CanvasStudioView: View {
                     .font(.system(size: 40, weight: .light))
                     .foregroundStyle(Studio.dim)
                 Text("꾸밀 기록을 고르면 시작해요")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white)
                 Button("기록 고르기") { sheet = .run }
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
@@ -258,11 +261,12 @@ struct CanvasStudioView: View {
         VStack(spacing: 14) {
             if let lead = leadSticker {
                 inspector(lead: lead)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .edgeTransition(.bottom)
             }
             toolRow
         }
-        .animation(.snappy(duration: 0.22), value: selection)
+        // 탭으로 뜨는 패널이라 튕김 없는 스프링 — 오버슈트는 손가락이 던진 움직임에만 어울린다
+        .animation(.smooth(duration: 0.22), value: selection)
         .padding(.top, 14)
         .padding(.bottom, 6)
     }
@@ -272,12 +276,12 @@ struct CanvasStudioView: View {
         VStack(spacing: 12) {
             if selection.count > 1 {
                 Text("\(selection.count)개 선택 — 함께 바뀌어요")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.caption.weight(.medium))
                     .foregroundStyle(Studio.dim)
             }
 
             // 색은 팔레트에서 고르는 게 스토리 편집기의 어휘다. 맨 끝만 커스텀 피커.
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal) {
                 // 왜 spacing 0: 44pt 히트 영역 안에 34pt 링이 들어가 있어 시각 간격은 예전(10pt) 그대로다
                 HStack(spacing: 0) {
                     ForEach(Studio.swatches, id: \.name) { swatch in
@@ -308,6 +312,7 @@ struct CanvasStudioView: View {
                 }
                 .padding(.horizontal, 18)
             }
+            .scrollIndicators(.hidden)
 
             HStack(spacing: 12) {
                 // 글꼴은 이름표보다 실제 모양을 보여주는 게 빠르다
@@ -418,7 +423,7 @@ struct CanvasStudioView: View {
                 .frame(width: 46, height: 46)
                 .background(Studio.surface, in: Circle())
             Text(title)
-                .font(.system(size: 11, weight: .medium))
+                .font(.caption2.weight(.medium))
         }
         .foregroundStyle(.white)
     }
@@ -467,9 +472,9 @@ struct CanvasStudioView: View {
                                     .font(.system(size: 25, weight: .medium))
                                     .frame(height: 32)
                                 Text(option.title)
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.subheadline.weight(.bold))
                                 Text(option.ratioLabel)
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.caption.weight(.semibold))
                                     .foregroundStyle(option == .story ? .black.opacity(0.62) : Studio.dim)
                             }
                             .frame(maxWidth: .infinity, minHeight: 105)
@@ -490,7 +495,7 @@ struct CanvasStudioView: View {
             .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.12)))
             .padding(.horizontal, 24)
         }
-        .animation(.snappy(duration: 0.22), value: showsInitialFormatPicker)
+        .animation(.smooth(duration: 0.22), value: showsInitialFormatPicker)
     }
 
     /// 저장한 적 없이 꾸미던 중이면 한 번 물어본다 (인스타가 하는 방식)

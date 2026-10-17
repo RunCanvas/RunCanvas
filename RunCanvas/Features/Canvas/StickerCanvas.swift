@@ -64,6 +64,11 @@ struct StickerCanvas: View {
                 if isEditing { selection = [] }
             }
             .onPreferenceChange(StickerSizePreferenceKey.self) { stickerSizes = $0 }
+            // 가이드에 붙는 순간 손에 '톡' — 눈으로 점선을 찾지 않아도 맞았는지 안다 (놓을 때 가이드가 지워지는 건 제외)
+            .sensoryFeedback(.selection, trigger: alignmentGuides) { old, new in
+                (new.vertical != nil && new.vertical != old.vertical)
+                    || (new.horizontal != nil && new.horizontal != old.horizontal)
+            }
         }
         .aspectRatio(canvasAspectRatio, contentMode: .fit)
         .clipped()
@@ -195,6 +200,8 @@ private struct StickerLayer: View {
 
     /// 핀치와 모서리 손잡이가 같은 한계를 쓴다 — 따로 두면 핀치로 3.5배 키운 뒤 손잡이를 잡는 순간 3배로 튄다
     private static let scaleRange: ClosedRange<CGFloat> = 0.3...4
+    /// 스티커 중심이 캔버스 안에 남는 범위 (정규화 좌표) — 밖으로 놓쳐 잃어버리지 않게
+    private static let positionRange: ClosedRange<CGFloat> = 0.05...0.95
 
     private var contentScale: CGFloat {
         canvasSize.width / 350
@@ -237,6 +244,10 @@ private struct StickerLayer: View {
             .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 2) { if isEditing { onToggleSelect() } }
             // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
             .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
+            // 두 손가락 회전이 0°에 붙을 때만 — 새로 만든 스티커나 실행 취소로 0°가 된 건 사람이 한 동작이 아니다
+            .sensoryFeedback(.selection, trigger: sticker.rotation == .zero) { _, isUpright in
+                isUpright && rotateStartAngle != nil
+            }
     }
 
     private var dragGesture: some Gesture {
@@ -250,13 +261,21 @@ private struct StickerLayer: View {
                     recordUndoOnce()
                     dragStartPosition = start
                 }
+                // 가장자리에서 딱 멈추면 얼어붙은 것처럼 보인다 — 넘어갈수록 무겁게 따라오다가 놓으면 돌아온다
                 let nextPosition = CGPoint(
-                    x: min(max(start.x + value.translation.width / canvasSize.width, 0.05), 0.95),
-                    y: min(max(start.y + value.translation.height / canvasSize.height, 0.05), 0.95)
+                    x: (start.x + value.translation.width / canvasSize.width).rubberBanded(into: Self.positionRange),
+                    y: (start.y + value.translation.height / canvasSize.height).rubberBanded(into: Self.positionRange)
                 )
                 sticker.position = snap(nextPosition)
             }
             .onEnded { _ in
+                let settled = CGPoint(
+                    x: sticker.position.x.clamped(to: Self.positionRange),
+                    y: sticker.position.y.clamped(to: Self.positionRange)
+                )
+                if settled != sticker.position {
+                    withAnimation(.smooth(duration: 0.3)) { sticker.position = settled }
+                }
                 dragStartPosition = nil
                 endGesture()
                 onDragEnded()
@@ -600,4 +619,15 @@ private struct RouteStickerShape: Shape {
 
 private extension Comparable {
     func clamped(to range: ClosedRange<Self>) -> Self { min(max(self, range.lowerBound), range.upperBound) }
+}
+
+extension CGFloat {
+    /// 범위 밖으로 나간 만큼을 점점 줄여 따라가게 한다 (iOS 스크롤 끝의 고무줄 공식).
+    /// 아무리 끌어도 범위 끝에서 `dimension` 이상은 벗어나지 않는다.
+    func rubberBanded(into range: ClosedRange<CGFloat>, dimension: CGFloat = 0.2, constant: CGFloat = 0.55) -> CGFloat {
+        let bound = Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
+        let overshoot = self - bound
+        guard overshoot != 0 else { return self }
+        return bound + overshoot * dimension * constant / (dimension + constant * abs(overshoot))
+    }
 }

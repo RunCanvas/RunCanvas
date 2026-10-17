@@ -160,7 +160,7 @@ struct MarathonScheduleView: View {
                                counts: regionCounts,
                                selection: $region)
                 Divider().frame(height: 18)
-                ScrollView(.horizontal, showsIndicators: false) {
+                ScrollView(.horizontal) {
                     HStack(spacing: 7) {
                         ForEach(MarathonCourse.allCases) { item in
                             chip(item.rawValue, isOn: course == item) { course = item }
@@ -168,6 +168,7 @@ struct MarathonScheduleView: View {
                     }
                     .padding(.trailing, 20)
                 }
+                .scrollIndicators(.hidden)
             }
             .padding(.leading, 20)
         }

@@ -90,7 +90,8 @@ struct CourseMapBrowseView: View {
     private func pin(for course: Course) -> some View {
         let isSelected = selected?.id == course.id
         return Button {
-            withAnimation(.easeInOut(duration: 0.25)) {
+            // 스프링이라 카메라가 움직이는 중에 다른 핀을 눌러도 속도를 이어받아 방향을 바꾼다
+            withAnimation(.smooth(duration: 0.25)) {
                 selected = isSelected ? nil : course
                 if !isSelected { position = .region(region(of: course)) }
             }
@@ -136,7 +137,7 @@ struct CourseMapBrowseView: View {
             .padding(.bottom, 20)
         }
         .buttonStyle(.plain)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .edgeTransition(.bottom)
     }
 
     /// 코스가 화면에 꽉 차게 — 여유 40%
