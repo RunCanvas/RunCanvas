@@ -64,6 +64,11 @@ struct StickerCanvas: View {
                 if isEditing { selection = [] }
             }
             .onPreferenceChange(StickerSizePreferenceKey.self) { stickerSizes = $0 }
+            // 가이드에 붙는 순간 손에 '톡' — 눈으로 점선을 찾지 않아도 맞았는지 안다 (놓을 때 가이드가 지워지는 건 제외)
+            .sensoryFeedback(.selection, trigger: alignmentGuides) { old, new in
+                (new.vertical != nil && new.vertical != old.vertical)
+                    || (new.horizontal != nil && new.horizontal != old.horizontal)
+            }
         }
         .aspectRatio(canvasAspectRatio, contentMode: .fit)
         .clipped()
@@ -239,6 +244,10 @@ private struct StickerLayer: View {
             .onLongPressGesture(minimumDuration: 0.35, maximumDistance: 2) { if isEditing { onToggleSelect() } }
             // 인스타 스토리처럼 스티커 위에서 바로 옮기고(한 손가락) 키우고 돌린다(두 손가락)
             .gesture(SimultaneousGesture(SimultaneousGesture(dragGesture, magnifyGesture), rotateGesture))
+            // 두 손가락 회전이 0°에 붙을 때만 — 새로 만든 스티커나 실행 취소로 0°가 된 건 사람이 한 동작이 아니다
+            .sensoryFeedback(.selection, trigger: sticker.rotation == .zero) { _, isUpright in
+                isUpright && rotateStartAngle != nil
+            }
     }
 
     private var dragGesture: some Gesture {
