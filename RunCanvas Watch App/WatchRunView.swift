@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WatchRunView: View {
-    @StateObject private var workout = WatchWorkoutManager()
+    let workout: WatchWorkoutManager
     @State private var showsEndConfirm = false
     @State private var didPhoneRecord = false
     @State private var activePage: ActiveRunPage = .data
@@ -506,5 +506,5 @@ private enum ActiveRunPage {
 }
 
 #Preview {
-    WatchRunView()
+    WatchRunView(workout: WatchWorkoutManager())
 }

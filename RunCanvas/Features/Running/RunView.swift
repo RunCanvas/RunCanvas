@@ -18,7 +18,7 @@ struct RunView: View {
 
     @Environment(AuthService.self) private var auth
     @Environment(RunCoordinator.self) private var runs
-    @EnvironmentObject private var watchConnectivity: WatchConnectivityService
+    @Environment(WatchConnectivityService.self) private var watchConnectivity
     @Environment(\.dismiss) private var dismiss
     @State private var healthAuthorizationMessage: String?
     @State private var showsLocationDenied = false
@@ -345,7 +345,7 @@ struct RunView: View {
     let watch = WatchConnectivityService()
     return NavigationStack { RunView(startImmediately: false) }
         .environment(AuthService())
-        .environmentObject(watch)
+        .environment(watch)
         .environment(RunCoordinator(watch: watch, context: container.mainContext, session: RunSession()))
         .modelContainer(container)
 }

@@ -1,5 +1,5 @@
 import Foundation
-import Combine
+import Observation
 import WatchConnectivity
 
 enum WorkoutSyncAction: String {
@@ -45,18 +45,19 @@ struct WatchWorkoutSnapshot {
 }
 
 /// iPhone과 Apple Watch 사이의 러닝 명령·실시간 수치를 전달한다.
-final class WatchConnectivityService: NSObject, ObservableObject {
-    @Published private(set) var isPaired = false
-    @Published private(set) var isWatchAppInstalled = false
-    @Published private(set) var isReachable = false
+@Observable
+final class WatchConnectivityService: NSObject {
+    private(set) var isPaired = false
+    private(set) var isWatchAppInstalled = false
+    private(set) var isReachable = false
 
-    var onCommand: ((WorkoutSyncAction, UUID) -> Void)?
-    var onSnapshot: ((WatchWorkoutSnapshot) -> Void)?
+    @ObservationIgnored var onCommand: ((WorkoutSyncAction, UUID) -> Void)?
+    @ObservationIgnored var onSnapshot: ((WatchWorkoutSnapshot) -> Void)?
     /// 워치가 끝낸 러닝 요약 — 폰이 실시간으로 못 받았어도 기록으로 남긴다
-    var onFinishedWorkout: ((FinishedWatchWorkout) -> Void)?
+    @ObservationIgnored var onFinishedWorkout: ((FinishedWatchWorkout) -> Void)?
 
     private let session: WCSession?
-    private var latestCommandTimestamp: TimeInterval = 0
+    @ObservationIgnored private var latestCommandTimestamp: TimeInterval = 0
     private static let maxStartCommandAge: TimeInterval = 120
     private static let allowedClockSkew: TimeInterval = 30
 
