@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-/// 러닝 종료 직후: 상세 + 새로 딴 뱃지 토스트 + 런꾸/홈 버튼
+/// 러닝 종료 직후: 상세(런꾸하기 포함) + 새로 딴 뱃지 토스트 + 홈 버튼
 struct RunResultView: View {
     let run: Run
 
@@ -18,7 +18,6 @@ struct RunResultView: View {
     @Query private var ownerRuns: [Run]
     @State private var newBadges: [Badge] = []
     @State private var completedChallenges: [Challenge] = []
-    @State private var showsCanvas = false
     @State private var didRecordAchievements = false
 
     init(run: Run) {
@@ -40,11 +39,7 @@ struct RunResultView: View {
                         .padding(.bottom, 8)
                 }
 
-                PrimaryButton(title: "사진으로 꾸미기", systemImage: "photo") {
-                    showsCanvas = true
-                }
-                .padding(.horizontal, 20)
-
+                // 꾸미기는 위 상세 화면의 '런꾸하기' 하나로 — 같은 편집기를 여는 주요 버튼이 두 개였다
                 Button { dismiss() } label: {
                     Text("홈으로")
                         .font(.subheadline)
@@ -59,11 +54,8 @@ struct RunResultView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
         .badgeEarnedToast($newBadges)
-        .fullScreenCover(isPresented: $showsCanvas) {
-            CanvasStudioView(run: run)
-        }
         .onAppear {
-            // 런꾸 화면(fullScreenCover)을 닫으면 onAppear 가 또 온다. 두 번째 기록은 이미 저장돼 [] 를 돌려줘
+            // 상세 화면의 런꾸 편집기(fullScreenCover)를 닫으면 onAppear 가 또 온다. 두 번째 기록은 이미 저장돼 [] 를 돌려줘
             // '챌린지 완료' 줄과 떠 있던 뱃지 토스트가 지워졌다 — 한 번만 기록한다
             guard !didRecordAchievements else { return }
             didRecordAchievements = true
