@@ -9,7 +9,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-style-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -27,7 +27,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-asia-open-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -46,7 +46,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-yeongdong-fun-and-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -64,7 +64,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/green-step-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -83,7 +83,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/19th-jungnang-gu-mayors-rose-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -102,7 +102,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/22nd-bukgu-love-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -124,7 +124,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/25th-daecheongho-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -141,7 +141,7 @@
       "courses": [
         "6km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/28th-citizens-health-run",
       "source": "kormarathon.com",
       "type": "대회",
@@ -160,7 +160,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-hanam-dangjeong-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -817,7 +817,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/7th-small-and-medium-business-people-energy-boosting-marathon",
       "source": "kormarathon.com",
       "type": "대회",
