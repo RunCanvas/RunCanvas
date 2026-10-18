@@ -916,7 +916,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-adidas-dobok-run-with-kta",
       "source": "kormarathon.com",
       "type": "테마런",
