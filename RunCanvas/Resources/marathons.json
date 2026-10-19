@@ -11,7 +11,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/22nd-yeoju-sejong-daewang-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2306,7 +2306,7 @@
       "courses": [
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-long-run-aafaeb7ee8e740cc999eedd4ec700e1f",
       "source": "kormarathon.com",
       "type": "테마런",
