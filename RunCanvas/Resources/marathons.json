@@ -832,6 +832,23 @@
       "fee_min": 45000
     },
     {
+      "name": "2026 버추얼 한글런",
+      "event_date": "2026-11-04",
+      "region": "서울",
+      "place": "전국 / 원하는 장소 어디서나",
+      "courses": [
+        "5.15km",
+        "10.9km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-virtual-hangul-run-518a4282ac6c4cec802eeb335972c9b8",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/e7560c41-5224-4d54-8de5-1ac37a615123/display",
+      "fee_min": 39000
+    },
+    {
       "name": "2026 Global 6K for Water in 고양",
       "event_date": "2026-11-07",
       "region": "경기",
@@ -1285,6 +1302,24 @@
       "fee_min": 30000
     },
     {
+      "name": "2026 체육회장배 안산RUN마라톤대회",
+      "event_date": "2026-11-08",
+      "region": "경기",
+      "place": "안산호수공원 중앙무대 일대",
+      "courses": [
+        "3km",
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-sports-council-president-s-cup-ansan-run-marathon-c9111b8349604e64bf4922f992d5e52d",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/0f988d7a-e722-461f-a45e-216e650316bd/display",
+      "fee_min": 10000
+    },
+    {
       "name": "2026 해남땅끝 전국마라톤대회",
       "event_date": "2026-11-08",
       "region": "전남",
@@ -1343,6 +1378,22 @@
       "reg_start_date": "2026-08-24",
       "reg_end_date": "2026-09-06",
       "fee_min": 59000
+    },
+    {
+      "name": "이월드 83타워 업힐런 챌린지 (2회)",
+      "event_date": "2026-11-08",
+      "region": "대구",
+      "place": "이월드 제1주차장 스타트존 (대구광역시 달서구 두류공원로 200)",
+      "courses": [
+        "1.8km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2nd-83-tower-uphill-run-challenge-9306661322a742b0877a59983a6869a5",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/1f4c12e3-1917-405b-94ea-3eb4799535a0/display",
+      "fee_min": 55000
     },
     {
       "name": "제11회 송파구청장배마라톤대회",
@@ -1724,6 +1775,23 @@
       "tags": [],
       "image_url": "https://www.kormarathon.com/api/request-assets/public/83e166ce-2164-4842-b378-90d5ff841044/display",
       "fee_min": 30000
+    },
+    {
+      "name": "2026 영남일보 혁신도시마라톤 in DAEGU",
+      "event_date": "2026-11-15",
+      "region": "대구",
+      "place": "대구혁신도시 신서중앙공원",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-innovation-city-marathon-616a6369a51a40bdae364ca69a83e1ea",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/5db86234-2d68-4165-8c64-3feed7364c2d/display",
+      "fee_min": 25000
     },
     {
       "name": "2026 우리함께런 with 빗썸나눔",
@@ -2359,6 +2427,26 @@
       "fee_min": 40000
     },
     {
+      "name": "2026 천안희망나눔 마라톤",
+      "event_date": "2026-11-29",
+      "region": "충남",
+      "place": "천안 독립기념관 겨레의집 (충청남도 천안시 동남구 목천읍 독립기념관로 1)",
+      "courses": [
+        "3.65km",
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-cheonan-hope-sharing-marathon-f5e887b0df1d4bbdb046f7b0ae6aa98e",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [
+        "기부·공익"
+      ],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/2c1402cb-0831-4005-aa73-78572e028a81/display",
+      "fee_min": 19000
+    },
+    {
       "name": "가야왕도김해 전국어울림 마라톤대회",
       "event_date": "2026-11-29",
       "region": "경남",
@@ -2762,6 +2850,42 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1768454554/kormarathon/events/event-2026-new-years-sunrise-run-main.jpg"
     },
     {
+      "name": "2027 전마협 새해 동계 마라톤대회",
+      "event_date": "2027-01-10",
+      "region": "충남",
+      "place": "금산인삼엑스포주차장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-jeonmahyeop-new-year-s-marathon-11c05e58816d4e8bb0cb12d44266ca0e",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/5560b72e-b91d-47a1-84c0-368799b72cf9/display",
+      "fee_min": 35000
+    },
+    {
+      "name": "2027 전마협 고흥 누리호 마라톤",
+      "event_date": "2027-02-13",
+      "region": "전북",
+      "place": "고흥만 수변노을공원",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-jeonmahyeop-goheung-nuriho-marathon-cd28112a28d04ab7ac9141a02a466473",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/eb4f99bb-e210-4bd4-97ed-35b8167a1341/display",
+      "fee_min": 35000
+    },
+    {
       "name": "2027 해남땅끝 전국마라톤대회",
       "event_date": "2027-02-14",
       "region": "전남",
@@ -2859,6 +2983,24 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1776406813/kormarathon/events/event-images-1776406812579.jpg",
       "reg_start_date": "2027-06-01",
       "reg_end_date": "2027-06-02"
+    },
+    {
+      "name": "제9회 오션뷰 기장바다마라톤",
+      "event_date": "2027-04-18",
+      "region": "부산",
+      "place": "부산 오시리아 일원",
+      "courses": [
+        "3km",
+        "10km",
+        "Half"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/9th-ocean-view-gijang-sea-marathon-cae5abe02a6546479380104382cf9d18",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/4dde5f05-7333-4ee4-9dc9-a1d7f2f2bd0f/display",
+      "fee_min": 50000
     }
   ]
 }
