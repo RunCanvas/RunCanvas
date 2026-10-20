@@ -2371,6 +2371,24 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1790326802/kormarathon/events/event-images-1790326801110.jpg"
     },
     {
+      "name": "2026 원주 치악마라톤",
+      "event_date": "2026-11-29",
+      "region": "강원",
+      "place": "원주종합운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-wonju-chiak-marathon-7f764242a3364d45abb444a8af69b83f",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/619f4eb9-bea5-4b3e-b313-a1612ee9ac42/display",
+      "fee_min": 30000
+    },
+    {
       "name": "2026 정읍 공동체 프리마켓 런",
       "event_date": "2026-11-29",
       "region": "전북",
@@ -2574,6 +2592,24 @@
       "fee_min": 50000
     },
     {
+      "name": "제4회 garden5 LIFE RACE",
+      "event_date": "2026-12-05",
+      "region": "서울",
+      "place": "송파구 가든파이브 라이프 중앙광장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/4th-garden5-life-race-f989573765a34eaaa804837455213e7d",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/1a32e308-8f16-495c-90cc-90565a8c5dab/display",
+      "fee_min": 40000
+    },
+    {
       "name": "2026 부산브릿지마라톤대회 (부산국제마라톤에서 명칭 변경)",
       "event_date": "2026-12-06",
       "region": "부산",
@@ -2612,6 +2648,24 @@
       "reg_start_date": "2026-09-01",
       "reg_end_date": "2026-11-08",
       "fee_min": 50000
+    },
+    {
+      "name": "2026 화순고인돌마라톤대회",
+      "event_date": "2026-12-06",
+      "region": "전남",
+      "place": "화순공설운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-hwasun-dolmen-marathon-056fe86f722045a29882f0bce46ad72f",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/eb1ee3fe-6996-4847-8133-b71bf71abac4/display",
+      "fee_min": 20000
     },
     {
       "name": "제20회 양산전국하프마라톤대회",
