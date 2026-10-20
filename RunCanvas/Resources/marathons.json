@@ -1,27 +1,6 @@
 {
   "events": [
     {
-      "name": "제22회 여주 세종대왕 마라톤",
-      "event_date": "2026-10-19",
-      "region": "경기",
-      "place": "여주 현암지구공원",
-      "courses": [
-        "1km",
-        "4km",
-        "10km",
-        "Half"
-      ],
-      "status": null,
-      "signup_url": "https://www.kormarathon.com/ko/races/22nd-yeoju-sejong-daewang-marathon-2026",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1782217446/kormarathon/events/event-images-1782217445369.jpg",
-      "reg_start_date": "2026-06-01",
-      "reg_end_date": "2026-07-15",
-      "fee_min": 20000
-    },
-    {
       "name": "2026 SBS 런앤뮤직 페스티벌 in 안동",
       "event_date": "2026-10-24",
       "region": "경북",
@@ -901,24 +880,6 @@
       "reg_start_date": "2026-09-01",
       "reg_end_date": "2026-09-30",
       "fee_min": 20000
-    },
-    {
-      "name": "2026 해양수도 부산 런페스타",
-      "event_date": "2026-11-07",
-      "region": "부산",
-      "place": "부산 북항친수공원 잔디마당",
-      "courses": [
-        "10km"
-      ],
-      "status": "closed",
-      "signup_url": "https://www.kormarathon.com/ko/races/2026-ocean-capital-busan-run-festa",
-      "source": "kormarathon.com",
-      "type": "테마런",
-      "tags": [],
-      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789525108/kormarathon/events/event-images-1789525107051.jpg",
-      "reg_start_date": "2026-08-07",
-      "reg_end_date": "2026-08-31",
-      "fee_min": 45000
     },
     {
       "name": "GIVE RUN 2026 구미",
@@ -2559,6 +2520,23 @@
       "reg_end_date": "2026-11-08"
     },
     {
+      "name": "어울런(Earth Ulsan Run)",
+      "event_date": "2026-12-05",
+      "region": "울산",
+      "place": "태화강 남구 둔치",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/earth-ulsan-run-53906641b4d040c594c02b5f7210c452",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/dd6a2764-c69d-4c1b-a310-8425d8799c6e/display",
+      "fee_min": 10000
+    },
+    {
       "name": "오크밸리 윈터 하프 마라톤",
       "event_date": "2026-12-05",
       "region": "강원",
@@ -2923,6 +2901,22 @@
       "tags": [],
       "image_url": "https://www.kormarathon.com/api/request-assets/public/4d902ee3-1203-4de0-bb64-818a79660aa8/display",
       "fee_min": 10000
+    },
+    {
+      "name": "2026 해양수도 부산 런페스타 (잠정 연",
+      "event_date": "2027-02-27",
+      "region": "부산",
+      "place": "부산 북항친수공원 잔디마당",
+      "courses": [
+        "10km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-ocean-capital-busan-run-festa",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789525108/kormarathon/events/event-images-1789525107051.jpg",
+      "fee_min": 45000
     },
     {
       "name": "2027 고구려 마라톤",
