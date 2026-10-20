@@ -202,7 +202,7 @@
       "courses": [
         "6km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/freedom-walk-and-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1026,7 +1026,7 @@
         "5km",
         "8km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/damyang-metasequoia-national-marathon-68bbee789bcd4a3490a3b455c236e86b",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1272,7 +1272,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-sports-council-president-s-cup-ansan-run-marathon-c9111b8349604e64bf4922f992d5e52d",
       "source": "kormarathon.com",
       "type": "대회",
