@@ -2546,7 +2546,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/earth-ulsan-run-53906641b4d040c594c02b5f7210c452",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2601,7 +2601,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/4th-garden5-life-race-f989573765a34eaaa804837455213e7d",
       "source": "kormarathon.com",
       "type": "대회",
