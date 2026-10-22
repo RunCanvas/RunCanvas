@@ -802,7 +802,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2nd-oksusu-run-0067b076e2684905959c6364fea6b6d2",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1763,7 +1763,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-run-together-with-bithumb-sharing-d143977b11474a9298a6da27680e7a06",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2027,6 +2027,22 @@
       "fee_min": 50000
     },
     {
+      "name": "2026 와구런",
+      "event_date": "2026-11-21",
+      "region": "광주",
+      "place": "광주광역시 광산구 산월동 824-5",
+      "courses": [
+        "5km"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/wagurun-2026-fe21ac1771bf4a60a318ddf4032a7e3e",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/47d2397a-1944-4904-903f-80173668ab31/display",
+      "fee_min": 30000
+    },
+    {
       "name": "GIVE RUN 2026 부산",
       "event_date": "2026-11-21",
       "region": "부산",
@@ -2102,7 +2118,7 @@
       "fee_min": 25000
     },
     {
-      "name": "2026 서리풀 잠수교 10K 런 (2026 잠수교 10K 나이트런 - 11월 22일로 일정 변경)",
+      "name": "2026 서리풀 잠수교 10K 런 (2026 잠수교 10K 나이트런)",
       "event_date": "2026-11-22",
       "region": "서울",
       "place": "반포한강공원 달빛광장",
