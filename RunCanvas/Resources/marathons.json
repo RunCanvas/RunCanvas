@@ -1080,7 +1080,7 @@
       "courses": [
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gangnam-half-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2076,6 +2076,22 @@
       "image_url": "https://www.kormarathon.com/api/request-assets/public/c0e6fa23-2e41-4a70-b694-3f8dc5911cee/display"
     },
     {
+      "name": "2026 The Last Run : 굿바이잠실",
+      "event_date": "2026-11-22",
+      "region": "서울",
+      "place": "서울 잠실종합운동장",
+      "courses": [
+        "10km"
+      ],
+      "status": "closed",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-the-last-run-goodbye-jamsil-2c3264b4e42349e08ac8d2dc3b0f6a4d",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/dd8ecf9e-8458-46f8-bb74-190a8ef614b9/display",
+      "fee_min": 85000
+    },
+    {
       "name": "2026 김대중마라톤대회",
       "event_date": "2026-11-22",
       "region": "전남",
@@ -2159,13 +2175,13 @@
       "name": "2026 인천마라톤",
       "event_date": "2026-11-22",
       "region": "인천",
-      "place": "인천아시아드주경기장",
+      "place": "아시아드주경기장",
       "courses": [
         "5km",
         "10km",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/incheon-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -3047,6 +3063,26 @@
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1776406813/kormarathon/events/event-images-1776406812579.jpg",
       "reg_start_date": "2027-06-01",
       "reg_end_date": "2027-06-02"
+    },
+    {
+      "name": "2027 인천 K-마라톤대회",
+      "event_date": "2027-04-11",
+      "region": "인천",
+      "place": "인천아시아드주경기장 (예정)",
+      "courses": [
+        "5km",
+        "10km",
+        "Full"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-incheon-k-marathon-c53cbb223bb9445cbb7fc04f7e752160",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [
+        "풀코스"
+      ],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/248a0c75-c3b2-42ad-8a3c-35987357a0cb/display",
+      "fee_min": 40000
     },
     {
       "name": "제9회 오션뷰 기장바다마라톤",
