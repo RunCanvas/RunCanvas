@@ -9,7 +9,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-sbs-run-and-music-festival-in-andong-k-star-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -27,7 +27,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/gamseong-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -46,7 +46,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gyeonggi-yetgil-together-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -66,7 +66,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/newsis-sea-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -85,7 +85,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-petlympic-and-run-with-go",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -106,7 +106,7 @@
         "6.4km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-iksan-give-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -127,7 +127,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/sejong-run-26-with-naver-works",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -146,7 +146,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/disney-run-2026-incheon",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -164,7 +164,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/mussu-run-zero-waste-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -184,7 +184,7 @@
         "13km",
         "23km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/buldak-burning-trail-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -202,7 +202,7 @@
       "courses": [
         "6km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/freedom-walk-and-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
