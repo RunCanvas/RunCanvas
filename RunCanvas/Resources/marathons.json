@@ -2739,6 +2739,23 @@
       "fee_min": 50000
     },
     {
+      "name": "2026 성남 헤리티지런",
+      "event_date": "2026-12-12",
+      "region": "경기",
+      "place": "탄천종합운동장 (경기 성남시 분당구 탄천로 215)",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-seongnam-heritage-run-2c45567a9e3d44eda24de02de2d8eb29",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/71f77af1-372e-49d3-a2df-64fd184a12a6/display",
+      "fee_min": 40000
+    },
+    {
       "name": "2026 소년소녀 가장 돕기 기부런",
       "event_date": "2026-12-12",
       "region": "서울",
