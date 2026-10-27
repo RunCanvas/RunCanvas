@@ -1170,7 +1170,7 @@
       "courses": [
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/tongkeun-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1737,7 +1737,7 @@
         "10km",
         "Full"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/incheon-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2134,7 +2134,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/earth-ulsan-run-53906641b4d040c594c02b5f7210c452",
       "source": "kormarathon.com",
       "type": "테마런",
