@@ -1170,7 +1170,7 @@
       "courses": [
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/tongkeun-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2169,7 +2169,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/23rd-hangang-citizen-marathon",
       "source": "kormarathon.com",
       "type": "대회",
