@@ -2351,6 +2351,24 @@
       "image_url": "https://www.kormarathon.com/api/request-assets/public/d19a2d8a-b875-4afc-b60f-9467dd05de61/display"
     },
     {
+      "name": "2026 평창 스노우런",
+      "event_date": "2026-12-12",
+      "region": "강원",
+      "place": "알펜시아 스키점프센터",
+      "courses": [
+        "0.1km",
+        "7.5km",
+        "15km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-pyeongchang-snow-run-6411481ca7cc47bd98ba976fda8088e5",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/6a04b97d-a408-400d-b641-29095059d5af/display",
+      "fee_min": 15000
+    },
+    {
       "name": "제3회 긍정의 힘 마라톤",
       "event_date": "2026-12-12",
       "region": "서울",
