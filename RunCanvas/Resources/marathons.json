@@ -9,7 +9,7 @@
         "10km",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-jtbc-seoul-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -31,7 +31,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-gimcheon-national-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -50,7 +50,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-muan-national-coastal-sunset-trail-walk-and-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -70,7 +70,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-together-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -89,7 +89,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-adidas-dobok-run-with-kta",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -106,7 +106,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/justice-run-seocho-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -126,7 +126,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/21st-ulsan-human-rights-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -147,7 +147,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/daejeon-shin-chaeho-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -166,7 +166,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2nd-oksusu-run-0067b076e2684905959c6364fea6b6d2",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2396,7 +2396,7 @@
         "10km",
         "Half"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/23rd-miryang-arirang-marathon-b52dfaee00764f3fb29bf70f808ec49a",
       "source": "kormarathon.com",
       "type": "대회",
