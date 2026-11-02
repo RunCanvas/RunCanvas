@@ -18,6 +18,23 @@
       "fee_min": 39000
     },
     {
+      "name": "서봉기 단축마라톤대회",
+      "event_date": "2026-11-06",
+      "region": "경북",
+      "place": "문경시민운동장",
+      "courses": [
+        "3km",
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/seobonggi-short-marathon-d164bd5dcb774eebb1c1c3da41246433",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/e7dad75c-0e41-4a99-972b-ed36214356a0/display"
+    },
+    {
       "name": "2026 Global 6K for Water in 고양",
       "event_date": "2026-11-07",
       "region": "경기",
@@ -986,6 +1003,24 @@
       "fee_min": 40000
     },
     {
+      "name": "2026 청춘레이스",
+      "event_date": "2026-11-15",
+      "region": "서울",
+      "place": "우이천 다목적광장 (서울특별시 성북구 석관동 376)",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-youth-race-5826e621ef1545d08d72feadb281cd95",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/0fe2a84f-b6cf-4d4a-a436-c4f7244fa9b1/display",
+      "fee_min": 50000
+    },
+    {
       "name": "9회 서울평화마라톤",
       "event_date": "2026-11-15",
       "region": "서울",
@@ -1248,6 +1283,23 @@
       "tags": [],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1788351913/kormarathon/events/event-images-1788351912494.jpg",
       "fee_min": 45000
+    },
+    {
+      "name": "서울 라이프마라톤 2026",
+      "event_date": "2026-11-21",
+      "region": "서울",
+      "place": "상암 평화의공원 평화광장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/seoul-life-marathon-2026-b243954a0e2949e0bf25ced3eff2d974",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/f67ccd05-d971-478c-979a-bfbaf6f61b49/display"
     },
     {
       "name": "신한은행과 함께하는 2026 Brave Run",
