@@ -1550,6 +1550,26 @@
       "fee_min": 60000
     },
     {
+      "name": "2026 한국마사회와 함께하는 SPOTV NIGHT RUN",
+      "event_date": "2026-11-28",
+      "region": "경기",
+      "place": "렛츠런파크 (과천시 경마공원대로 107)",
+      "courses": [
+        "0.45km",
+        "3.5km",
+        "7km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-spotv-night-run-let-s-run-park-seoul-09137a501011467590f53bedd3c5d93c",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [
+        "야간"
+      ],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/159ace8a-766e-45aa-a3ea-1c6a81307e96/display",
+      "fee_min": 15000
+    },
+    {
       "name": "2027 서울 세계청년대회 성공 기원 평화런",
       "event_date": "2026-11-28",
       "region": "서울",
