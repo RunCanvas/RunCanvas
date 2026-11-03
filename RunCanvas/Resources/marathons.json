@@ -1541,7 +1541,7 @@
       "courses": [
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-long-run-aafaeb7ee8e740cc999eedd4ec700e1f",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -2103,7 +2103,7 @@
         "3km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/winter-run-ab2f3d202bcf42808e796eb00ab9b959",
       "source": "kormarathon.com",
       "type": "테마런",
