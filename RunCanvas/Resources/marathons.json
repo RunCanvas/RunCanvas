@@ -10,7 +10,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/seobonggi-short-marathon-d164bd5dcb774eebb1c1c3da41246433",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2118,7 +2118,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/national-marathon-association-2026-gold-run-race-9edbeefdd0fb40db98fcf9316e00c03a",
       "source": "kormarathon.com",
       "type": "대회",
@@ -2307,7 +2307,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seongnam-heritage-run-2c45567a9e3d44eda24de02de2d8eb29",
       "source": "kormarathon.com",
       "type": "테마런",
