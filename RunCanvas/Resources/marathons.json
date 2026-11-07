@@ -1,23 +1,6 @@
 {
   "events": [
     {
-      "name": "서봉기 단축마라톤대회",
-      "event_date": "2026-11-06",
-      "region": "경북",
-      "place": "문경시민운동장",
-      "courses": [
-        "3km",
-        "5km",
-        "10km"
-      ],
-      "status": null,
-      "signup_url": "https://www.kormarathon.com/ko/races/seobonggi-short-marathon-d164bd5dcb774eebb1c1c3da41246433",
-      "source": "kormarathon.com",
-      "type": "대회",
-      "tags": [],
-      "image_url": "https://www.kormarathon.com/api/request-assets/public/e7dad75c-0e41-4a99-972b-ed36214356a0/display"
-    },
-    {
       "name": "2026 Global 6K for Water in 고양",
       "event_date": "2026-11-07",
       "region": "경기",
