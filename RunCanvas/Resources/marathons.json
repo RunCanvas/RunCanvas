@@ -741,7 +741,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/seoul-life-marathon-2026-b243954a0e2949e0bf25ced3eff2d974",
       "source": "kormarathon.com",
       "type": "대회",
@@ -910,7 +910,7 @@
       "courses": [
         "16km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/busan-student-and-citizen-relay-run-0d5bce9df881499584b12ad08231e47f",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1502,7 +1502,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-hwasun-dolmen-marathon-056fe86f722045a29882f0bce46ad72f",
       "source": "kormarathon.com",
       "type": "대회",
