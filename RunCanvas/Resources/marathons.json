@@ -1284,7 +1284,7 @@
       "courses": [
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/9th-gwangjin-gu-mayor-s-cup-athletics-competition-d83e36e5d791418f9c2c339b7fca3730",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1707,7 +1707,7 @@
         "3km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/winter-run-ab2f3d202bcf42808e796eb00ab9b959",
       "source": "kormarathon.com",
       "type": "테마런",
