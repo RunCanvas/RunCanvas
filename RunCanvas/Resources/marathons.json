@@ -10,7 +10,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-yeongjong-haneulgil-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -29,7 +29,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-pohang-marathon-championship",
       "source": "kormarathon.com",
       "type": "대회",
@@ -47,7 +47,7 @@
       "courses": [
         "7km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-daejeon-reed-forest-ecox-trekking-3dee79218b9e4dbc95f263a57ab7034b",
       "source": "kormarathon.com",
       "type": "대회",
@@ -64,7 +64,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/seoul-bbangbbang-run-2026",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -83,7 +83,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/starcall-x-rolling-stone-retro-run-in-jeungpyeong-ba9581daa23746058d5b92059cde2ff6",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -102,7 +102,7 @@
         "Half",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/26th-suncheon-nam-seung-ryong-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -123,7 +123,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2nd-anyangcheon-maple-run",
       "source": "kormarathon.com",
       "type": "대회",
@@ -143,7 +143,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/jeokbyeok-river-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -162,7 +162,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/jebudo-searoad-marathon-430fbd68d1744fa79abf696c0010b754",
       "source": "kormarathon.com",
       "type": "대회",
@@ -178,7 +178,7 @@
       "courses": [
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/tongkeun-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -193,7 +193,7 @@
       "courses": [
         "84.6km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/island-of-peace-2026-prime-ministers-cup-intl-sports-for-all-relay-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1057,7 +1057,7 @@
         "3.5km",
         "7km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-spotv-night-run-let-s-run-park-seoul-09137a501011467590f53bedd3c5d93c",
       "source": "kormarathon.com",
       "type": "테마런",
