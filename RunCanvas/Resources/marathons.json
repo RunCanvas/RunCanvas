@@ -415,7 +415,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-kind-seo-gu-study-room-give-run-dfe28bfd5a4a46dcaac5d0334a35d1c2",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -638,7 +638,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/14th-ahn-jung-geun-peace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1027,7 +1027,7 @@
         "15km",
         "28km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-yonhap-news-hanam-international-trail-run-festival-44ea415725f745708495f2cc23bd8810",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1216,7 +1216,7 @@
         "5km",
         "10km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2027-new-years-sunrise-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -1268,7 +1268,7 @@
         "10km",
         "Half"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2027-polar-bear-marathon-a34e9e8dd5bc4899bd3503b5aabda316",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1446,6 +1446,24 @@
       "tags": [],
       "image_url": "https://www.kormarathon.com/api/request-assets/public/20ae406d-84c4-44c0-b7ef-c678e8e678a2/display",
       "fee_min": 35000
+    },
+    {
+      "name": "2027 무주 반딧불 하프 마라톤",
+      "event_date": "2027-03-07",
+      "region": "전북",
+      "place": "무주 등나무운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-muju-firefly-half-marathon-26741c145eca4c9390b7cfb256c78f3d",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/2bf711b2-5cc9-4ea8-a906-da0938eea2e6/display",
+      "fee_min": 5000
     },
     {
       "name": "2027 서울마라톤 (동마, 동아 마라톤)",
