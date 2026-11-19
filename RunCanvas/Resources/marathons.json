@@ -613,7 +613,7 @@
       "name": "가야왕도김해 전국어울림 마라톤대회",
       "event_date": "2026-11-29",
       "region": "경남",
-      "place": "김해롯데워터파크 제3주차장",
+      "place": "가동교차로 (김해시 한림면 가동리24-1)",
       "courses": [
         "5km",
         "10km",
@@ -1388,6 +1388,24 @@
       "tags": [],
       "image_url": "https://www.kormarathon.com/api/request-assets/public/8a678111-2afb-4772-8fdc-259d1f9a3c6b/display",
       "fee_min": 30000
+    },
+    {
+      "name": "2027 경기수원국제하프마라톤대회",
+      "event_date": "2027-02-28",
+      "region": "경기",
+      "place": "수원종합운동장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": null,
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-gyeonggi-suwon-international-half-marathon-24a89df2ff2e456c91843f4f93610d1d",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/55bfbaa0-50f3-4b18-aad4-543be45a9b3b/display",
+      "fee_min": 45000
     },
     {
       "name": "2027 고구려 마라톤",
