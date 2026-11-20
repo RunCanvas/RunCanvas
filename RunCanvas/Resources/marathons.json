@@ -693,7 +693,7 @@
         "10km",
         "23km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-moak-trail-run-41df47c07e1b4237a10110f2eef09945",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -911,7 +911,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-jeongeup-hometown-love-marathon-5b10e501c99d484f8311dea3aec5e08e",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1044,7 +1044,7 @@
         "7.5km",
         "15km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-pyeongchang-snow-run-6411481ca7cc47bd98ba976fda8088e5",
       "source": "kormarathon.com",
       "type": "테마런",
