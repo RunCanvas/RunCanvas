@@ -9,7 +9,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-asics-seoul-shinmun-go-free-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -27,7 +27,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-autumn-breeze-u-running-festa",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -63,7 +63,7 @@
       "courses": [
         "5km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/wagurun-2026-fe21ac1771bf4a60a318ddf4032a7e3e",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -98,7 +98,7 @@
         "19km",
         "27km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/k-geosang-trail-running-race-67bcddfd133646a4b5012d1377e0d84e",
       "source": "kormarathon.com",
       "type": "대회",
@@ -115,7 +115,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/just-run10-daegu-autumn-aa735c49245b451a81e08d30c909ddd5",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -133,7 +133,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/seoul-life-marathon-2026-b243954a0e2949e0bf25ced3eff2d974",
       "source": "kormarathon.com",
       "type": "대회",
@@ -149,7 +149,7 @@
         "3km",
         "5km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-brave-run-with-shinhan-bank-9edc04bbd258458981cc3ce6544614b0",
       "source": "kormarathon.com",
       "type": "테마런",
