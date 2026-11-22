@@ -8,7 +8,7 @@
       "courses": [
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-the-last-run-goodbye-jamsil-2c3264b4e42349e08ac8d2dc3b0f6a4d",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -26,7 +26,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-kim-dae-jung-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -46,7 +46,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-muju-firefly-peace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -66,7 +66,7 @@
       "courses": [
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/10k-night-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -86,7 +86,7 @@
         "10km",
         "Half"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seoul-silver-grass-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -106,7 +106,7 @@
         "10km",
         "Full"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/incheon-marathon-2026",
       "source": "kormarathon.com",
       "type": "대회",
@@ -126,7 +126,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/2026-peace-forest-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -146,7 +146,7 @@
       "courses": [
         "16km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/busan-student-and-citizen-relay-run-0d5bce9df881499584b12ad08231e47f",
       "source": "kormarathon.com",
       "type": "대회",
@@ -162,7 +162,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/smile-run-together-for-a-brighter-world",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -183,7 +183,7 @@
         "0.4km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/19th-daegu-mayor-s-cup-sports-for-all-athletics-championships-6be7c6878d9b42d4aaaa85a481ab7edf",
       "source": "kormarathon.com",
       "type": "대회",
@@ -200,7 +200,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": null,
       "signup_url": "https://www.kormarathon.com/ko/races/6th-minister-of-employment-and-labor-cup-workplace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -482,7 +482,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/14th-ahn-jung-geun-peace-marathon",
       "source": "kormarathon.com",
       "type": "대회",
@@ -1225,7 +1225,7 @@
         "Half",
         "32.2km"
       ],
-      "status": null,
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/hope-dream-24th-winter-international-marathon-2fa4f4185ca443e8b68f78819df2c113",
       "source": "kormarathon.com",
       "type": "대회",
