@@ -661,7 +661,7 @@
         "15km",
         "28km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-yonhap-news-hanam-international-trail-run-festival-44ea415725f745708495f2cc23bd8810",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -716,7 +716,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-season-end-marathon-f3610d51efff4ecea47481d8fa5f31d8",
       "source": "kormarathon.com",
       "type": "대회",
