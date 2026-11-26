@@ -360,7 +360,7 @@
         "5km",
         "10km"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-hanam-misa-lake-energy-run",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -884,7 +884,7 @@
         "10km",
         "Half"
       ],
-      "status": "open",
+      "status": "closed",
       "signup_url": "https://www.kormarathon.com/ko/races/2027-jeonmahyeop-new-year-s-marathon-11c05e58816d4e8bb0cb12d44266ca0e",
       "source": "kormarathon.com",
       "type": "대회",
