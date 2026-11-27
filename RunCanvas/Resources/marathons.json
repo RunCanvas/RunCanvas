@@ -621,7 +621,7 @@
         "5km",
         "10km"
       ],
-      "status": "closed",
+      "status": "open",
       "signup_url": "https://www.kormarathon.com/ko/races/2026-seongnam-heritage-run-2c45567a9e3d44eda24de02de2d8eb29",
       "source": "kormarathon.com",
       "type": "테마런",
@@ -723,6 +723,22 @@
       "tags": [],
       "image_url": "https://www.kormarathon.com/api/request-assets/public/c706baaa-7a89-44d3-a821-d5e129ce5e5c/display",
       "fee_min": 60000
+    },
+    {
+      "name": "2026 이순신 런 페스타",
+      "event_date": "2026-12-13",
+      "region": "충남",
+      "place": "신정호 국민관광지 야외음악당",
+      "courses": [
+        "6.4km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2026-yi-sun-sin-run-festa-09c5c89e2a2748e389a6a9c36b8ef321",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/0c606e51-8950-46b5-9d55-03510ca6eca0/display",
+      "fee_min": 10000
     },
     {
       "name": "겨울왕국 레이스",
@@ -929,6 +945,23 @@
       "fee_min": 35000
     },
     {
+      "name": "2027 초코런",
+      "event_date": "2027-02-14",
+      "region": "서울",
+      "place": "신정교하부육상트랙구장",
+      "courses": [
+        "5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/choco-run-595ea98fb26a4bbaab36222c12cbf1c0",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/90790390-6e0f-4e0c-8e7f-3c8019105547/display",
+      "fee_min": 50000
+    },
+    {
       "name": "2027 해남땅끝 전국마라톤대회",
       "event_date": "2027-02-14",
       "region": "전남",
@@ -948,6 +981,24 @@
       ],
       "image_url": "https://res.cloudinary.com/dbst091yt/image/upload/w_800,f_auto,q_auto:good/v1789196238/kormarathon/events/event-images-1789196237290.jpg",
       "fee_min": 30000
+    },
+    {
+      "name": "2027 희망 청춘 런",
+      "event_date": "2027-02-20",
+      "region": "서울",
+      "place": "신정교 하부 영롱이 억새구장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-hope-youth-run-26a1fdf2407046778f4a85807bf0ffbb",
+      "source": "kormarathon.com",
+      "type": "테마런",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/43540450-b441-453f-a59b-a52df07ec816/display",
+      "fee_min": 50000
     },
     {
       "name": "제23회 밀양아리랑 마라톤대회",
@@ -1116,6 +1167,41 @@
       "tags": [],
       "image_url": "https://www.kormarathon.com/api/request-assets/public/2bf711b2-5cc9-4ea8-a906-da0938eea2e6/display",
       "fee_min": 5000
+    },
+    {
+      "name": "2027 부천국제10km로드레이스",
+      "event_date": "2027-03-07",
+      "region": "경기",
+      "place": "부천중앙공원~심곡천 일원",
+      "courses": [
+        "3.5km",
+        "10km"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-bucheon-international-10km-road-race-b888449d3c404207891c41415985e38d",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/f1073d80-3a07-4a3f-a39f-cd9a8125f8b6/display",
+      "fee_min": 40000
+    },
+    {
+      "name": "2027 금산 인삼 웰빙 마라톤대회",
+      "event_date": "2027-03-13",
+      "region": "충남",
+      "place": "금산인삼엑스포주차장",
+      "courses": [
+        "5km",
+        "10km",
+        "Half"
+      ],
+      "status": "open",
+      "signup_url": "https://www.kormarathon.com/ko/races/2027-geumsan-ginseng-well-being-marathon-bc83cf7e1a7643be804d232caaf7e925",
+      "source": "kormarathon.com",
+      "type": "대회",
+      "tags": [],
+      "image_url": "https://www.kormarathon.com/api/request-assets/public/bc3a779d-aae6-48ce-b73b-71b1810532a6/display",
+      "fee_min": 15000
     },
     {
       "name": "2027 서울마라톤 (동마, 동아 마라톤)",
